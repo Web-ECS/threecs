@@ -1,0 +1,16 @@
+{
+  "name": "bitecs-three",
+  "version": "0.0.0",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "serve": "vite preview"
+  },
+  "devDependencies": {
+    "vite": "^2.1.5"
+  },
+  "dependencies": {
+    "bitecs": "^0.2.8",
+    "three": "^0.127.0"
+  }
+}
