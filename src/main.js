@@ -12,7 +12,7 @@ import {
 import { RendererComponent, addRendererComponent } from "./components/Renderer";
 import { Object3DComponent, addObject3DComponent } from "./components/Object3D";
 import { RotateComponent, addRotateComponent } from "./components/Rotate";
-import { RendererSystem } from "./systems/RendererSystem";
+import { RendererSystem, initRendererSystem } from "./systems/RendererSystem";
 import { RotateSystem } from "./systems/RotateSystem";
 
 const world = createWorld();
@@ -36,6 +36,7 @@ const canvas = document.getElementById("canvas");
 const rendererEid = addEntity(world);
 const renderer = new WebGLRenderer({ canvas, antialias: true });
 addRendererComponent(world, rendererEid, renderer, scene, camera);
+initRendererSystem(world);
 
 const cubeEid = addEntity(world);
 const cube = new Mesh(new BoxBufferGeometry(), new MeshBasicMaterial());

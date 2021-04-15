@@ -3,11 +3,30 @@ import { RendererComponent } from "../components/Renderer";
 
 export const rendererQuery = defineQuery([RendererComponent]);
 
+export function initRendererSystem(world) {
+  function onResize() {
+    const entities = rendererQuery(world);
+
+    entities.forEach((eid) => {
+      const component = RendererComponent.get(eid);
+      component.needsResize = true;
+    });
+  }
+
+  // TODO: Probably debounce the resize event callback
+  window.addEventListener("resize", onResize);
+
+  return () => {
+    window.removeEventListener("resize", onResize);
+  };
+}
+
 export const RendererSystem = defineSystem((world) => {
   const entities = rendererQuery(world);
 
   entities.forEach((eid) => {
-    const { renderer, scene, camera, needsResize } = RendererComponent.get(eid);
+    const component = RendererComponent.get(eid);
+    const { renderer, scene, camera, needsResize } = component;
 
     if (scene && camera) {
       if (needsResize) {
@@ -17,6 +36,8 @@ export const RendererSystem = defineSystem((world) => {
         }
 
         renderer.setSize(window.innerWidth, window.innerHeight, false);
+
+        component.needsResize = false;
       }
 
       renderer.render(scene, camera);
