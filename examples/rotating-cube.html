@@ -1,0 +1,108 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>threecs | Examples: Rotating Cube</title>
+    <style>
+      html, body {
+        margin: 0;
+        background-color: black
+      }
+    </style>
+  </head>
+  <body>
+    <script type="module">
+      import { addEntity, createWorld, registerComponents, pipe, defineQuery, defineSystem, defineComponent, addComponent, removeComponent  } from "bitecs";
+      import {
+        WebGLRenderer,
+        Scene,
+        PerspectiveCamera,
+        Clock,
+        Mesh,
+        BoxBufferGeometry,
+        MeshBasicMaterial,
+        Vector3,
+        TextureLoader,
+      } from "three";
+      import {
+        RendererComponent,
+        addRendererComponent,
+        Object3DComponent,
+        addObject3DComponent,
+        RendererSystem,
+        initRendererSystem,
+      } from "../src/threecs";
+      import crateTextureUrl from "./assets/crate.gif";
+
+      const RotateComponent = defineComponent(new Map());
+
+      function addRotateComponent(world, eid, axis, speed) {
+        addComponent(world, RotateComponent, eid);
+        RotateComponent.set(eid, { axis, speed });
+      }
+
+      function removeRotateComponent(world, eid) {
+        removeComponent(world, RotateComponent, eid);
+        RotateComponent.delete(eid);
+      }
+
+      const rotateQuery = defineQuery([RotateComponent, Object3DComponent]);
+
+      const RotateSystem = defineSystem((world) => {
+        const entities = rotateQuery(world);
+
+        entities.forEach((eid) => {
+          const dt = world.dt;
+          const object3D = Object3DComponent.get(eid);
+          const { speed, axis } = RotateComponent.get(eid);
+          object3D.rotateOnAxis(axis, speed * dt);
+        });
+      });
+
+      const world = createWorld();
+
+      registerComponents(world, [
+        RendererComponent,
+        Object3DComponent,
+        RotateComponent,
+      ]);
+
+      const sceneEid = addEntity(world);
+      const scene = new Scene();
+      addObject3DComponent(world, sceneEid, scene);
+
+      const cameraEid = addEntity(world);
+      const camera = new PerspectiveCamera();
+      camera.position.z = 5;
+      addObject3DComponent(world, cameraEid, camera);
+
+      const canvas = document.getElementById("canvas");
+      const rendererEid = addEntity(world);
+      const renderer = new WebGLRenderer({ antialias: true });
+      renderer.setPixelRatio(window.devicePixelRatio);
+      document.body.appendChild(renderer.domElement);
+      addRendererComponent(world, rendererEid, renderer, scene, camera);
+      initRendererSystem(world);
+
+      const cubeEid = addEntity(world);
+      const crateTexture = new TextureLoader().load(crateTextureUrl);
+      const cube = new Mesh(
+        new BoxBufferGeometry(),
+        new MeshBasicMaterial({ map: crateTexture })
+      );
+      addRotateComponent(world, cubeEid, new Vector3(0.5, 1, 0).normalize(), 1);
+      addObject3DComponent(world, cubeEid, cube);
+      scene.add(cube);
+
+      const pipeline = pipe([RotateSystem, RendererSystem]);
+
+      const clock = new Clock();
+
+      renderer.setAnimationLoop(() => {
+        world.dt = clock.getDelta();
+        pipeline(world);
+      });
+    </script>
+  </body>
+</html>

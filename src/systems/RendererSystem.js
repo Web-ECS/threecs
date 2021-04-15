@@ -1,5 +1,5 @@
 import { defineQuery, defineSystem } from "bitecs";
-import { RendererComponent } from "../components/Renderer";
+import { RendererComponent } from "../components/RendererComponent";
 
 export const rendererQuery = defineQuery([RendererComponent]);
 
@@ -35,7 +35,7 @@ export const RendererSystem = defineSystem((world) => {
           camera.updateProjectionMatrix();
         }
 
-        renderer.setSize(window.innerWidth, window.innerHeight, false);
+        renderer.setSize(window.innerWidth, window.innerHeight);
 
         component.needsResize = false;
       }

@@ -1,16 +1,30 @@
 {
-  "name": "bitecs-three",
+  "name": "threecs",
   "version": "0.0.0",
+  "files": [
+    "dist"
+  ],
+  "main": "./dist/threecs.cjs.js",
+  "module": "./dist/threecs.es.js",
+  "exports": {
+    ".": {
+      "import": "./dist/threecs.es.js",
+      "require": "./dist/threecs.cjs.js"
+    }
+  },
   "scripts": {
     "dev": "vite",
     "build": "vite build",
-    "serve": "vite preview"
+    "build-site": "vite build --mode site",
+    "preview-site": "vite preview"
   },
   "devDependencies": {
+    "bitecs": "^0.2.12",
+    "three": "^0.127.0",
     "vite": "^2.1.5"
   },
-  "dependencies": {
-    "bitecs": "^0.2.12",
-    "three": "^0.127.0"
+  "peerDependencies": {
+    "bitecs": "~0.2.12",
+    "three": "~0.127.0"
   }
 }
