@@ -10,7 +10,6 @@ export function addRendererComponent(world, eid, renderer, scene, camera) {
     needsResize: true,
   });
   addComponent(world, RendererComponent, eid);
-  return component;
 }
 
 export function removeRendererComponent(world, eid) {

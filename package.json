@@ -10,7 +10,7 @@
     "vite": "^2.1.5"
   },
   "dependencies": {
-    "bitecs": "^0.2.11",
+    "bitecs": "^0.2.12",
     "three": "^0.127.0"
   }
 }
