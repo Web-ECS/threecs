@@ -39,7 +39,7 @@ addRendererComponent(world, rendererEid, renderer, scene, camera);
 
 const cubeEid = addEntity(world);
 const cube = new Mesh(new BoxBufferGeometry(), new MeshBasicMaterial());
-addRotateComponent(world, cubeEid, new Vector3(0.5, 1, 0), 1);
+addRotateComponent(world, cubeEid, new Vector3(0.5, 1, 0).normalize(), 1);
 addObject3DComponent(world, cubeEid, cube);
 scene.add(cube);
 
