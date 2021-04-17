@@ -4,24 +4,17 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>threecs | Examples: Rotating Cube</title>
-    <link rel="stylesheet" href="./styles.css"/>
+    <link rel="stylesheet" href="./styles.css" />
   </head>
   <body>
     <script type="module">
       import {
-        addEntity,
-        createWorld,
         registerComponents,
-        pipe,
         defineQuery,
         defineSystem,
         defineComponent,
       } from "bitecs";
       import {
-        WebGLRenderer,
-        Scene,
-        PerspectiveCamera,
-        Clock,
         Mesh,
         BoxBufferGeometry,
         MeshBasicMaterial,
@@ -29,13 +22,9 @@
         TextureLoader,
       } from "three";
       import {
-        RendererComponent,
+        createThreeWorld,
         Object3DComponent,
-        addObject3DComponent,
-        RendererSystem,
-        initRendererSystem,
         addObject3DEntity,
-        initObject3DStorage,
         addMapComponent,
       } from "../src/threecs";
       import crateTextureUrl from "./assets/crate.gif";
@@ -55,36 +44,12 @@
         });
       });
 
-      const world = createWorld();
-      initObject3DStorage(world);
-
-      registerComponents(world, [
-        RendererComponent,
-        Object3DComponent,
-        RotateComponent,
-      ]);
-
-      const scene = new Scene();
-      const sceneEid = addObject3DEntity(world, scene);
-
-      const camera = new PerspectiveCamera();
-      camera.position.z = 5;
-      const cameraEid = addObject3DEntity(world, camera, scene);
-
-      const canvas = document.getElementById("canvas");
-      const rendererEid = addEntity(world);
-      const renderer = new WebGLRenderer({ antialias: true });
-      renderer.setPixelRatio(window.devicePixelRatio);
-      document.body.appendChild(renderer.domElement);
-      addMapComponent(world, RendererComponent, rendererEid, {
-        renderer,
-        scene,
-        camera,
-        needsResize: true,
+      const { world, scene, camera, start } = createThreeWorld({
+        beforeRenderSystems: [RotateSystem],
+        components:  [RotateComponent]
       });
-      initRendererSystem(world);
 
-      const clock = new Clock();
+      camera.position.z = 5;
 
       const crateTexture = new TextureLoader().load(crateTextureUrl);
       const cube = new Mesh(
@@ -97,13 +62,7 @@
         speed: 1,
       });
 
-      const pipeline = pipe([RotateSystem, RendererSystem]);
-
-      renderer.setAnimationLoop(() => {
-        world.dt = clock.getDelta();
-        world.time = clock.getElapsedTime();
-        pipeline(world);
-      });
+      start();
     </script>
   </body>
 </html>
