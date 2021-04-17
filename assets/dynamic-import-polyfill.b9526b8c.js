@@ -33,4 +33,4 @@ const p = function polyfill(modulePath = ".", importFunctionName = "__import__")
     self[importFunctionName].moduleMap = {};
   }
 };
-p("/assets/");
+p("/threecs/assets/");

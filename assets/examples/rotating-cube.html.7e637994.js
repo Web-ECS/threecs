@@ -1,4 +1,4 @@
-import "../dynamic-import-polyfill.b3685604.js";
+import "../dynamic-import-polyfill.b9526b8c.js";
 import {d as defineComponent, a as addComponent, b as addEntity, r as removeEntity, c as removeComponent, e as defineSystem, f as defineQuery, T as Types, g as registerComponents, S as Scene, P as PerspectiveCamera, W as WebGLRenderer, h as TextureLoader, M as Mesh, B as BoxGeometry, i as MeshBasicMaterial, V as Vector3, j as createWorld, C as Clock, p as pipe} from "../vendor.af7b9a23.js";
 const RendererComponent = defineComponent(new Map());
 function addRendererComponent(world2, eid, renderer2, scene2, camera2) {
@@ -90,7 +90,7 @@ const RendererSystem = defineSystem((world2) => {
     }
   });
 });
-var crateTextureUrl = "/assets/crate.a890f0a8.gif";
+var crateTextureUrl = "/threecs/assets/crate.a890f0a8.gif";
 const RotateComponent = defineComponent(new Map());
 function addRotateComponent(world2, eid, axis, speed) {
   addComponent(world2, RotateComponent, eid);
