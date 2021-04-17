@@ -35,8 +35,8 @@ export default ({ command, mode }) => {
     }
 
     return {
+      base,
       build: {
-        base,
         outDir: path.resolve(__dirname, "site"),
         minify: false,
         rollupOptions: {
