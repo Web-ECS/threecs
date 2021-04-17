@@ -18652,4 +18652,4 @@ if (typeof window !== "undefined") {
     window.__THREE__ = REVISION;
   }
 }
-export {BoxGeometry as B, Clock as C, Mesh as M, PerspectiveCamera as P, Scene as S, TextureLoader as T, Vector3 as V, WebGLRenderer as W, addComponent as a, addEntity as b, removeComponent as c, defineComponent as d, defineSystem as e, defineQuery as f, registerComponents as g, MeshBasicMaterial as h, Types as i, createWorld as j, pipe as p, removeEntity as r};
+export {BoxGeometry as B, Clock as C, Mesh as M, PerspectiveCamera as P, Scene as S, TextureLoader as T, Vector3 as V, WebGLRenderer as W, defineSystem as a, addEntity as b, MeshBasicMaterial as c, defineComponent as d, addComponent as e, Types as f, createWorld as g, defineQuery as h, removeEntity as i, removeComponent as j, pipe as p, registerComponents as r};
