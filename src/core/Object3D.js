@@ -5,6 +5,7 @@ import {
   addComponent,
   removeComponent,
 } from "bitecs";
+import { addMapComponent, removeMapComponent } from "./MapComponent";
 
 const $object3DEntityMap = Symbol("object3DEntityMap");
 
@@ -19,8 +20,7 @@ export function addObject3DComponent(world, eid, obj, parent) {
     parent.add(obj);
   }
 
-  addComponent(world, Object3DComponent, eid);
-  Object3DComponent.set(eid, obj);
+  addMapComponent(world, Object3DComponent, eid, obj);
   world[$object3DEntityMap].set(obj, eid);
 }
 
@@ -41,8 +41,7 @@ export function removeObject3DComponent(world, eid) {
     obj.parent.remove(obj);
   }
 
-  removeComponent(world, Object3DComponent, eid);
-  Object3DComponent.delete(eid);
+  removeMapComponent(world, Object3DComponent, eid);
   world[$object3DEntityMap].delete(obj);
 
   obj.traverse((child) => {
@@ -70,7 +69,6 @@ export function getObject3DEntity(world, obj) {
 }
 
 export function setEntityObject3D(world, eid, obj) {
-  addComponent(world, Object3DComponent, eid);
-  Object3DComponent.set(eid, obj);
+  addMapComponent(world, Object3DComponent, eid, obj);
   world[$object3DEntityMap].set(obj, eid);
 }
