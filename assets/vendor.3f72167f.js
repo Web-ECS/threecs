@@ -60,6 +60,10 @@ const $queryShadow = Symbol("queryShadow");
 const $serializeShadow = Symbol("$serializeShadow");
 const alloc = (schema, size = 1e6) => {
   const $manager = Symbol("manager");
+  if (schema.constructor.name === "Map") {
+    schema[$managerSize] = size;
+    return schema;
+  }
   managers[$manager] = {
     [$managerSize]: size,
     [$managerMaps]: {},
@@ -321,7 +325,7 @@ const commitEntityRemovals = (world) => {
     if (enabled[eid2] === 0)
       continue;
     queries.forEach((query) => {
-      queryRemoveEntity(query, eid2);
+      queryRemoveEntity(world, query, eid2);
     });
     removed.push(eid2);
     enabled[eid2] = 0;
@@ -380,13 +384,18 @@ const registerQuery = (world, query) => {
       components.push(c);
     }
   });
+  const mapComponents = (c) => world[$componentMap].get(c);
   const size = components.reduce((a, c) => c[$managerSize] > a ? c[$managerSize] : a, 0);
   const entities = [];
   const changed = [];
   const indices = new Uint32Array(size);
   const enabled = new Uint8Array(size);
-  const generations = components.map((c) => world[$componentMap].get(c).generationId);
-  const mapComponents = (c) => world[$componentMap].get(c);
+  const generations = components.concat(notComponents).map(mapComponents).map((c) => c.generationId).reduce((a, v) => {
+    if (a.includes(v))
+      return a;
+    a.push(v);
+    return a;
+  }, []);
   const reduceBitmasks = (a, c) => {
     if (!a[c.generationId])
       a[c.generationId] = 0;
@@ -394,7 +403,12 @@ const registerQuery = (world, query) => {
     return a;
   };
   const masks = components.map(mapComponents).reduce(reduceBitmasks, {});
-  const notMasks = notComponents.map((c) => world[$componentMap].get(c)).reduce(reduceBitmasks, {});
+  const notMasks = components.map(mapComponents).reduce((a, c) => {
+    if (!a[c.generationId] && notComponents.includes(c))
+      a[c.generationId] = 0;
+    a[c.generationId] |= c.bitflag;
+    return a;
+  }, {});
   const flatProps = components.map((c) => c._flatten ? c._flatten() : [c]).reduce((a, v) => a.concat(v), []);
   Object.assign(world[$queryMap].get(query), {
     entities,
@@ -482,10 +496,10 @@ const queryRemoveEntity = (world, query, eid2) => {
 };
 const $componentMap = Symbol("componentMap");
 const $deferredComponentRemovals = Symbol("de$deferredComponentRemovals");
-const defineComponent = (schema) => schema.constructor.name === "Map" ? schema : alloc(schema);
+const defineComponent = (schema) => alloc(schema);
 const incrementBitflag = (world) => {
   world[$bitflag] *= 2;
-  if (world[$bitflag] >= Math.pow(2, 32)) {
+  if (world[$bitflag] >= 2 ** 32) {
     world[$bitflag] = 1;
     world[$entityMasks].push(new Uint32Array(world[$size]));
   }
@@ -557,7 +571,7 @@ const $bitflag = Symbol("bitflag");
 const createWorld = (size = 1e6) => {
   const world = {};
   world[$size] = size;
-  world[$entityEnabled] = new Uint8Array(world[$size]);
+  world[$entityEnabled] = new Uint8Array(size);
   world[$entityMasks] = [new Uint32Array(size)];
   world[$removedEntities] = [];
   world[$bitflag] = 1;
@@ -18638,4 +18652,4 @@ if (typeof window !== "undefined") {
     window.__THREE__ = REVISION;
   }
 }
-export {BoxGeometry as B, Clock as C, Mesh as M, PerspectiveCamera as P, Scene as S, Types as T, Vector3 as V, WebGLRenderer as W, addComponent as a, addEntity as b, removeComponent as c, defineComponent as d, defineSystem as e, defineQuery as f, registerComponents as g, TextureLoader as h, MeshBasicMaterial as i, createWorld as j, pipe as p, removeEntity as r};
+export {BoxGeometry as B, Clock as C, Mesh as M, PerspectiveCamera as P, Scene as S, TextureLoader as T, Vector3 as V, WebGLRenderer as W, addComponent as a, addEntity as b, removeComponent as c, defineComponent as d, defineSystem as e, defineQuery as f, registerComponents as g, MeshBasicMaterial as h, Types as i, createWorld as j, pipe as p, removeEntity as r};

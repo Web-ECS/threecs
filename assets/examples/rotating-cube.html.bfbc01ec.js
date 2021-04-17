@@ -1,5 +1,5 @@
 import "../dynamic-import-polyfill.b9526b8c.js";
-import {d as defineComponent, a as addComponent, b as addEntity, r as removeEntity, c as removeComponent, e as defineSystem, f as defineQuery, T as Types, g as registerComponents, S as Scene, P as PerspectiveCamera, W as WebGLRenderer, h as TextureLoader, M as Mesh, B as BoxGeometry, i as MeshBasicMaterial, V as Vector3, j as createWorld, C as Clock, p as pipe} from "../vendor.af7b9a23.js";
+import {d as defineComponent, a as addComponent, b as addEntity, r as removeEntity, c as removeComponent, e as defineSystem, f as defineQuery, g as registerComponents, S as Scene, P as PerspectiveCamera, W as WebGLRenderer, T as TextureLoader, M as Mesh, B as BoxGeometry, h as MeshBasicMaterial, V as Vector3, i as Types, j as createWorld, C as Clock, p as pipe} from "../vendor.3f72167f.js";
 const RendererComponent = defineComponent(new Map());
 function addRendererComponent(world2, eid, renderer2, scene2, camera2) {
   addComponent(world2, RendererComponent, eid);
