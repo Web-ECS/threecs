@@ -27,8 +27,16 @@ function getHtmlPaths(dirPath = __dirname, htmlPaths = {}) {
 
 export default ({ command, mode }) => {
   if (mode === "site" || command === "serve") {
+    let base = "/";
+    const repo = process.env.GITHUB_REPOSITORY;
+
+    if (repo) {
+      base = `/${repo.split("/")[1]}/`;
+    }
+
     return {
       build: {
+        base,
         outDir: path.resolve(__dirname, "site"),
         minify: false,
         rollupOptions: {

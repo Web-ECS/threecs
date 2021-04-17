@@ -21,8 +21,7 @@ jobs:
 
       - name: Install and Build
         run: |
-          npm -v
-          npm ci --no-optional
+          npm ci
           npm run build-site
 
       - name: Deploy to gh-pages
