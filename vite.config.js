@@ -48,6 +48,10 @@ export default ({ command, mode }) => {
         rollupOptions: {
           external: ["three", "bitecs"],
         },
+        // Use when npm linking bitecs
+        // optimizeDeps: {
+        //   exclude: ["bitecs"],
+        // },
       },
     };
   }

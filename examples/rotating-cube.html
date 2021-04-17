@@ -13,7 +13,7 @@
   </head>
   <body>
     <script type="module">
-      import { addEntity, createWorld, registerComponents, pipe, defineQuery, defineSystem, defineComponent, addComponent, removeComponent  } from "bitecs";
+      import { addEntity, createWorld, registerComponents, pipe, defineQuery, defineSystem, defineComponent, addComponent, removeComponent, Types } from "bitecs";
       import {
         WebGLRenderer,
         Scene,
@@ -32,6 +32,9 @@
         addObject3DComponent,
         RendererSystem,
         initRendererSystem,
+        addObject3DEntity,
+        initObject3DStorage,
+        removeObject3DEntity
       } from "../src/threecs";
       import crateTextureUrl from "./assets/crate.gif";
 
@@ -60,22 +63,40 @@
         });
       });
 
+      const DeferredRemovalComponent = defineComponent({
+        removeAfter: Types.f32
+      });
+
+      const deferredRemovalQuery = defineQuery([DeferredRemovalComponent, Object3DComponent]);
+
+      const DeferredRemovalSystem = defineSystem((world) => {
+        const entities = deferredRemovalQuery(world);
+
+        entities.forEach((eid) => {
+          const removeAfter = DeferredRemovalComponent.removeAfter[eid];
+
+          if (world.time > removeAfter) {
+            removeObject3DEntity(world, eid);
+          }
+        });
+      });
+
       const world = createWorld();
+      initObject3DStorage(world);
 
       registerComponents(world, [
         RendererComponent,
         Object3DComponent,
         RotateComponent,
+        DeferredRemovalComponent
       ]);
 
-      const sceneEid = addEntity(world);
       const scene = new Scene();
-      addObject3DComponent(world, sceneEid, scene);
+      const sceneEid = addObject3DEntity(world, scene);
 
-      const cameraEid = addEntity(world);
       const camera = new PerspectiveCamera();
       camera.position.z = 5;
-      addObject3DComponent(world, cameraEid, camera);
+      const cameraEid = addObject3DEntity(world, camera, scene);
 
       const canvas = document.getElementById("canvas");
       const rendererEid = addEntity(world);
@@ -85,22 +106,30 @@
       addRendererComponent(world, rendererEid, renderer, scene, camera);
       initRendererSystem(world);
 
-      const cubeEid = addEntity(world);
+      const clock = new Clock();
+
       const crateTexture = new TextureLoader().load(crateTextureUrl);
       const cube = new Mesh(
         new BoxBufferGeometry(),
         new MeshBasicMaterial({ map: crateTexture })
       );
+      const cubeEid = addObject3DEntity(world, cube, scene);
       addRotateComponent(world, cubeEid, new Vector3(0.5, 1, 0).normalize(), 1);
-      addObject3DComponent(world, cubeEid, cube);
-      scene.add(cube);
+      addComponent(world, DeferredRemovalComponent, cubeEid);
+      DeferredRemovalComponent.removeAfter[cubeEid] = clock.getElapsedTime() + 1;
+      const cube2 = new Mesh(
+        new BoxBufferGeometry(),
+        new MeshBasicMaterial({ map: crateTexture })
+      );
+      const cube2Eid = addObject3DEntity(world, cube2, cube);
+      addRotateComponent(world, cube2Eid, new Vector3(0.5, 1, 0).normalize(), 1);
+      cube2.position.x = 1;
 
-      const pipeline = pipe([RotateSystem, RendererSystem]);
-
-      const clock = new Clock();
+      const pipeline = pipe([RotateSystem, DeferredRemovalSystem, RendererSystem]);
 
       renderer.setAnimationLoop(() => {
         world.dt = clock.getDelta();
+        world.time = clock.getElapsedTime();
         pipeline(world);
       });
     </script>
