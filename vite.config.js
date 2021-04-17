@@ -26,6 +26,8 @@ function getHtmlPaths(dirPath = __dirname, htmlPaths = {}) {
 }
 
 export default ({ command, mode }) => {
+  console.log(process.env.GITHUB_REPOSITORY);
+
   if (mode === "site" || command === "serve") {
     let base = "/";
     const repo = process.env.GITHUB_REPOSITORY;
