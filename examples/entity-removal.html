@@ -28,7 +28,7 @@
         Object3DComponent,
         addObject3DEntity,
         addMapComponent,
-        removeObject3DEntity
+        removeObject3DEntity,
       } from "../src/threecs";
       import crateTextureUrl from "./assets/crate.gif";
 
@@ -48,10 +48,13 @@
       });
 
       const DeferredRemovalComponent = defineComponent({
-        removeAfter: Types.f32
+        removeAfter: Types.f32,
       });
 
-      const deferredRemovalQuery = defineQuery([DeferredRemovalComponent, Object3DComponent]);
+      const deferredRemovalQuery = defineQuery([
+        DeferredRemovalComponent,
+        Object3DComponent,
+      ]);
 
       const DeferredRemovalSystem = defineSystem((world) => {
         const entities = deferredRemovalQuery(world);
@@ -67,7 +70,7 @@
 
       const { world, scene, camera, start } = createThreeWorld({
         beforeRenderSystems: [DeferredRemovalSystem, RotateSystem],
-        components:  [RotateComponent, DeferredRemovalComponent]
+        components: [RotateComponent, DeferredRemovalComponent],
       });
 
       camera.position.z = 5;
