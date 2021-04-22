@@ -1,4 +1,10 @@
-import { addEntity, createWorld, registerComponents, pipe } from "bitecs";
+import {
+  addEntity,
+  createWorld,
+  registerComponents,
+  pipe,
+  addComponent,
+} from "bitecs";
 import { WebGLRenderer, Scene, PerspectiveCamera, Clock } from "three";
 import { RendererComponent } from "../components/RendererComponent";
 import { initRendererSystem, RendererSystem } from "../systems/RendererSystem";
@@ -6,6 +12,7 @@ import {
   Object3DComponent,
   addObject3DEntity,
   initObject3DStorage,
+  addObject3DComponent,
 } from "../core/Object3D";
 import { addMapComponent } from "../core/MapComponent";
 
@@ -83,4 +90,93 @@ export function createThreeWorld(options = {}) {
       });
     },
   };
+}
+
+const EntityTargets = {
+  scene: "sceneEid",
+  camera: "cameraEid",
+  renderer: "rendererEid",
+};
+
+const PropertyInflators = {
+  position: (_world, eid, value) => {
+    const obj = Object3DComponent.get(eid);
+    obj.position.copy(value);
+  },
+};
+
+export function bootstrapThreeWorld(worldDef) {
+  const { entities, ...worldOptions } = worldDef;
+
+  const ctx = createThreeWorld(worldOptions);
+
+  const world = ctx.world;
+
+  function inflateEntity(entityDef, parentEid = null) {
+    let eid;
+
+    if (entityDef.target) {
+      const ctxKey = EntityTargets[entityDef.target];
+
+      if (!Object.prototype.hasOwnProperty.call(ctx, ctxKey)) {
+        throw new Error(`Couldn't find entity target "${entityDef.target}"`);
+      }
+
+      eid = ctx[ctxKey];
+    } else {
+      eid = addEntity(world);
+    }
+
+    if (entityDef.object3D) {
+      addObject3DComponent(world, eid, entityDef.object3D);
+    }
+
+    for (const key in entityDef) {
+      if (!Object.prototype.hasOwnProperty.call(entityDef, key)) {
+        continue;
+      }
+
+      const inflator = PropertyInflators[key];
+
+      if (inflator) {
+        inflator(world, eid, entityDef[key]);
+      }
+    }
+
+    if (entityDef.components) {
+      for (const [component, props] of entityDef.components) {
+        addComponent(world, component, eid);
+
+        if (component instanceof Map) {
+          component.set(eid, props);
+        } else {
+          console.log(component);
+          component._set(eid, props);
+        }
+      }
+    }
+
+    const obj = Object3DComponent.get(eid);
+    const parentObj = Object3DComponent.get(parentEid);
+
+    if (obj && parentObj) {
+      parentObj.add(obj);
+    }
+
+    if (entityDef.children) {
+      for (const childDef of entityDef.children) {
+        inflateEntity(childDef, eid);
+      }
+    }
+  }
+
+  if (entities) {
+    for (const entityDef of entities) {
+      inflateEntity(entityDef);
+    }
+  }
+
+  ctx.start();
+
+  return world;
 }

@@ -19,12 +19,12 @@
     "preview-site": "vite preview"
   },
   "devDependencies": {
-    "bitecs": "robertlong/bitECS#dev",
+    "bitecs": "0.2.15",
     "three": "^0.127.0",
     "vite": "^2.1.5"
   },
   "peerDependencies": {
-    "bitecs": "^0.2.13",
+    "bitecs": "^0.2.15",
     "three": "~0.127.0"
   }
 }

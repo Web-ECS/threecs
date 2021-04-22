@@ -24,7 +24,7 @@
         TextureLoader,
       } from "three";
       import {
-        createThreeWorld,
+        bootstrapThreeWorld,
         Object3DComponent,
         addObject3DEntity,
         addMapComponent,
@@ -68,37 +68,50 @@
         });
       });
 
-      const { world, scene, camera, start } = createThreeWorld({
-        beforeRenderSystems: [DeferredRemovalSystem, RotateSystem],
-        components: [RotateComponent, DeferredRemovalComponent],
-      });
-
-      camera.position.z = 5;
-
       const crateTexture = new TextureLoader().load(crateTextureUrl);
-      const cube = new Mesh(
-        new BoxBufferGeometry(),
-        new MeshBasicMaterial({ map: crateTexture })
-      );
-      const cubeEid = addObject3DEntity(world, cube, scene);
-      addMapComponent(world, RotateComponent, cubeEid, {
-        axis: new Vector3(0.5, 1, 0).normalize(),
-        speed: 1,
-      });
-      addComponent(world, DeferredRemovalComponent, cubeEid);
-      DeferredRemovalComponent.removeAfter[cubeEid] = 1;
-      const cube2 = new Mesh(
-        new BoxBufferGeometry(),
-        new MeshBasicMaterial({ map: crateTexture })
-      );
-      const cube2Eid = addObject3DEntity(world, cube2, cube);
-      addMapComponent(world, RotateComponent, cube2Eid, {
-        axis: new Vector3(0.5, 1, 0).normalize(),
-        speed: 1,
-      });
-      cube2.position.x = 1;
 
-      start();
+      bootstrapThreeWorld({
+        beforeRenderSystems: [DeferredRemovalSystem, RotateSystem],
+        entities: [
+          {
+            target: "scene",
+            children: [
+              {
+                target: "camera",
+                position: new Vector3(0, 0, 5),
+              },
+              {
+                object3D: new Mesh(
+                  new BoxBufferGeometry(),
+                  new MeshBasicMaterial({ map: crateTexture })
+                ),
+                components: [
+                  [
+                    RotateComponent,
+                    { axis: new Vector3(0.5, 1, 0).normalize(), speed: 1 },
+                  ],
+                  [DeferredRemovalComponent, { removeAfter: 1 }],
+                ],
+                children: [
+                  {
+                    object3D: new Mesh(
+                      new BoxBufferGeometry(),
+                      new MeshBasicMaterial({ map: crateTexture })
+                    ),
+                    position: new Vector3(1, 0, 0),
+                    components: [
+                      [
+                        RotateComponent,
+                        { axis: new Vector3(0.5, 1, 0).normalize(), speed: 1 },
+                      ],
+                    ],
+                  },
+                ],
+              },
+            ],
+          },
+        ],
+      });
     </script>
   </body>
 </html>

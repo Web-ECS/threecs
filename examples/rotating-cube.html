@@ -8,12 +8,7 @@
   </head>
   <body>
     <script type="module">
-      import {
-        registerComponents,
-        defineQuery,
-        defineSystem,
-        defineComponent,
-      } from "bitecs";
+      import { defineQuery, defineSystem, defineComponent } from "bitecs";
       import {
         Mesh,
         BoxBufferGeometry,
@@ -21,12 +16,7 @@
         Vector3,
         TextureLoader,
       } from "three";
-      import {
-        createThreeWorld,
-        Object3DComponent,
-        addObject3DEntity,
-        addMapComponent,
-      } from "../src/threecs";
+      import { bootstrapThreeWorld, Object3DComponent } from "../src/threecs";
       import crateTextureUrl from "./assets/crate.gif";
 
       const RotateComponent = defineComponent(new Map());
@@ -44,25 +34,34 @@
         });
       });
 
-      const { world, scene, camera, start } = createThreeWorld({
-        beforeRenderSystems: [RotateSystem],
-        components: [RotateComponent],
-      });
-
-      camera.position.z = 5;
-
       const crateTexture = new TextureLoader().load(crateTextureUrl);
-      const cube = new Mesh(
-        new BoxBufferGeometry(),
-        new MeshBasicMaterial({ map: crateTexture })
-      );
-      const cubeEid = addObject3DEntity(world, cube, scene);
-      addMapComponent(world, RotateComponent, cubeEid, {
-        axis: new Vector3(0.5, 1, 0).normalize(),
-        speed: 1,
-      });
 
-      start();
+      bootstrapThreeWorld({
+        beforeRenderSystems: [RotateSystem],
+        entities: [
+          {
+            target: "scene",
+            children: [
+              {
+                target: "camera",
+                position: new Vector3(0, 0, 5),
+              },
+              {
+                object3D: new Mesh(
+                  new BoxBufferGeometry(),
+                  new MeshBasicMaterial({ map: crateTexture })
+                ),
+                components: [
+                  [
+                    RotateComponent,
+                    { axis: new Vector3(0.5, 1, 0).normalize(), speed: 1 },
+                  ],
+                ],
+              },
+            ],
+          },
+        ],
+      });
     </script>
   </body>
 </html>
