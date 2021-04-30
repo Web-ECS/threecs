@@ -1,5 +1,5 @@
 import { defineQuery, defineSystem, IWorld } from "bitecs";
-import { Camera, PerspectiveCamera } from "three";
+import { PerspectiveCamera } from "three";
 import {
   CameraComponent,
   SceneComponent,
@@ -49,12 +49,14 @@ export const RendererSystem = defineSystem((world) => {
 
     if (scene && camera) {
       if (needsResize) {
+        const canvas = renderer.domElement;
+
         if (camera.isPerspectiveCamera) {
-          camera.aspect = window.innerWidth / window.innerHeight;
+          camera.aspect = canvas.clientWidth / canvas.clientHeight;
           camera.updateProjectionMatrix();
         }
 
-        renderer.setSize(window.innerWidth, window.innerHeight);
+        renderer.setSize(canvas.clientWidth, canvas.clientHeight, false);
 
         rendererComponent.needsResize = false;
       }

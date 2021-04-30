@@ -26,6 +26,7 @@ function getHtmlPaths(dirPath = __dirname, htmlPaths = {}) {
 }
 
 export default ({ command, mode }) => {
+  console.log(command, mode);
   if (mode === "site" || command === "serve") {
     let base = "/";
     const repo = process.env.GITHUB_REPOSITORY;
@@ -54,12 +55,12 @@ export default ({ command, mode }) => {
         },
         minify: false,
         rollupOptions: {
-          external: ["three", "bitecs"],
+          external: ["three", /^three\//, "bitecs"],
         },
         // Use when npm linking bitecs
-        optimizeDeps: {
-          exclude: ["bitecs"],
-        },
+        // optimizeDeps: {
+        //   exclude: ["bitecs"],
+        // },
       },
     };
   }
