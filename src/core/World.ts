@@ -81,6 +81,14 @@ export function createThreeWorld(options: GLTFWorldOptions = {}) {
     document.body.appendChild(renderer.domElement);
   }
 
+  const canvasParentStyle = renderer.domElement.parentElement!.style;
+  canvasParentStyle.position = "relative";
+
+  const canvasStyle = renderer.domElement.style;
+  canvasStyle.position = "absolute";
+  canvasStyle.width = "100%";
+  canvasStyle.height = "100%";
+
   addMapComponent(world, RendererComponent, rendererEid, {
     renderer,
     needsResize: true,

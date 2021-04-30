@@ -49,14 +49,18 @@ export const RendererSystem = defineSystem((world) => {
 
     if (scene && camera) {
       if (needsResize) {
-        const canvas = renderer.domElement;
+        const canvasParent = renderer.domElement.parentElement as HTMLElement;
 
         if (camera.isPerspectiveCamera) {
-          camera.aspect = canvas.clientWidth / canvas.clientHeight;
+          camera.aspect = canvasParent.clientWidth / canvasParent.clientHeight;
           camera.updateProjectionMatrix();
         }
 
-        renderer.setSize(canvas.clientWidth, canvas.clientHeight, false);
+        renderer.setSize(
+          canvasParent.clientWidth,
+          canvasParent.clientHeight,
+          false
+        );
 
         rendererComponent.needsResize = false;
       }
