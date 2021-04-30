@@ -26,6 +26,18 @@ const TYPES_ENUM = {
   f32: "f32",
   f64: "f64"
 };
+const TYPES_NAMES = {
+  bool: "Uint8",
+  i8: "Int8",
+  ui8: "Uint8",
+  ui8c: "Uint8Clamped",
+  i16: "Int16",
+  ui16: "Uint16",
+  i32: "Int32",
+  ui32: "Uint32",
+  f32: "Float32",
+  f64: "Float64"
+};
 const TYPES = {
   bool: "bool",
   i8: Int8Array,
@@ -39,335 +51,272 @@ const TYPES = {
   f64: Float64Array
 };
 const UNSIGNED_MAX = {
-  uint8: 255,
-  uint16: 65535,
-  uint32: 4294967295
-};
-const grow = (ta, amount) => {
-  const newTa = new ta.constructor(new ArrayBuffer(ta.buffer.byteLength + amount * ta.BYTES_PER_ELEMENT));
-  newTa.set(ta.buffer);
-  return newTa;
+  uint8: 2 ** 8,
+  uint16: 2 ** 16,
+  uint32: 2 ** 32
 };
 const roundToMultiple4 = (x) => Math.ceil(x / 4) * 4;
-const managers = {};
-const $managerRef = Symbol("managerRef");
-const $managerSize = Symbol("managerSize");
-const $managerMaps = Symbol("maps");
-const $managerSubarrays = Symbol("subarrays");
-const $managerCursor = Symbol("managerCursor");
-const $managerRemoved = Symbol("managerRemoved");
+const $storeRef = Symbol("storeRef");
+const $storeSize = Symbol("storeSize");
+const $storeMaps = Symbol("storeMaps");
+const $storeFlattened = Symbol("storeFlattened");
+const $storeBase = Symbol("storeBase");
+const $storeArrayCount = Symbol("storeArrayCount");
+const $storeSubarrays = Symbol("storeSubarrays");
+const $storeCursor = Symbol("storeCursor");
+const $subarrayCursors = Symbol("subarrayCursors");
+const $subarray = Symbol("subarray");
 const $queryShadow = Symbol("queryShadow");
-const $serializeShadow = Symbol("$serializeShadow");
-const alloc = (schema, size = 1e6) => {
-  const $manager = Symbol("manager");
-  if (schema.constructor.name === "Map") {
-    schema[$managerSize] = size;
-    return schema;
-  }
-  managers[$manager] = {
-    [$managerSize]: size,
-    [$managerMaps]: {},
-    [$managerSubarrays]: {},
-    [$managerRef]: $manager,
-    [$managerCursor]: 0,
-    [$managerRemoved]: []
-  };
-  const props = schema ? Object.keys(schema) : [];
-  let arrays = props.filter((p) => Array.isArray(schema[p]) && typeof schema[p][0] === "object");
-  const cursors = Object.keys(TYPES).reduce((a, type) => __assign(__assign({}, a), {
-    [type]: 0
-  }), {});
-  if (typeof schema === "string") {
-    const type = schema;
-    const totalBytes = size * TYPES[type].BYTES_PER_ELEMENT;
-    const buffer = new ArrayBuffer(totalBytes);
-    managers[$manager] = new TYPES[type](buffer);
-  } else if (Array.isArray(schema)) {
-    arrays = schema;
-    const {
-      type,
-      length
-    } = schema[0];
-    const indexType = length < UNSIGNED_MAX.uint8 ? "ui8" : length < UNSIGNED_MAX.uint16 ? "ui16" : "ui32";
-    if (!length)
-      throw new Error("\u274C Must define a length for component array.");
-    if (!TYPES[type])
-      throw new Error(`\u274C Invalid component array property type ${type}.`);
-    if (!managers[$manager][$managerSubarrays][type]) {
-      const relevantArrays = arrays;
-      const summedBytesPerElement = relevantArrays.reduce((a, p) => a + TYPES[type].BYTES_PER_ELEMENT, 0);
-      const summedLength = relevantArrays.reduce((a, p) => a + length, 0);
-      const buffer = new ArrayBuffer(roundToMultiple4(summedBytesPerElement * summedLength * size));
-      const array = new TYPES[type](buffer);
-      array._indexType = indexType;
-      array._indexBytes = TYPES[indexType].BYTES_PER_ELEMENT;
-      managers[$manager][$managerSubarrays][type] = array;
+const $serializeShadow = Symbol("serializeShadow");
+const $indexType = Symbol("indexType");
+const $indexBytes = Symbol("indexBytes");
+const stores = {};
+const resize = (ta, size) => {
+  const newBuffer = new ArrayBuffer(size * ta.BYTES_PER_ELEMENT);
+  const newTa = new ta.constructor(newBuffer);
+  newTa.set(ta, 0);
+  return newTa;
+};
+const resizeRecursive = (store, size) => {
+  Object.keys(store).forEach((key) => {
+    const ta = store[key];
+    if (ta[$subarray])
+      return;
+    else if (ArrayBuffer.isView(ta)) {
+      store[key] = resize(ta, size);
+      store[key][$queryShadow] = resize(ta[$queryShadow], size);
+      store[key][$serializeShadow] = resize(ta[$serializeShadow], size);
+    } else if (typeof ta === "object") {
+      resizeRecursive(store[key], size);
     }
-    let end = 0;
-    for (let eid2 = 0; eid2 < size; eid2++) {
-      const from = cursors[type] + eid2 * length;
+  });
+};
+const resizeSubarrays = (store, size) => {
+  const cursors = store[$subarrayCursors] = {};
+  Object.keys(store[$storeSubarrays]).forEach((type) => {
+    const arrayCount = store[$storeArrayCount];
+    const length = store[0].length;
+    const summedBytesPerElement = Array(arrayCount).fill(0).reduce((a, p) => a + TYPES[type].BYTES_PER_ELEMENT, 0);
+    const summedLength = Array(arrayCount).fill(0).reduce((a, p) => a + length, 0);
+    const buffer = new ArrayBuffer(roundToMultiple4(summedBytesPerElement * summedLength * size));
+    const array = new TYPES[type](buffer);
+    array.set(store[$storeSubarrays][type].buffer, 0);
+    store[$storeSubarrays][type] = array;
+    store[$storeSubarrays][type][$queryShadow] = array.slice(0);
+    store[$storeSubarrays][type][$serializeShadow] = array.slice(0);
+    for (let eid = 0; eid < size; eid++) {
+      const from = cursors[type] + eid * length;
       const to = from + length;
-      managers[$manager][eid2] = managers[$manager][$managerSubarrays][type].subarray(from, to);
-      end = to;
-    }
-    cursors[type] = end;
-    managers[$manager]._reset = (eid2) => managers[$manager][eid2].fill(0);
-    managers[$manager]._set = (eid2, values) => managers[$manager][eid2].set(values, 0);
-  } else
-    props.forEach((prop) => {
-      if (schema[prop] === "bool") {
-        const Type = TYPES.uint8;
-        const totalBytes = size * TYPES.uint8.BYTES_PER_ELEMENT;
-        const buffer = new ArrayBuffer(totalBytes);
-        managers[$manager][$managerMaps][prop] = schema[prop];
-        managers[$manager][prop] = new Type(buffer);
-        managers[$manager][prop]._boolType = true;
-      } else if (Array.isArray(schema[prop]) && typeof schema[prop][0] === "string") {
-        const Type = TYPES.uint8;
-        const totalBytes = size * TYPES.uint8.BYTES_PER_ELEMENT;
-        const buffer = new ArrayBuffer(totalBytes);
-        managers[$manager][$managerMaps][prop] = schema[prop];
-        managers[$manager][prop] = new Type(buffer);
-      } else if (Array.isArray(schema[prop]) && typeof schema[prop][0] === "object") {
-        const {
-          type,
-          length
-        } = schema[0];
-        if (!length)
-          throw new Error("\u274C Must define a length for component array.");
-        if (!TYPES[type])
-          throw new Error(`\u274C Invalid component array property type ${type}.`);
-        if (!managers[$manager][$managerSubarrays][type]) {
-          const relevantArrays = arrays.filter((p) => schema[p][0].type === type);
-          const summedBytesPerElement = relevantArrays.reduce((a, p) => a + TYPES[type].BYTES_PER_ELEMENT, 0);
-          const summedLength = relevantArrays.reduce((a, p) => a + length, 0);
-          const buffer = new ArrayBuffer(roundToMultiple4(summedBytesPerElement * summedLength * size));
-          const array = new TYPES[type](buffer);
-          array._indexType = index;
-          array._indexBytes = TYPES[index].BYTES_PER_ELEMENT;
-          managers[$manager][$managerSubarrays][type] = array;
-        }
-        managers[$manager][prop] = {};
-        let end = 0;
-        for (let eid2 = 0; eid2 < size; eid2++) {
-          const from = cursors[type] + eid2 * length;
-          const to = from + length;
-          managers[$manager][prop][eid2] = managers[$manager][$managerSubarrays][type].subarray(from, to);
-          end = to;
-        }
-        cursors[type] = end;
-        managers[$manager][prop]._reset = (eid2) => managers[$manager][prop][eid2].fill(0);
-        managers[$manager][prop]._set = (eid2, values) => managers[$manager][prop][eid2].set(values, 0);
-      } else if (typeof schema[prop] === "object") {
-        managers[$manager][prop] = Manager(size, schema[prop], false);
-      } else if (typeof schema[prop] === "string") {
-        const type = schema[prop];
-        const totalBytes = size * TYPES[type].BYTES_PER_ELEMENT;
-        const buffer = new ArrayBuffer(totalBytes);
-        const queryShadowBuffer = new ArrayBuffer(totalBytes);
-        const serializeShadowBuffer = new ArrayBuffer(totalBytes);
-        managers[$manager][prop] = new TYPES[type](buffer);
-        managers[$manager][prop][$queryShadow] = new TYPES[type](queryShadowBuffer);
-        managers[$manager][prop][$serializeShadow] = new TYPES[type](serializeShadowBuffer);
-      } else if (typeof schema[prop] === "function") {
-        const Type = schema[prop];
-        const totalBytes = size * Type.BYTES_PER_ELEMENT;
-        const buffer = new ArrayBuffer(totalBytes);
-        managers[$manager][prop] = new Type(buffer);
-      } else {
-        throw new Error(`ECS Error: invalid property type ${schema[prop]}`);
-      }
-    });
-  Object.defineProperty(managers[$manager], "_schema", {
-    value: schema
-  });
-  Object.defineProperty(managers[$manager], "_mapping", {
-    value: (prop) => managers[$manager][$managerMaps][prop]
-  });
-  Object.defineProperty(managers[$manager], "_reset", {
-    value: (eid2) => {
-      for (const prop of managers[$manager]._props) {
-        if (ArrayBuffer.isView(managers[$manager][prop])) {
-          if (ArrayBuffer.isView(managers[$manager][prop][eid2])) {
-            managers[$manager][prop][eid2].fill(0);
-          } else {
-            managers[$manager][prop][eid2] = 0;
-          }
-        } else {
-          managers[$manager][prop]._reset(eid2);
-        }
-      }
+      store[eid] = store[$storeSubarrays][type].subarray(from, to);
+      store[eid][$queryShadow] = store[$storeSubarrays][type][$queryShadow].subarray(from, to);
+      store[eid][$serializeShadow] = store[$storeSubarrays][type][$serializeShadow].subarray(from, to);
+      store[eid][$subarray] = true;
+      store[eid][$indexType] = array[$indexType];
+      store[eid][$indexBytes] = array[$indexBytes];
     }
   });
-  Object.defineProperty(managers[$manager], "_set", {
-    value: (eid2, values) => {
-      for (const prop in values) {
-        const mapping = managers[$manager]._mapping(prop);
-        if (mapping && typeof values[prop] === "string") {
-          managers[$manager].enum(prop, eid2, values[prop]);
-        } else if (ArrayBuffer.isView(managers[$manager][prop])) {
-          managers[$manager][prop][eid2] = values[prop];
-        } else if (Array.isArray(values[prop]) && ArrayBuffer.isView(managers[$manager][prop][eid2])) {
-          managers[$manager][prop][eid2].set(values[prop], 0);
-        } else if (typeof managers[$manager][prop] === "object") {
-          managers[$manager][prop]._set(eid2, values[prop]);
-        }
-      }
+};
+const resizeStore = (store, size) => {
+  store[$storeSize] = size;
+  resizeRecursive(store, size);
+  resizeSubarrays(store, size);
+};
+const resetStoreFor = (store, eid) => {
+  store[$storeFlattened].forEach((ta) => {
+    if (ArrayBuffer.isView(ta))
+      ta[eid] = 0;
+    else
+      ta[eid].fill(0);
+  });
+};
+const createTypeStore = (type, length) => {
+  const totalBytes = length * TYPES[type].BYTES_PER_ELEMENT;
+  const buffer = new ArrayBuffer(totalBytes);
+  return new TYPES[type](buffer);
+};
+const createArrayStore = (store, type, length) => {
+  const size = store[$storeSize];
+  const cursors = store[$subarrayCursors];
+  const indexType = length < UNSIGNED_MAX.uint8 ? "ui8" : length < UNSIGNED_MAX.uint16 ? "ui16" : "ui32";
+  if (!length)
+    throw new Error("\u274C Must define a length for component array.");
+  if (!TYPES[type])
+    throw new Error(`\u274C Invalid component array property type ${type}.`);
+  if (!store[$storeSubarrays][type]) {
+    const arrayCount = store[$storeArrayCount];
+    const summedBytesPerElement = Array(arrayCount).fill(0).reduce((a, p) => a + TYPES[type].BYTES_PER_ELEMENT, 0);
+    const summedLength = Array(arrayCount).fill(0).reduce((a, p) => a + length, 0);
+    const totalBytes = roundToMultiple4(summedBytesPerElement * summedLength * size);
+    const buffer = new ArrayBuffer(totalBytes);
+    const array = new TYPES[type](buffer);
+    store[$storeSubarrays][type] = array;
+    store[$storeSubarrays][type][$queryShadow] = array.slice(0);
+    store[$storeSubarrays][type][$serializeShadow] = array.slice(0);
+    array[$indexType] = TYPES_NAMES[indexType];
+    array[$indexBytes] = TYPES[indexType].BYTES_PER_ELEMENT;
+  }
+  let end = 0;
+  for (let eid = 0; eid < size; eid++) {
+    const from = cursors[type] + eid * length;
+    const to = from + length;
+    store[eid] = store[$storeSubarrays][type].subarray(from, to);
+    store[eid][$queryShadow] = store[$storeSubarrays][type][$queryShadow].subarray(from, to);
+    store[eid][$serializeShadow] = store[$storeSubarrays][type][$serializeShadow].subarray(from, to);
+    store[eid][$subarray] = true;
+    store[eid][$indexType] = TYPES_NAMES[indexType];
+    store[eid][$indexBytes] = TYPES[indexType].BYTES_PER_ELEMENT;
+    end = to;
+  }
+  cursors[type] = end;
+  return store;
+};
+const createShadows = (store) => {
+  store[$queryShadow] = store.slice(0);
+  store[$serializeShadow] = store.slice(0);
+};
+const isArrayType = (x) => Array.isArray(x) && typeof x[0] === "string" && typeof x[1] === "number";
+const createStore = (schema, size = 1e6) => {
+  const $store = Symbol("store");
+  if (!schema)
+    return {};
+  schema = JSON.parse(JSON.stringify(schema));
+  const collectArrayCount = (count, key) => {
+    if (isArrayType(schema[key])) {
+      count++;
+    } else if (schema[key] instanceof Object) {
+      count += Object.keys(schema[key]).reduce(collectArrayCount, 0);
     }
-  });
-  Object.defineProperty(managers[$manager], "_get", {
-    value: (eid2) => {
-      const obj = {};
-      for (const prop of managers[$manager]._props) {
-        const mapping = managers[$manager]._mapping(prop);
-        if (mapping) {
-          obj[prop] = managers[$manager].enum(prop, eid2);
-        } else if (ArrayBuffer.isView(managers[$manager][prop])) {
-          obj[prop] = managers[$manager][prop][eid2];
-        } else if (typeof managers[$manager][prop] === "object") {
-          if (ArrayBuffer.isView(managers[$manager][prop][eid2])) {
-            obj[prop] = Array.from(managers[$manager][prop][eid2]);
-          } else {
-            obj[prop] = managers[$manager][prop]._get(eid2);
-          }
-        }
+    return count;
+  };
+  const arrayCount = Object.keys(schema).reduce(collectArrayCount, 0);
+  const metadata = {
+    [$storeSize]: size,
+    [$storeMaps]: {},
+    [$storeSubarrays]: {},
+    [$storeRef]: $store,
+    [$storeCursor]: 0,
+    [$subarrayCursors]: Object.keys(TYPES).reduce((a, type) => __assign(__assign({}, a), {
+      [type]: 0
+    }), {}),
+    [$storeArrayCount]: arrayCount,
+    [$storeFlattened]: []
+  };
+  if (schema instanceof Object && Object.keys(schema).length) {
+    const recursiveTransform = (a, k) => {
+      if (typeof a[k] === "string") {
+        a[k] = createTypeStore(a[k], size);
+        a[k][$storeBase] = () => stores[$store];
+        metadata[$storeFlattened].push(a[k]);
+        createShadows(a[k]);
+      } else if (isArrayType(a[k])) {
+        const [type, length] = a[k];
+        a[k] = createArrayStore(metadata, type, length);
+        a[k][$storeBase] = () => stores[$store];
+        metadata[$storeFlattened].push(a[k]);
+      } else if (a[k] instanceof Object) {
+        a[k] = Object.keys(a[k]).reduce(recursiveTransform, a[k]);
       }
-      return obj;
-    }
-  });
-  Object.defineProperty(managers[$manager], "_props", {
-    value: props
-  });
-  let flattened;
-  Object.defineProperty(managers[$manager], "_flatten", {
-    value: (flat = []) => {
-      if (flattened)
-        return flattened;
-      for (const prop of managers[$manager]._props) {
-        if (ArrayBuffer.isView(managers[$manager][prop])) {
-          flat.push(managers[$manager][prop]);
-        } else if (typeof managers[$manager][prop] === "object") {
-          managers[$manager][prop]._flatten(flat);
-        }
-      }
-      flattened = flat;
-      return flat;
-    }
-  });
-  Object.defineProperty(managers[$manager], "enum", {
-    value: (prop, eid2, value) => {
-      const mapping = managers[$manager]._mapping(prop);
-      if (!mapping) {
-        console.warn("Property is not an enum.");
-        return void 0;
-      }
-      if (value) {
-        const index2 = mapping.indexOf(value);
-        if (index2 === -1) {
-          console.warn(`Value '${value}' is not part of enum.`);
-          return void 0;
-        }
-        managers[$manager][prop][eid2] = index2;
-      } else {
-        return mapping[managers[$manager][prop][eid2]];
-      }
-    }
-  });
-  Object.defineProperty(managers[$manager], "_grow", {
-    value: (amount) => {
-      managers[$manager][$managerSize] += amount;
-      for (const prop of managers[$manager]._props) {
-        if (ArrayBuffer.isView(managers[$manager][prop])) {
-          managers[$manager][prop] = grow(managers[$manager][prop], amount);
-          managers[$manager][prop][$queryShadow] = grow(managers[$manager][prop], amount);
-        } else if (typeof managers[$manager][prop] === "object") {
-          if (ArrayBuffer.isView(managers[$manager][prop][eid]))
-            ;
-          else {
-            managers[$manager][prop]._grow();
-          }
-        }
-      }
-    }
-  });
-  return managers[$manager];
+      return a;
+    };
+    stores[$store] = Object.assign(Object.keys(schema).reduce(recursiveTransform, schema), metadata);
+    stores[$store][$storeBase] = () => stores[$store];
+    return stores[$store];
+  }
+  stores[$store] = metadata;
+  stores[$store][$storeBase] = () => stores[$store];
+  return stores[$store];
 };
 const $entityMasks = Symbol("entityMasks");
 const $entityEnabled = Symbol("entityEnabled");
-const $deferredEntityRemovals = Symbol("deferredEntityRemovals");
-const $removedEntities = Symbol("removedEntities");
+const $entityArray = Symbol("entityArray");
+const $entityIndices = Symbol("entityIndices");
+const NONE = 2 ** 32;
 let globalEntityCursor = 0;
+const removed = [];
 const getEntityCursor = () => globalEntityCursor;
-const addEntity = (world) => {
-  const removed = world[$removedEntities];
-  const size = world[$size];
-  const enabled = world[$entityEnabled];
-  if (globalEntityCursor >= size - size / 5) {
-    const amount = Math.ceil(size / 2 / 4) * 4;
-    world[$componentMap].forEach((component) => {
-      component.manager._grow(amount);
-    });
-    world[$size] += amount;
+const resizeWorld = (world, size) => {
+  world[$size] = size;
+  world[$componentMap].forEach((c) => {
+    resizeStore(c.store, size);
+  });
+  world[$queryMap].forEach((q) => {
+    q.indices = resize(q.indices, size);
+    q.enabled = resize(q.enabled, size);
+  });
+  world[$entityEnabled] = resize(world[$entityEnabled], size);
+  world[$entityIndices] = resize(world[$entityIndices], size);
+  for (let i = 0; i < world[$entityMasks].length; i++) {
+    const masks = world[$entityMasks][i];
+    world[$entityMasks][i] = resize(masks, size);
   }
-  const eid2 = removed.length > 0 ? removed.pop() : globalEntityCursor;
-  enabled[eid2] = 1;
-  globalEntityCursor++;
-  return eid2;
 };
-const removeEntity = (world, eid2) => world[$deferredEntityRemovals].push(eid2);
-const commitEntityRemovals = (world) => {
-  const deferred = world[$deferredEntityRemovals];
-  const queries = world[$queries];
-  const removed = world[$removedEntities];
+const addEntity = (world) => {
   const enabled = world[$entityEnabled];
-  for (let i = 0; i < deferred.length; i++) {
-    const eid2 = deferred[i];
-    if (enabled[eid2] === 0)
-      continue;
-    queries.forEach((query) => {
-      queryRemoveEntity(world, query, eid2);
-    });
-    removed.push(eid2);
-    enabled[eid2] = 0;
-    for (let i2 = 0; i2 < world[$entityMasks].length; i2++)
-      world[$entityMasks][i2][eid2] = 0;
+  if (globalEntityCursor >= world[$warningSize]) {
+    const size = world[$size];
+    const amount = Math.ceil(size / 2 / 4) * 4;
+    resizeWorld(world, size + amount);
+    world[$warningSize] = world[$size] - world[$size] / 5;
   }
-  deferred.length = 0;
+  const eid = removed.length > 0 ? removed.pop() : globalEntityCursor;
+  enabled[eid] = 1;
+  globalEntityCursor++;
+  world[$entityIndices][eid] = world[$entityArray].push(eid) - 1;
+  return eid;
+};
+const removeEntity = (world, eid) => {
+  const enabled = world[$entityEnabled];
+  if (enabled[eid] === 0)
+    return;
+  world[$queries].forEach((query) => {
+    queryRemoveEntity(world, query, eid);
+  });
+  removed.push(eid);
+  enabled[eid] = 0;
+  const index = world[$entityIndices][eid];
+  const swapped = world[$entityArray].pop();
+  if (swapped !== eid) {
+    world[$entityArray][index] = swapped;
+    world[$entityIndices][swapped] = index;
+  }
+  world[$entityIndices][eid] = NONE;
+  for (let i = 0; i < world[$entityMasks].length; i++)
+    world[$entityMasks][i][eid] = 0;
 };
 const diff = (world, query) => {
   const q = world[$queryMap].get(query);
   q.changed.length = 0;
   const flat = q.flatProps;
   for (let i = 0; i < q.entities.length; i++) {
-    const eid2 = q.entities[i];
+    const eid = q.entities[i];
     let dirty = false;
     for (let pid = 0; pid < flat.length; pid++) {
       const prop = flat[pid];
-      if (ArrayBuffer.isView(prop[eid2])) {
-        for (let i2 = 0; i2 < prop[eid2].length; i2++) {
-          if (prop[eid2][i2] !== prop[eid2][$queryShadow][i2]) {
+      if (ArrayBuffer.isView(prop[eid])) {
+        for (let i2 = 0; i2 < prop[eid].length; i2++) {
+          if (prop[eid][i2] !== prop[eid][$queryShadow][i2]) {
             dirty = true;
-            prop[eid2][$queryShadow][i2] = prop[eid2][i2];
+            prop[eid][$queryShadow][i2] = prop[eid][i2];
           }
         }
       } else {
-        if (prop[eid2] !== prop[$queryShadow][eid2]) {
+        if (prop[eid] !== prop[$queryShadow][eid]) {
           dirty = true;
-          prop[$queryShadow][eid2] = prop[eid2];
+          prop[$queryShadow][eid] = prop[eid];
         }
       }
     }
     if (dirty)
-      q.changed.push(eid2);
+      q.changed.push(eid);
   }
   return q.changed;
 };
 const $queries = Symbol("queries");
 const $queryMap = Symbol("queryMap");
+const $dirtyQueries = Symbol("$dirtyQueries");
 const $queryComponents = Symbol("queryComponents");
+const NONE$1 = 2 ** 32;
 const registerQuery = (world, query) => {
-  if (!world[$queryMap].get(query))
-    world[$queryMap].set(query, {});
   let components = [];
   let notComponents = [];
   let changedComponents = [];
@@ -385,12 +334,16 @@ const registerQuery = (world, query) => {
     }
   });
   const mapComponents = (c) => world[$componentMap].get(c);
-  const size = components.reduce((a, c) => c[$managerSize] > a ? c[$managerSize] : a, 0);
+  const size = components.concat(notComponents).reduce((a, c) => c[$storeSize] > a ? c[$storeSize] : a, 0);
   const entities = [];
   const changed = [];
-  const indices = new Uint32Array(size);
+  const indices = new Uint32Array(size).fill(NONE$1);
   const enabled = new Uint8Array(size);
-  const generations = components.concat(notComponents).map(mapComponents).map((c) => c.generationId).reduce((a, v) => {
+  const generations = components.concat(notComponents).map((c) => {
+    if (!world[$componentMap].has(c))
+      registerComponent(world, c);
+    return c;
+  }).map(mapComponents).map((c) => c.generationId).reduce((a, v) => {
     if (a.includes(v))
       return a;
     a.push(v);
@@ -403,14 +356,18 @@ const registerQuery = (world, query) => {
     return a;
   };
   const masks = components.map(mapComponents).reduce(reduceBitmasks, {});
-  const notMasks = components.map(mapComponents).reduce((a, c) => {
-    if (!a[c.generationId] && notComponents.includes(c))
+  const notMasks = notComponents.map(mapComponents).reduce((a, c) => {
+    if (!a[c.generationId]) {
       a[c.generationId] = 0;
-    a[c.generationId] |= c.bitflag;
+      a[c.generationId] |= c.bitflag;
+    }
     return a;
   }, {});
-  const flatProps = components.map((c) => c._flatten ? c._flatten() : [c]).reduce((a, v) => a.concat(v), []);
-  Object.assign(world[$queryMap].get(query), {
+  const flatProps = components.map((c) => Object.getOwnPropertySymbols(c).includes($storeFlattened) ? c[$storeFlattened] : [c]).reduce((a, v) => a.concat(v), []);
+  const toRemove = [];
+  const entered = [];
+  const exited = [];
+  world[$queryMap].set(query, {
     entities,
     changed,
     enabled,
@@ -421,22 +378,39 @@ const registerQuery = (world, query) => {
     notMasks,
     generations,
     indices,
-    flatProps
+    flatProps,
+    toRemove,
+    entered,
+    exited
   });
   world[$queries].add(query);
-  for (let eid2 = 0; eid2 < getEntityCursor(); eid2++) {
-    if (!world[$entityEnabled][eid2])
+  for (let eid = 0; eid < getEntityCursor(); eid++) {
+    if (!world[$entityEnabled][eid])
       continue;
-    if (queryCheckEntity(world, query, eid2)) {
-      queryAddEntity(world, query, eid2);
+    if (queryCheckEntity(world, query, eid)) {
+      queryAddEntity(world, query, eid);
     }
   }
+};
+const queryHooks = (q) => {
+  while (q.entered.length)
+    if (q.enter) {
+      q.enter(q.entered.shift());
+    } else
+      q.entered.shift();
+  while (q.exited.length)
+    if (q.exit) {
+      q.exit(q.exited.shift());
+    } else
+      q.exited.shift();
 };
 const defineQuery = (components) => {
   const query = function(world) {
     if (!world[$queryMap].has(query))
       registerQuery(world, query);
     const q = world[$queryMap].get(query);
+    queryHooks(q);
+    queryCommitRemovals(world, q);
     if (q.changedComponents.length)
       return diff(world, query);
     return q.entities;
@@ -444,7 +418,7 @@ const defineQuery = (components) => {
   query[$queryComponents] = components;
   return query;
 };
-const queryCheckEntity = (world, query, eid2) => {
+const queryCheckEntity = (world, query, eid) => {
   const {
     masks,
     notMasks,
@@ -453,9 +427,12 @@ const queryCheckEntity = (world, query, eid2) => {
   for (let i = 0; i < generations.length; i++) {
     const generationId = generations[i];
     const qMask = masks[generationId];
-    notMasks[generationId];
-    const eMask = world[$entityMasks][generationId][eid2];
-    if ((eMask & qMask) !== qMask) {
+    const qNotMask = notMasks[generationId];
+    const eMask = world[$entityMasks][generationId][eid];
+    if (qNotMask && (eMask & qNotMask) !== 0) {
+      return false;
+    }
+    if (qMask && (eMask & qMask) !== qMask) {
       return false;
     }
   }
@@ -472,31 +449,46 @@ const queryCheckComponent = (world, query, component) => {
   const mask = masks[generationId];
   return (mask & bitflag) === bitflag;
 };
-const queryCheckComponents = (world, query, components) => {
-  return components.every((c) => queryCheckComponent(world, query, c));
-};
-const queryAddEntity = (world, query, eid2) => {
+const queryAddEntity = (world, query, eid) => {
   const q = world[$queryMap].get(query);
-  if (q.enabled[eid2])
+  if (q.enabled[eid])
     return;
-  q.enabled[eid2] = true;
-  q.entities.push(eid2);
-  q.indices[eid2] = q.entities.length - 1;
-  if (q.enter)
-    q.enter(eid2);
+  q.enabled[eid] = true;
+  q.entities.push(eid);
+  q.indices[eid] = q.entities.length - 1;
+  q.entered.push(eid);
 };
-const queryRemoveEntity = (world, query, eid2) => {
+const queryCommitRemovals = (world, q) => {
+  while (q.toRemove.length) {
+    const eid = q.toRemove.pop();
+    const index = q.indices[eid];
+    if (index === NONE$1)
+      continue;
+    const swapped = q.entities.pop();
+    if (swapped !== eid) {
+      q.entities[index] = swapped;
+      q.indices[swapped] = index;
+    }
+    q.indices[eid] = NONE$1;
+  }
+  world[$dirtyQueries].delete(q);
+};
+const commitRemovals = (world) => {
+  world[$dirtyQueries].forEach((q) => {
+    queryCommitRemovals(world, q);
+  });
+};
+const queryRemoveEntity = (world, query, eid) => {
   const q = world[$queryMap].get(query);
-  if (!q.enabled[eid2])
+  if (!q.enabled[eid])
     return;
-  q.enabled[eid2] = false;
-  q.entities.splice(q.indices[eid2]);
-  if (q.exit)
-    q.exit(eid2);
+  q.enabled[eid] = false;
+  q.toRemove.push(eid);
+  world[$dirtyQueries].add(q);
+  q.exited.push(eid);
 };
 const $componentMap = Symbol("componentMap");
-const $deferredComponentRemovals = Symbol("de$deferredComponentRemovals");
-const defineComponent = (schema) => alloc(schema);
+const defineComponent = (schema) => createStore(schema);
 const incrementBitflag = (world) => {
   world[$bitflag] *= 2;
   if (world[$bitflag] >= 2 ** 32) {
@@ -508,85 +500,82 @@ const registerComponent = (world, component) => {
   world[$componentMap].set(component, {
     generationId: world[$entityMasks].length - 1,
     bitflag: world[$bitflag],
-    manager: component
+    store: component
   });
+  if (component[$storeSize] < world[$size]) {
+    resizeStore(component, world[$size]);
+  }
   incrementBitflag(world);
 };
 const registerComponents = (world, components) => {
   components.forEach((c) => registerComponent(world, c));
 };
-const hasComponent = (world, component, eid2) => {
+const hasComponent = (world, component, eid) => {
   const {
     generationId,
     bitflag
   } = world[$componentMap].get(component);
-  const mask = world[$entityMasks][generationId][eid2];
+  const mask = world[$entityMasks][generationId][eid];
   return (mask & bitflag) === bitflag;
 };
-const addComponent = (world, component, eid2) => {
-  if (hasComponent(world, component, eid2))
+const addComponent = (world, component, eid) => {
+  if (!world[$componentMap].has(component))
+    registerComponent(world, component);
+  if (hasComponent(world, component, eid))
     return;
   const {
     generationId,
     bitflag
   } = world[$componentMap].get(component);
-  world[$entityMasks][generationId][eid2] |= bitflag;
-  const queries = world[$queries];
-  queries.forEach((query) => {
-    const components = query[$queryComponents];
-    if (!queryCheckComponents(world, query, components))
+  world[$entityMasks][generationId][eid] |= bitflag;
+  resetStoreFor(component, eid);
+  world[$queries].forEach((query) => {
+    if (!queryCheckComponent(world, query, component))
       return;
-    const match = queryCheckEntity(world, query, eid2);
+    const match = queryCheckEntity(world, query, eid);
     if (match)
-      queryAddEntity(world, query, eid2);
+      queryAddEntity(world, query, eid);
   });
 };
-const removeComponent = (world, component, eid2) => world[$deferredComponentRemovals].push(component, eid2);
-const commitComponentRemovals = (world) => {
-  const deferredComponentRemovals = world[$deferredComponentRemovals];
-  for (let i = 0; i < deferredComponentRemovals.length; i += 2) {
-    const component = deferredComponentRemovals[i];
-    const eid2 = deferredComponentRemovals[i + 1];
-    const {
-      generationId,
-      bitflag
-    } = world[$componentMap].get(component);
-    if (!(world[$entityMasks][generationId][eid2] & bitflag))
+const removeComponent = (world, component, eid) => {
+  const {
+    generationId,
+    bitflag
+  } = world[$componentMap].get(component);
+  if (!(world[$entityMasks][generationId][eid] & bitflag))
+    return;
+  world[$queries].forEach((query) => {
+    if (!queryCheckComponent(world, query, component))
       return;
-    world[$entityMasks][generationId][eid2] &= ~bitflag;
-    const queries = world[$queries];
-    queries.forEach((query) => {
-      const components = query[$queryComponents];
-      if (!queryCheckComponents(world, query, components))
-        return;
-      const match = queryCheckEntity(world, query, eid2);
-      if (match)
-        queryRemoveEntity(world, query, eid2);
-    });
-  }
-  deferredComponentRemovals.length = 0;
+    const match = queryCheckEntity(world, query, eid);
+    if (match)
+      queryRemoveEntity(world, query, eid);
+  });
+  world[$entityMasks][generationId][eid] &= ~bitflag;
 };
 const $size = Symbol("size");
+const $warningSize = Symbol("warningSize");
 const $bitflag = Symbol("bitflag");
 const createWorld = (size = 1e6) => {
   const world = {};
   world[$size] = size;
   world[$entityEnabled] = new Uint8Array(size);
   world[$entityMasks] = [new Uint32Array(size)];
-  world[$removedEntities] = [];
+  world[$entityArray] = [];
+  world[$entityIndices] = new Uint32Array(size);
   world[$bitflag] = 1;
   world[$componentMap] = new Map();
   world[$queryMap] = new Map();
   world[$queries] = new Set();
-  world[$deferredComponentRemovals] = [];
-  world[$deferredEntityRemovals] = [];
+  world[$dirtyQueries] = new Set();
+  world[$warningSize] = size - size / 5;
   return world;
 };
 const defineSystem = (update) => {
   const system = (world) => {
     update(world);
-    commitComponentRemovals(world);
-    commitEntityRemovals(world);
+    commitRemovals(world);
+    return world;
   };
   Object.defineProperty(system, "name", {
     value: (update.name || "AnonymousSystem") + "_internal",
@@ -594,10 +583,12 @@ const defineSystem = (update) => {
   });
   return system;
 };
-const pipe = (fns) => (world) => {
+const pipe = (...fns) => (input) => {
+  fns = Array.isArray(fns[0]) ? fns[0] : fns;
+  let tmp = input;
   for (let i = 0; i < fns.length; i++) {
     const fn = fns[i];
-    fn(world);
+    tmp = fn(tmp);
   }
 };
 const Types = TYPES_ENUM;
@@ -784,9 +775,9 @@ Object.assign(EventDispatcher.prototype, {
     const listeners = this._listeners;
     const listenerArray = listeners[type];
     if (listenerArray !== void 0) {
-      const index2 = listenerArray.indexOf(listener);
-      if (index2 !== -1) {
-        listenerArray.splice(index2, 1);
+      const index = listenerArray.indexOf(listener);
+      if (index !== -1) {
+        listenerArray.splice(index, 1);
       }
     }
   },
@@ -962,8 +953,8 @@ class Vector2 {
     this.y = y;
     return this;
   }
-  setComponent(index2, value) {
-    switch (index2) {
+  setComponent(index, value) {
+    switch (index) {
       case 0:
         this.x = value;
         break;
@@ -971,18 +962,18 @@ class Vector2 {
         this.y = value;
         break;
       default:
-        throw new Error("index is out of range: " + index2);
+        throw new Error("index is out of range: " + index);
     }
     return this;
   }
-  getComponent(index2) {
-    switch (index2) {
+  getComponent(index) {
+    switch (index) {
       case 0:
         return this.x;
       case 1:
         return this.y;
       default:
-        throw new Error("index is out of range: " + index2);
+        throw new Error("index is out of range: " + index);
     }
   }
   clone() {
@@ -1168,12 +1159,12 @@ class Vector2 {
     array[offset + 1] = this.y;
     return array;
   }
-  fromBufferAttribute(attribute, index2, offset) {
+  fromBufferAttribute(attribute, index, offset) {
     if (offset !== void 0) {
       console.warn("THREE.Vector2: offset has been removed from .fromBufferAttribute().");
     }
-    this.x = attribute.getX(index2);
-    this.y = attribute.getY(index2);
+    this.x = attribute.getX(index);
+    this.y = attribute.getY(index);
     return this;
   }
   rotateAround(center, angle) {
@@ -1691,8 +1682,8 @@ class Vector4 {
     this.w = w;
     return this;
   }
-  setComponent(index2, value) {
-    switch (index2) {
+  setComponent(index, value) {
+    switch (index) {
       case 0:
         this.x = value;
         break;
@@ -1706,12 +1697,12 @@ class Vector4 {
         this.w = value;
         break;
       default:
-        throw new Error("index is out of range: " + index2);
+        throw new Error("index is out of range: " + index);
     }
     return this;
   }
-  getComponent(index2) {
-    switch (index2) {
+  getComponent(index) {
+    switch (index) {
       case 0:
         return this.x;
       case 1:
@@ -1721,7 +1712,7 @@ class Vector4 {
       case 3:
         return this.w;
       default:
-        throw new Error("index is out of range: " + index2);
+        throw new Error("index is out of range: " + index);
     }
   }
   clone() {
@@ -2005,14 +1996,14 @@ class Vector4 {
     array[offset + 3] = this.w;
     return array;
   }
-  fromBufferAttribute(attribute, index2, offset) {
+  fromBufferAttribute(attribute, index, offset) {
     if (offset !== void 0) {
       console.warn("THREE.Vector4: offset has been removed from .fromBufferAttribute().");
     }
-    this.x = attribute.getX(index2);
-    this.y = attribute.getY(index2);
-    this.z = attribute.getZ(index2);
-    this.w = attribute.getW(index2);
+    this.x = attribute.getX(index);
+    this.y = attribute.getY(index);
+    this.z = attribute.getZ(index);
+    this.w = attribute.getW(index);
     return this;
   }
   random() {
@@ -2455,11 +2446,11 @@ class Quaternion {
     array[offset + 3] = this._w;
     return array;
   }
-  fromBufferAttribute(attribute, index2) {
-    this._x = attribute.getX(index2);
-    this._y = attribute.getY(index2);
-    this._z = attribute.getZ(index2);
-    this._w = attribute.getW(index2);
+  fromBufferAttribute(attribute, index) {
+    this._x = attribute.getX(index);
+    this._y = attribute.getY(index);
+    this._z = attribute.getZ(index);
+    this._w = attribute.getW(index);
     return this;
   }
   _onChange(callback) {
@@ -2502,8 +2493,8 @@ class Vector3 {
     this.z = z;
     return this;
   }
-  setComponent(index2, value) {
-    switch (index2) {
+  setComponent(index, value) {
+    switch (index) {
       case 0:
         this.x = value;
         break;
@@ -2514,12 +2505,12 @@ class Vector3 {
         this.z = value;
         break;
       default:
-        throw new Error("index is out of range: " + index2);
+        throw new Error("index is out of range: " + index);
     }
     return this;
   }
-  getComponent(index2) {
-    switch (index2) {
+  getComponent(index) {
+    switch (index) {
       case 0:
         return this.x;
       case 1:
@@ -2527,7 +2518,7 @@ class Vector3 {
       case 2:
         return this.z;
       default:
-        throw new Error("index is out of range: " + index2);
+        throw new Error("index is out of range: " + index);
     }
   }
   clone() {
@@ -2844,11 +2835,11 @@ class Vector3 {
     this.z = sz;
     return this;
   }
-  setFromMatrixColumn(m, index2) {
-    return this.fromArray(m.elements, index2 * 4);
+  setFromMatrixColumn(m, index) {
+    return this.fromArray(m.elements, index * 4);
   }
-  setFromMatrix3Column(m, index2) {
-    return this.fromArray(m.elements, index2 * 3);
+  setFromMatrix3Column(m, index) {
+    return this.fromArray(m.elements, index * 3);
   }
   equals(v) {
     return v.x === this.x && v.y === this.y && v.z === this.z;
@@ -2865,13 +2856,13 @@ class Vector3 {
     array[offset + 2] = this.z;
     return array;
   }
-  fromBufferAttribute(attribute, index2, offset) {
+  fromBufferAttribute(attribute, index, offset) {
     if (offset !== void 0) {
       console.warn("THREE.Vector3: offset has been removed from .fromBufferAttribute().");
     }
-    this.x = attribute.getX(index2);
-    this.y = attribute.getY(index2);
-    this.z = attribute.getZ(index2);
+    this.x = attribute.getX(index);
+    this.y = attribute.getY(index);
+    this.z = attribute.getZ(index);
     return this;
   }
   random() {
@@ -4569,10 +4560,10 @@ Object3D.prototype = Object.assign(Object.create(EventDispatcher.prototype), {
       }
       return this;
     }
-    const index2 = this.children.indexOf(object);
-    if (index2 !== -1) {
+    const index = this.children.indexOf(object);
+    if (index !== -1) {
       object.parent = null;
-      this.children.splice(index2, 1);
+      this.children.splice(index, 1);
       object.dispatchEvent(_removedEvent);
     }
     return this;
@@ -5977,10 +5968,10 @@ class Color {
     array[offset + 2] = this.b;
     return array;
   }
-  fromBufferAttribute(attribute, index2) {
-    this.r = attribute.getX(index2);
-    this.g = attribute.getY(index2);
-    this.b = attribute.getZ(index2);
+  fromBufferAttribute(attribute, index) {
+    this.r = attribute.getX(index);
+    this.g = attribute.getY(index);
+    this.b = attribute.getZ(index);
     if (attribute.normalized === true) {
       this.r /= 255;
       this.g /= 255;
@@ -6205,53 +6196,53 @@ Object.assign(BufferAttribute.prototype, {
     this.array.set(value, offset);
     return this;
   },
-  getX: function(index2) {
-    return this.array[index2 * this.itemSize];
+  getX: function(index) {
+    return this.array[index * this.itemSize];
   },
-  setX: function(index2, x) {
-    this.array[index2 * this.itemSize] = x;
+  setX: function(index, x) {
+    this.array[index * this.itemSize] = x;
     return this;
   },
-  getY: function(index2) {
-    return this.array[index2 * this.itemSize + 1];
+  getY: function(index) {
+    return this.array[index * this.itemSize + 1];
   },
-  setY: function(index2, y) {
-    this.array[index2 * this.itemSize + 1] = y;
+  setY: function(index, y) {
+    this.array[index * this.itemSize + 1] = y;
     return this;
   },
-  getZ: function(index2) {
-    return this.array[index2 * this.itemSize + 2];
+  getZ: function(index) {
+    return this.array[index * this.itemSize + 2];
   },
-  setZ: function(index2, z) {
-    this.array[index2 * this.itemSize + 2] = z;
+  setZ: function(index, z) {
+    this.array[index * this.itemSize + 2] = z;
     return this;
   },
-  getW: function(index2) {
-    return this.array[index2 * this.itemSize + 3];
+  getW: function(index) {
+    return this.array[index * this.itemSize + 3];
   },
-  setW: function(index2, w) {
-    this.array[index2 * this.itemSize + 3] = w;
+  setW: function(index, w) {
+    this.array[index * this.itemSize + 3] = w;
     return this;
   },
-  setXY: function(index2, x, y) {
-    index2 *= this.itemSize;
-    this.array[index2 + 0] = x;
-    this.array[index2 + 1] = y;
+  setXY: function(index, x, y) {
+    index *= this.itemSize;
+    this.array[index + 0] = x;
+    this.array[index + 1] = y;
     return this;
   },
-  setXYZ: function(index2, x, y, z) {
-    index2 *= this.itemSize;
-    this.array[index2 + 0] = x;
-    this.array[index2 + 1] = y;
-    this.array[index2 + 2] = z;
+  setXYZ: function(index, x, y, z) {
+    index *= this.itemSize;
+    this.array[index + 0] = x;
+    this.array[index + 1] = y;
+    this.array[index + 2] = z;
     return this;
   },
-  setXYZW: function(index2, x, y, z, w) {
-    index2 *= this.itemSize;
-    this.array[index2 + 0] = x;
-    this.array[index2 + 1] = y;
-    this.array[index2 + 2] = z;
-    this.array[index2 + 3] = w;
+  setXYZW: function(index, x, y, z, w) {
+    index *= this.itemSize;
+    this.array[index + 0] = x;
+    this.array[index + 1] = y;
+    this.array[index + 2] = z;
+    this.array[index + 3] = w;
     return this;
   },
   onUpload: function(callback) {
@@ -6366,11 +6357,11 @@ BufferGeometry.prototype = Object.assign(Object.create(EventDispatcher.prototype
   getIndex: function() {
     return this.index;
   },
-  setIndex: function(index2) {
-    if (Array.isArray(index2)) {
-      this.index = new (arrayMax(index2) > 65535 ? Uint32BufferAttribute : Uint16BufferAttribute)(index2, 1);
+  setIndex: function(index) {
+    if (Array.isArray(index)) {
+      this.index = new (arrayMax(index) > 65535 ? Uint32BufferAttribute : Uint16BufferAttribute)(index, 1);
     } else {
-      this.index = index2;
+      this.index = index;
     }
     return this;
   },
@@ -6566,13 +6557,13 @@ BufferGeometry.prototype = Object.assign(Object.create(EventDispatcher.prototype
   computeFaceNormals: function() {
   },
   computeTangents: function() {
-    const index2 = this.index;
+    const index = this.index;
     const attributes = this.attributes;
-    if (index2 === null || attributes.position === void 0 || attributes.normal === void 0 || attributes.uv === void 0) {
+    if (index === null || attributes.position === void 0 || attributes.normal === void 0 || attributes.uv === void 0) {
       console.error("THREE.BufferGeometry: .computeTangents() failed. Missing required attributes (index, position, normal or uv)");
       return;
     }
-    const indices = index2.array;
+    const indices = index.array;
     const positions = attributes.position.array;
     const normals = attributes.normal.array;
     const uvs = attributes.uv.array;
@@ -6653,7 +6644,7 @@ BufferGeometry.prototype = Object.assign(Object.create(EventDispatcher.prototype
     }
   },
   computeVertexNormals: function() {
-    const index2 = this.index;
+    const index = this.index;
     const positionAttribute = this.getAttribute("position");
     if (positionAttribute !== void 0) {
       let normalAttribute = this.getAttribute("normal");
@@ -6668,11 +6659,11 @@ BufferGeometry.prototype = Object.assign(Object.create(EventDispatcher.prototype
       const pA = new Vector3(), pB = new Vector3(), pC = new Vector3();
       const nA = new Vector3(), nB = new Vector3(), nC = new Vector3();
       const cb = new Vector3(), ab = new Vector3();
-      if (index2) {
-        for (let i = 0, il = index2.count; i < il; i += 3) {
-          const vA = index2.getX(i + 0);
-          const vB = index2.getX(i + 1);
-          const vC = index2.getX(i + 2);
+      if (index) {
+        for (let i = 0, il = index.count; i < il; i += 3) {
+          const vA = index.getX(i + 0);
+          const vB = index.getX(i + 1);
+          const vC = index.getX(i + 2);
           pA.fromBufferAttribute(positionAttribute, vA);
           pB.fromBufferAttribute(positionAttribute, vB);
           pC.fromBufferAttribute(positionAttribute, vC);
@@ -6745,11 +6736,11 @@ BufferGeometry.prototype = Object.assign(Object.create(EventDispatcher.prototype
       const itemSize = attribute.itemSize;
       const normalized = attribute.normalized;
       const array2 = new array.constructor(indices2.length * itemSize);
-      let index2 = 0, index22 = 0;
+      let index = 0, index2 = 0;
       for (let i = 0, l = indices2.length; i < l; i++) {
-        index2 = indices2[i] * itemSize;
+        index = indices2[i] * itemSize;
         for (let j = 0; j < itemSize; j++) {
-          array2[index22++] = array[index2++];
+          array2[index2++] = array[index++];
         }
       }
       return new BufferAttribute(array2, itemSize, normalized);
@@ -6808,11 +6799,11 @@ BufferGeometry.prototype = Object.assign(Object.create(EventDispatcher.prototype
       return data;
     }
     data.data = {attributes: {}};
-    const index2 = this.index;
-    if (index2 !== null) {
+    const index = this.index;
+    if (index !== null) {
       data.data.index = {
-        type: index2.array.constructor.name,
-        array: Array.prototype.slice.call(index2.array)
+        type: index.array.constructor.name,
+        array: Array.prototype.slice.call(index.array)
       };
     }
     const attributes = this.attributes;
@@ -6863,9 +6854,9 @@ BufferGeometry.prototype = Object.assign(Object.create(EventDispatcher.prototype
     this.boundingSphere = null;
     const data = {};
     this.name = source.name;
-    const index2 = source.index;
-    if (index2 !== null) {
-      this.setIndex(index2.clone(data));
+    const index = source.index;
+    if (index !== null) {
+      this.setIndex(index.clone(data));
     }
     const attributes = source.attributes;
     for (const name in attributes) {
@@ -6987,7 +6978,7 @@ Mesh.prototype = Object.assign(Object.create(Object3D.prototype), {
     }
     let intersection;
     if (geometry.isBufferGeometry) {
-      const index2 = geometry.index;
+      const index = geometry.index;
       const position = geometry.attributes.position;
       const morphPosition = geometry.morphAttributes.position;
       const morphTargetsRelative = geometry.morphTargetsRelative;
@@ -6995,7 +6986,7 @@ Mesh.prototype = Object.assign(Object.create(Object3D.prototype), {
       const uv2 = geometry.attributes.uv2;
       const groups = geometry.groups;
       const drawRange = geometry.drawRange;
-      if (index2 !== null) {
+      if (index !== null) {
         if (Array.isArray(material)) {
           for (let i = 0, il = groups.length; i < il; i++) {
             const group = groups[i];
@@ -7003,9 +6994,9 @@ Mesh.prototype = Object.assign(Object.create(Object3D.prototype), {
             const start = Math.max(group.start, drawRange.start);
             const end = Math.min(group.start + group.count, drawRange.start + drawRange.count);
             for (let j = start, jl = end; j < jl; j += 3) {
-              const a = index2.getX(j);
-              const b = index2.getX(j + 1);
-              const c = index2.getX(j + 2);
+              const a = index.getX(j);
+              const b = index.getX(j + 1);
+              const c = index.getX(j + 2);
               intersection = checkBufferGeometryIntersection(this, groupMaterial, raycaster, _ray$2, position, morphPosition, morphTargetsRelative, uv, uv2, a, b, c);
               if (intersection) {
                 intersection.faceIndex = Math.floor(j / 3);
@@ -7016,11 +7007,11 @@ Mesh.prototype = Object.assign(Object.create(Object3D.prototype), {
           }
         } else {
           const start = Math.max(0, drawRange.start);
-          const end = Math.min(index2.count, drawRange.start + drawRange.count);
+          const end = Math.min(index.count, drawRange.start + drawRange.count);
           for (let i = start, il = end; i < il; i += 3) {
-            const a = index2.getX(i);
-            const b = index2.getX(i + 1);
-            const c = index2.getX(i + 2);
+            const a = index.getX(i);
+            const b = index.getX(i + 1);
+            const c = index.getX(i + 2);
             intersection = checkBufferGeometryIntersection(this, material, raycaster, _ray$2, position, morphPosition, morphTargetsRelative, uv, uv2, a, b, c);
             if (intersection) {
               intersection.faceIndex = Math.floor(i / 3);
@@ -8732,7 +8723,7 @@ function WebGLBindingStates(gl, extensions, attributes, capabilities) {
   const bindingStates = {};
   const defaultState = createBindingState(null);
   let currentState = defaultState;
-  function setup(object, material, program, geometry, index2) {
+  function setup(object, material, program, geometry, index) {
     let updateBuffers = false;
     if (vaoAvailable) {
       const state = getBindingState(geometry, program, material);
@@ -8740,9 +8731,9 @@ function WebGLBindingStates(gl, extensions, attributes, capabilities) {
         currentState = state;
         bindVertexArrayObject(currentState.object);
       }
-      updateBuffers = needsUpdate(geometry, index2);
+      updateBuffers = needsUpdate(geometry, index);
       if (updateBuffers)
-        saveCache(geometry, index2);
+        saveCache(geometry, index);
     } else {
       const wireframe = material.wireframe === true;
       if (currentState.geometry !== geometry.id || currentState.program !== program.id || currentState.wireframe !== wireframe) {
@@ -8755,13 +8746,13 @@ function WebGLBindingStates(gl, extensions, attributes, capabilities) {
     if (object.isInstancedMesh === true) {
       updateBuffers = true;
     }
-    if (index2 !== null) {
-      attributes.update(index2, 34963);
+    if (index !== null) {
+      attributes.update(index, 34963);
     }
     if (updateBuffers) {
       setupVertexAttributes(object, material, program, geometry);
-      if (index2 !== null) {
-        gl.bindBuffer(34963, attributes.get(index2).buffer);
+      if (index !== null) {
+        gl.bindBuffer(34963, attributes.get(index).buffer);
       }
     }
   }
@@ -8820,7 +8811,7 @@ function WebGLBindingStates(gl, extensions, attributes, capabilities) {
       index: null
     };
   }
-  function needsUpdate(geometry, index2) {
+  function needsUpdate(geometry, index) {
     const cachedAttributes = currentState.attributes;
     const geometryAttributes = geometry.attributes;
     let attributesNum = 0;
@@ -8837,11 +8828,11 @@ function WebGLBindingStates(gl, extensions, attributes, capabilities) {
     }
     if (currentState.attributesNum !== attributesNum)
       return true;
-    if (currentState.index !== index2)
+    if (currentState.index !== index)
       return true;
     return false;
   }
-  function saveCache(geometry, index2) {
+  function saveCache(geometry, index) {
     const cache = {};
     const attributes2 = geometry.attributes;
     let attributesNum = 0;
@@ -8857,7 +8848,7 @@ function WebGLBindingStates(gl, extensions, attributes, capabilities) {
     }
     currentState.attributes = cache;
     currentState.attributesNum = attributesNum;
-    currentState.index = index2;
+    currentState.index = index;
   }
   function initAttributes() {
     const newAttributes = currentState.newAttributes;
@@ -8893,11 +8884,11 @@ function WebGLBindingStates(gl, extensions, attributes, capabilities) {
       }
     }
   }
-  function vertexAttribPointer(index2, size, type, normalized, stride, offset) {
+  function vertexAttribPointer(index, size, type, normalized, stride, offset) {
     if (capabilities.isWebGL2 === true && (type === 5124 || type === 5125)) {
-      gl.vertexAttribIPointer(index2, size, type, stride, offset);
+      gl.vertexAttribIPointer(index, size, type, stride, offset);
     } else {
-      gl.vertexAttribPointer(index2, size, type, normalized, stride, offset);
+      gl.vertexAttribPointer(index, size, type, normalized, stride, offset);
     }
   }
   function setupVertexAttributes(object, material, program, geometry) {
@@ -9573,14 +9564,14 @@ function WebGLMorphtargets(gl) {
     let morphInfluencesSum = 0;
     for (let i = 0; i < 8; i++) {
       const influence = workInfluences[i];
-      const index2 = influence[0];
+      const index = influence[0];
       const value = influence[1];
-      if (index2 !== Number.MAX_SAFE_INTEGER && value) {
-        if (morphTargets && geometry.getAttribute("morphTarget" + i) !== morphTargets[index2]) {
-          geometry.setAttribute("morphTarget" + i, morphTargets[index2]);
+      if (index !== Number.MAX_SAFE_INTEGER && value) {
+        if (morphTargets && geometry.getAttribute("morphTarget" + i) !== morphTargets[index]) {
+          geometry.setAttribute("morphTarget" + i, morphTargets[index]);
         }
-        if (morphNormals && geometry.getAttribute("morphNormal" + i) !== morphNormals[index2]) {
-          geometry.setAttribute("morphNormal" + i, morphNormals[index2]);
+        if (morphNormals && geometry.getAttribute("morphNormal" + i) !== morphNormals[index]) {
+          geometry.setAttribute("morphNormal" + i, morphNormals[index]);
         }
         morphInfluences[i] = value;
         morphInfluencesSum += value;
@@ -11740,27 +11731,27 @@ function WebGLShadowMap(_renderer, _objects, _capabilities) {
     _renderer.renderBufferDirect(camera, null, geometry, shadowMaterialHorizontal, fullScreenMesh, null);
   }
   function getDepthMaterialVariant(useMorphing, useSkinning, useInstancing) {
-    const index2 = useMorphing << 0 | useSkinning << 1 | useInstancing << 2;
-    let material = _depthMaterials[index2];
+    const index = useMorphing << 0 | useSkinning << 1 | useInstancing << 2;
+    let material = _depthMaterials[index];
     if (material === void 0) {
       material = new MeshDepthMaterial({
         depthPacking: RGBADepthPacking,
         morphTargets: useMorphing,
         skinning: useSkinning
       });
-      _depthMaterials[index2] = material;
+      _depthMaterials[index] = material;
     }
     return material;
   }
   function getDistanceMaterialVariant(useMorphing, useSkinning, useInstancing) {
-    const index2 = useMorphing << 0 | useSkinning << 1 | useInstancing << 2;
-    let material = _distanceMaterials[index2];
+    const index = useMorphing << 0 | useSkinning << 1 | useInstancing << 2;
+    let material = _distanceMaterials[index];
     if (material === void 0) {
       material = new MeshDistanceMaterial({
         morphTargets: useMorphing,
         skinning: useSkinning
       });
-      _distanceMaterials[index2] = material;
+      _distanceMaterials[index] = material;
     }
     return material;
   }
@@ -13463,27 +13454,27 @@ function WebXRManager(renderer, gl) {
   let _currentDepthFar = null;
   this.enabled = false;
   this.isPresenting = false;
-  this.getController = function(index2) {
-    let controller = controllers[index2];
+  this.getController = function(index) {
+    let controller = controllers[index];
     if (controller === void 0) {
       controller = new WebXRController();
-      controllers[index2] = controller;
+      controllers[index] = controller;
     }
     return controller.getTargetRaySpace();
   };
-  this.getControllerGrip = function(index2) {
-    let controller = controllers[index2];
+  this.getControllerGrip = function(index) {
+    let controller = controllers[index];
     if (controller === void 0) {
       controller = new WebXRController();
-      controllers[index2] = controller;
+      controllers[index] = controller;
     }
     return controller.getGripSpace();
   };
-  this.getHand = function(index2) {
-    let controller = controllers[index2];
+  this.getHand = function(index) {
+    let controller = controllers[index];
     if (controller === void 0) {
       controller = new WebXRController();
-      controllers[index2] = controller;
+      controllers[index] = controller;
     }
     return controller.getHandSpace();
   };
@@ -14449,31 +14440,31 @@ function WebGLRenderer(parameters) {
     const frontFaceCW = object.isMesh && object.matrixWorld.determinant() < 0;
     const program = setProgram(camera, scene, material, object);
     state.setMaterial(material, frontFaceCW);
-    let index2 = geometry.index;
+    let index = geometry.index;
     const position = geometry.attributes.position;
-    if (index2 === null) {
+    if (index === null) {
       if (position === void 0 || position.count === 0)
         return;
-    } else if (index2.count === 0) {
+    } else if (index.count === 0) {
       return;
     }
     let rangeFactor = 1;
     if (material.wireframe === true) {
-      index2 = geometries.getWireframeAttribute(geometry);
+      index = geometries.getWireframeAttribute(geometry);
       rangeFactor = 2;
     }
     if (material.morphTargets || material.morphNormals) {
       morphtargets.update(object, geometry, material, program);
     }
-    bindingStates.setup(object, material, program, geometry, index2);
+    bindingStates.setup(object, material, program, geometry, index);
     let attribute;
     let renderer = bufferRenderer;
-    if (index2 !== null) {
-      attribute = attributes.get(index2);
+    if (index !== null) {
+      attribute = attributes.get(index);
       renderer = indexedBufferRenderer;
       renderer.setIndex(attribute);
     }
-    const dataCount = index2 !== null ? index2.count : position.count;
+    const dataCount = index !== null ? index.count : position.count;
     const rangeStart = geometry.drawRange.start * rangeFactor;
     const rangeCount = geometry.drawRange.count * rangeFactor;
     const groupStart = group !== null ? group.start * rangeFactor : 0;
@@ -15324,53 +15315,53 @@ Object.assign(InterleavedBufferAttribute.prototype, {
     }
     return this;
   },
-  setX: function(index2, x) {
-    this.data.array[index2 * this.data.stride + this.offset] = x;
+  setX: function(index, x) {
+    this.data.array[index * this.data.stride + this.offset] = x;
     return this;
   },
-  setY: function(index2, y) {
-    this.data.array[index2 * this.data.stride + this.offset + 1] = y;
+  setY: function(index, y) {
+    this.data.array[index * this.data.stride + this.offset + 1] = y;
     return this;
   },
-  setZ: function(index2, z) {
-    this.data.array[index2 * this.data.stride + this.offset + 2] = z;
+  setZ: function(index, z) {
+    this.data.array[index * this.data.stride + this.offset + 2] = z;
     return this;
   },
-  setW: function(index2, w) {
-    this.data.array[index2 * this.data.stride + this.offset + 3] = w;
+  setW: function(index, w) {
+    this.data.array[index * this.data.stride + this.offset + 3] = w;
     return this;
   },
-  getX: function(index2) {
-    return this.data.array[index2 * this.data.stride + this.offset];
+  getX: function(index) {
+    return this.data.array[index * this.data.stride + this.offset];
   },
-  getY: function(index2) {
-    return this.data.array[index2 * this.data.stride + this.offset + 1];
+  getY: function(index) {
+    return this.data.array[index * this.data.stride + this.offset + 1];
   },
-  getZ: function(index2) {
-    return this.data.array[index2 * this.data.stride + this.offset + 2];
+  getZ: function(index) {
+    return this.data.array[index * this.data.stride + this.offset + 2];
   },
-  getW: function(index2) {
-    return this.data.array[index2 * this.data.stride + this.offset + 3];
+  getW: function(index) {
+    return this.data.array[index * this.data.stride + this.offset + 3];
   },
-  setXY: function(index2, x, y) {
-    index2 = index2 * this.data.stride + this.offset;
-    this.data.array[index2 + 0] = x;
-    this.data.array[index2 + 1] = y;
+  setXY: function(index, x, y) {
+    index = index * this.data.stride + this.offset;
+    this.data.array[index + 0] = x;
+    this.data.array[index + 1] = y;
     return this;
   },
-  setXYZ: function(index2, x, y, z) {
-    index2 = index2 * this.data.stride + this.offset;
-    this.data.array[index2 + 0] = x;
-    this.data.array[index2 + 1] = y;
-    this.data.array[index2 + 2] = z;
+  setXYZ: function(index, x, y, z) {
+    index = index * this.data.stride + this.offset;
+    this.data.array[index + 0] = x;
+    this.data.array[index + 1] = y;
+    this.data.array[index + 2] = z;
     return this;
   },
-  setXYZW: function(index2, x, y, z, w) {
-    index2 = index2 * this.data.stride + this.offset;
-    this.data.array[index2 + 0] = x;
-    this.data.array[index2 + 1] = y;
-    this.data.array[index2 + 2] = z;
-    this.data.array[index2 + 3] = w;
+  setXYZW: function(index, x, y, z, w) {
+    index = index * this.data.stride + this.offset;
+    this.data.array[index + 0] = x;
+    this.data.array[index + 1] = y;
+    this.data.array[index + 2] = z;
+    this.data.array[index + 3] = w;
     return this;
   },
   clone: function(data) {
@@ -15378,9 +15369,9 @@ Object.assign(InterleavedBufferAttribute.prototype, {
       console.log("THREE.InterleavedBufferAttribute.clone(): Cloning an interlaved buffer attribute will deinterleave buffer data.");
       const array = [];
       for (let i = 0; i < this.count; i++) {
-        const index2 = i * this.data.stride + this.offset;
+        const index = i * this.data.stride + this.offset;
         for (let j = 0; j < this.itemSize; j++) {
-          array.push(this.data.array[index2 + j]);
+          array.push(this.data.array[index + j]);
         }
       }
       return new BufferAttribute(new this.array.constructor(array), this.itemSize, this.normalized);
@@ -15399,9 +15390,9 @@ Object.assign(InterleavedBufferAttribute.prototype, {
       console.log("THREE.InterleavedBufferAttribute.toJSON(): Serializing an interlaved buffer attribute will deinterleave buffer data.");
       const array = [];
       for (let i = 0; i < this.count; i++) {
-        const index2 = i * this.data.stride + this.offset;
+        const index = i * this.data.stride + this.offset;
         for (let j = 0; j < this.itemSize; j++) {
-          array.push(this.data.array[index2 + j]);
+          array.push(this.data.array[index + j]);
         }
       }
       return {
@@ -15490,12 +15481,12 @@ SkinnedMesh.prototype = Object.assign(Object.create(Mesh.prototype), {
       console.warn("THREE.SkinnedMesh: Unrecognized bindMode: " + this.bindMode);
     }
   },
-  boneTransform: function(index2, target) {
+  boneTransform: function(index, target) {
     const skeleton = this.skeleton;
     const geometry = this.geometry;
-    _skinIndex.fromBufferAttribute(geometry.attributes.skinIndex, index2);
-    _skinWeight.fromBufferAttribute(geometry.attributes.skinWeight, index2);
-    _basePosition.fromBufferAttribute(geometry.attributes.position, index2).applyMatrix4(this.bindMatrix);
+    _skinIndex.fromBufferAttribute(geometry.attributes.skinIndex, index);
+    _skinWeight.fromBufferAttribute(geometry.attributes.skinWeight, index);
+    _basePosition.fromBufferAttribute(geometry.attributes.position, index).applyMatrix4(this.bindMatrix);
     target.set(0, 0, 0);
     for (let i = 0; i < 4; i++) {
       const weight = _skinWeight.getComponent(i);
@@ -15538,11 +15529,11 @@ InstancedMesh.prototype = Object.assign(Object.create(Mesh.prototype), {
     this.count = source.count;
     return this;
   },
-  getColorAt: function(index2, color) {
-    color.fromArray(this.instanceColor.array, index2 * 3);
+  getColorAt: function(index, color) {
+    color.fromArray(this.instanceColor.array, index * 3);
   },
-  getMatrixAt: function(index2, matrix) {
-    matrix.fromArray(this.instanceMatrix.array, index2 * 16);
+  getMatrixAt: function(index, matrix) {
+    matrix.fromArray(this.instanceMatrix.array, index * 16);
   },
   raycast: function(raycaster, intersects) {
     const matrixWorld = this.matrixWorld;
@@ -15565,14 +15556,14 @@ InstancedMesh.prototype = Object.assign(Object.create(Mesh.prototype), {
       _instanceIntersects.length = 0;
     }
   },
-  setColorAt: function(index2, color) {
+  setColorAt: function(index, color) {
     if (this.instanceColor === null) {
       this.instanceColor = new BufferAttribute(new Float32Array(this.count * 3), 3);
     }
-    color.toArray(this.instanceColor.array, index2 * 3);
+    color.toArray(this.instanceColor.array, index * 3);
   },
-  setMatrixAt: function(index2, matrix) {
-    matrix.toArray(this.instanceMatrix.array, index2 * 16);
+  setMatrixAt: function(index, matrix) {
+    matrix.toArray(this.instanceMatrix.array, index * 16);
   },
   updateMorphTargets: function() {
   },
@@ -15666,15 +15657,15 @@ Line.prototype = Object.assign(Object.create(Object3D.prototype), {
     const interRay = new Vector3();
     const step = this.isLineSegments ? 2 : 1;
     if (geometry.isBufferGeometry) {
-      const index2 = geometry.index;
+      const index = geometry.index;
       const attributes = geometry.attributes;
       const positionAttribute = attributes.position;
-      if (index2 !== null) {
+      if (index !== null) {
         const start = Math.max(0, drawRange.start);
-        const end = Math.min(index2.count, drawRange.start + drawRange.count);
+        const end = Math.min(index.count, drawRange.start + drawRange.count);
         for (let i = start, l = end - 1; i < l; i += step) {
-          const a = index2.getX(i);
-          const b = index2.getX(i + 1);
+          const a = index.getX(i);
+          const b = index.getX(i + 1);
           vStart.fromBufferAttribute(positionAttribute, a);
           vEnd.fromBufferAttribute(positionAttribute, b);
           const distSq = _ray$1.distanceSqToSegment(vStart, vEnd, interRay, interSegment);
@@ -15837,14 +15828,14 @@ Points.prototype = Object.assign(Object.create(Object3D.prototype), {
     const localThreshold = threshold / ((this.scale.x + this.scale.y + this.scale.z) / 3);
     const localThresholdSq = localThreshold * localThreshold;
     if (geometry.isBufferGeometry) {
-      const index2 = geometry.index;
+      const index = geometry.index;
       const attributes = geometry.attributes;
       const positionAttribute = attributes.position;
-      if (index2 !== null) {
+      if (index !== null) {
         const start = Math.max(0, drawRange.start);
-        const end = Math.min(index2.count, drawRange.start + drawRange.count);
+        const end = Math.min(index.count, drawRange.start + drawRange.count);
         for (let i = start, il = end; i < il; i++) {
-          const a = index2.getX(i);
+          const a = index.getX(i);
           _position$2.fromBufferAttribute(positionAttribute, a);
           testPoint(_position$2, a, localThresholdSq, matrixWorld, raycaster, intersects, this);
         }
@@ -15885,7 +15876,7 @@ Points.prototype = Object.assign(Object.create(Object3D.prototype), {
     }
   }
 });
-function testPoint(point, index2, localThresholdSq, matrixWorld, raycaster, intersects, object) {
+function testPoint(point, index, localThresholdSq, matrixWorld, raycaster, intersects, object) {
   const rayPointDistanceSq = _ray.distanceSqToPoint(point);
   if (rayPointDistanceSq < localThresholdSq) {
     const intersectPoint = new Vector3();
@@ -15898,7 +15889,7 @@ function testPoint(point, index2, localThresholdSq, matrixWorld, raycaster, inte
       distance,
       distanceToRay: Math.sqrt(rayPointDistanceSq),
       point: intersectPoint,
-      index: index2,
+      index,
       face: null,
       object
     });
@@ -16201,8 +16192,8 @@ Object.assign(Interpolant.prototype, {
   getSettings_: function() {
     return this.settings || this.DefaultSettings_;
   },
-  copySampleValue_: function(index2) {
-    const result = this.resultBuffer, values = this.sampleValues, stride = this.valueSize, offset = index2 * stride;
+  copySampleValue_: function(index) {
+    const result = this.resultBuffer, values = this.sampleValues, stride = this.valueSize, offset = index * stride;
     for (let i = 0; i !== stride; ++i) {
       result[i] = values[offset + i];
     }
@@ -16390,9 +16381,9 @@ function LoadingManager(onLoad, onProgress, onError) {
     return this;
   };
   this.removeHandler = function(regex) {
-    const index2 = handlers.indexOf(regex);
-    if (index2 !== -1) {
-      handlers.splice(index2, 2);
+    const index = handlers.indexOf(regex);
+    if (index !== -1) {
+      handlers.splice(index, 2);
     }
     return this;
   };
@@ -17083,10 +17074,10 @@ const LoaderUtils = {
     }
   },
   extractUrlBase: function(url) {
-    const index2 = url.lastIndexOf("/");
-    if (index2 === -1)
+    const index = url.lastIndexOf("/");
+    if (index === -1)
       return "./";
-    return url.substr(0, index2 + 1);
+    return url.substr(0, index + 1);
   }
 };
 function InstancedBufferGeometry() {
@@ -17918,9 +17909,9 @@ Triangle.normal = function(a, b, c, target) {
   console.warn("THREE.Triangle: .normal() has been renamed to .getNormal().");
   return Triangle.getNormal(a, b, c, target);
 };
-Vector2.prototype.fromAttribute = function(attribute, index2, offset) {
+Vector2.prototype.fromAttribute = function(attribute, index, offset) {
   console.warn("THREE.Vector2: .fromAttribute() has been renamed to .fromBufferAttribute().");
-  return this.fromBufferAttribute(attribute, index2, offset);
+  return this.fromBufferAttribute(attribute, index, offset);
 };
 Vector2.prototype.distanceToManhattan = function(v) {
   console.warn("THREE.Vector2: .distanceToManhattan() has been renamed to .manhattanDistanceTo().");
@@ -17944,17 +17935,17 @@ Vector3.prototype.getScaleFromMatrix = function(m) {
   console.warn("THREE.Vector3: .getScaleFromMatrix() has been renamed to .setFromMatrixScale().");
   return this.setFromMatrixScale(m);
 };
-Vector3.prototype.getColumnFromMatrix = function(index2, matrix) {
+Vector3.prototype.getColumnFromMatrix = function(index, matrix) {
   console.warn("THREE.Vector3: .getColumnFromMatrix() has been renamed to .setFromMatrixColumn().");
-  return this.setFromMatrixColumn(matrix, index2);
+  return this.setFromMatrixColumn(matrix, index);
 };
 Vector3.prototype.applyProjection = function(m) {
   console.warn("THREE.Vector3: .applyProjection() has been removed. Use .applyMatrix4( m ) instead.");
   return this.applyMatrix4(m);
 };
-Vector3.prototype.fromAttribute = function(attribute, index2, offset) {
+Vector3.prototype.fromAttribute = function(attribute, index, offset) {
   console.warn("THREE.Vector3: .fromAttribute() has been renamed to .fromBufferAttribute().");
-  return this.fromBufferAttribute(attribute, index2, offset);
+  return this.fromBufferAttribute(attribute, index, offset);
 };
 Vector3.prototype.distanceToManhattan = function(v) {
   console.warn("THREE.Vector3: .distanceToManhattan() has been renamed to .manhattanDistanceTo().");
@@ -17964,9 +17955,9 @@ Vector3.prototype.lengthManhattan = function() {
   console.warn("THREE.Vector3: .lengthManhattan() has been renamed to .manhattanLength().");
   return this.manhattanLength();
 };
-Vector4.prototype.fromAttribute = function(attribute, index2, offset) {
+Vector4.prototype.fromAttribute = function(attribute, index, offset) {
   console.warn("THREE.Vector4: .fromAttribute() has been renamed to .fromBufferAttribute().");
-  return this.fromBufferAttribute(attribute, index2, offset);
+  return this.fromBufferAttribute(attribute, index, offset);
 };
 Vector4.prototype.lengthManhattan = function() {
   console.warn("THREE.Vector4: .lengthManhattan() has been renamed to .manhattanLength().");
@@ -18148,9 +18139,9 @@ BufferAttribute.prototype.copyIndicesArray = function() {
 }, BufferAttribute.prototype.setArray = function() {
   console.error("THREE.BufferAttribute: .setArray has been removed. Use BufferGeometry .setAttribute to replace/resize attribute buffers");
 };
-BufferGeometry.prototype.addIndex = function(index2) {
+BufferGeometry.prototype.addIndex = function(index) {
   console.warn("THREE.BufferGeometry: .addIndex() has been renamed to .setIndex().");
-  this.setIndex(index2);
+  this.setIndex(index);
 };
 BufferGeometry.prototype.addAttribute = function(name, attribute) {
   console.warn("THREE.BufferGeometry: .addAttribute() has been renamed to .setAttribute().");
@@ -18652,4 +18643,4 @@ if (typeof window !== "undefined") {
     window.__THREE__ = REVISION;
   }
 }
-export {BoxGeometry as B, Clock as C, Mesh as M, PerspectiveCamera as P, Scene as S, TextureLoader as T, Vector3 as V, WebGLRenderer as W, defineSystem as a, addEntity as b, MeshBasicMaterial as c, defineComponent as d, addComponent as e, Types as f, createWorld as g, defineQuery as h, removeEntity as i, removeComponent as j, pipe as p, registerComponents as r};
+export {BoxGeometry as B, Clock as C, Mesh as M, PerspectiveCamera as P, Scene as S, TextureLoader as T, Vector3 as V, WebGLRenderer as W, defineComponent as a, MeshBasicMaterial as b, addComponent as c, defineSystem as d, Types as e, defineQuery as f, addEntity as g, removeEntity as h, createWorld as i, registerComponents as j, pipe as p, removeComponent as r};

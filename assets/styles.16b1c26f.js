@@ -34,3 +34,4 @@ const p = function polyfill(modulePath = ".", importFunctionName = "__import__")
   }
 };
 p("/threecs/assets/");
+var styles = "html, body {\n  margin: 0;\n  padding: 0;\n}\n\nhtml, body, .container {\n  height: 100%;\n}\n\nbody {\n  font-family: 'Courier New', Courier, monospace;\n}\n\n.container {\n  display: flex;\n}\n\nnav {\n  padding: 20px;\n  width: 200px;\n}\n\nnav li {\n  list-style: none;\n  margin: 8px;\n}\n\nnav a {\n  text-decoration: none;\n  color: #222;\n}\n\niframe, main {\n  width: 100%;\n  height: 100%;\n  background-color: black;\n  border: none;\n  color: white;\n}\n\n.center {\n  display: flex;\n  flex-direction: column;\n  justify-content: center;\n  align-items: center;\n  height: 100%;\n}\n\na:visited {\n  color: inherit;\n}";
