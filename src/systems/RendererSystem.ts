@@ -1,4 +1,5 @@
-import { defineQuery, defineSystem } from "bitecs";
+import { defineQuery, defineSystem, IWorld } from "bitecs";
+import { Camera, PerspectiveCamera } from "three";
 import {
   CameraComponent,
   SceneComponent,
@@ -10,12 +11,12 @@ export const rendererQuery = defineQuery([RendererComponent]);
 export const sceneQuery = defineQuery([Object3DComponent, SceneComponent]);
 export const cameraQuery = defineQuery([Object3DComponent, CameraComponent]);
 
-export function initRendererSystem(world) {
+export function initRendererSystem(world: IWorld) {
   function onResize() {
     const entities = rendererQuery(world);
 
     entities.forEach((eid) => {
-      const component = RendererComponent.get(eid);
+      const component = RendererComponent.storage.get(eid)!;
       component.needsResize = true;
     });
   }
@@ -35,14 +36,16 @@ export const RendererSystem = defineSystem((world) => {
 
   if (renderers.length > 0 && scenes.length > 0 && cameras.length > 0) {
     const rendererEid = renderers[0];
-    const rendererComponent = RendererComponent.storage.get(rendererEid);
+    const rendererComponent = RendererComponent.storage.get(rendererEid)!;
     const { renderer, needsResize } = rendererComponent;
 
     const sceneEid = scenes[0];
     const scene = Object3DComponent.storage.get(sceneEid);
 
     const cameraEid = cameras[0];
-    const camera = Object3DComponent.storage.get(cameraEid);
+    const camera = Object3DComponent.storage.get(
+      cameraEid
+    ) as PerspectiveCamera;
 
     if (scene && camera) {
       if (needsResize) {

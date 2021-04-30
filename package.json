@@ -1,6 +1,6 @@
 {
   "name": "threecs",
-  "version": "0.0.0",
+  "version": "0.0.1",
   "files": [
     "dist"
   ],
@@ -12,15 +12,19 @@
       "require": "./dist/threecs.cjs.js"
     }
   },
+  "types": "./dist/threecs.d.ts",
   "scripts": {
     "dev": "vite",
     "build": "vite build",
+    "build:types": "tsc --declaration --noEmit false --emitDeclarationOnly --outDir ./dist",
     "build-site": "vite build --mode site",
     "preview-site": "vite preview"
   },
   "devDependencies": {
+    "@types/three": "^0.127.1",
     "bitecs": "robertlong/bitecs#dev",
     "three": "^0.127.0",
+    "typescript": "^4.2.4",
     "vite": "^2.1.5"
   },
   "peerDependencies": {

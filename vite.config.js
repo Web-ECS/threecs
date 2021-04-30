@@ -48,7 +48,7 @@ export default ({ command, mode }) => {
     return {
       build: {
         lib: {
-          entry: path.resolve(__dirname, "src/threecs.js"),
+          entry: path.resolve(__dirname, "src/threecs.ts"),
           name: "THREECS",
           formats: ["es", "cjs"],
         },
