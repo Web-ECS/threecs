@@ -8,7 +8,7 @@
   </head>
   <body>
     <script type="module">
-      import { defineQuery, defineSystem, defineComponent } from "bitecs";
+      import { registerComponents, defineQuery, defineSystem } from "bitecs";
       import {
         Mesh,
         BoxBufferGeometry,
@@ -16,10 +16,16 @@
         Vector3,
         TextureLoader,
       } from "three";
-      import { bootstrapThreeWorld, Object3DComponent } from "../src/threecs";
+      import {
+        createThreeWorld,
+        Object3DComponent,
+        addObject3DEntity,
+        addMapComponent,
+        defineMapComponent,
+      } from "../src/threecs";
       import crateTextureUrl from "./assets/crate.gif";
 
-      const RotateComponent = defineComponent(new Map());
+      const RotateComponent = defineMapComponent(new Map());
 
       const rotateQuery = defineQuery([RotateComponent, Object3DComponent]);
 
@@ -28,40 +34,31 @@
 
         entities.forEach((eid) => {
           const dt = world.dt;
-          const object3D = Object3DComponent.get(eid);
-          const { speed, axis } = RotateComponent.get(eid);
+          const object3D = Object3DComponent.storage.get(eid);
+          const { speed, axis } = RotateComponent.storage.get(eid);
           object3D.rotateOnAxis(axis, speed * dt);
         });
       });
 
-      const crateTexture = new TextureLoader().load(crateTextureUrl);
-
-      bootstrapThreeWorld({
+      const { world, scene, camera, start } = createThreeWorld({
         beforeRenderSystems: [RotateSystem],
-        entities: [
-          {
-            target: "scene",
-            children: [
-              {
-                target: "camera",
-                position: new Vector3(0, 0, 5),
-              },
-              {
-                object3D: new Mesh(
-                  new BoxBufferGeometry(),
-                  new MeshBasicMaterial({ map: crateTexture })
-                ),
-                components: [
-                  [
-                    RotateComponent,
-                    { axis: new Vector3(0.5, 1, 0).normalize(), speed: 1 },
-                  ],
-                ],
-              },
-            ],
-          },
-        ],
+        components: [RotateComponent],
       });
+
+      camera.position.z = 5;
+
+      const crateTexture = new TextureLoader().load(crateTextureUrl);
+      const cube = new Mesh(
+        new BoxBufferGeometry(),
+        new MeshBasicMaterial({ map: crateTexture })
+      );
+      const cubeEid = addObject3DEntity(world, cube, scene);
+      addMapComponent(world, RotateComponent, cubeEid, {
+        axis: new Vector3(0.5, 1, 0).normalize(),
+        speed: 1,
+      });
+
+      start();
     </script>
   </body>
 </html>

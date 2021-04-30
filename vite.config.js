@@ -57,9 +57,9 @@ export default ({ command, mode }) => {
           external: ["three", "bitecs"],
         },
         // Use when npm linking bitecs
-        // optimizeDeps: {
-        //   exclude: ["bitecs"],
-        // },
+        optimizeDeps: {
+          exclude: ["bitecs"],
+        },
       },
     };
   }

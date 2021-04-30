@@ -1,7 +1,14 @@
 import { defineQuery, defineSystem } from "bitecs";
-import { RendererComponent } from "../components/RendererComponent";
+import {
+  CameraComponent,
+  SceneComponent,
+  RendererComponent,
+} from "../components";
+import { Object3DComponent } from "../components";
 
 export const rendererQuery = defineQuery([RendererComponent]);
+export const sceneQuery = defineQuery([Object3DComponent, SceneComponent]);
+export const cameraQuery = defineQuery([Object3DComponent, CameraComponent]);
 
 export function initRendererSystem(world) {
   function onResize() {
@@ -22,11 +29,20 @@ export function initRendererSystem(world) {
 }
 
 export const RendererSystem = defineSystem((world) => {
-  const entities = rendererQuery(world);
+  const renderers = rendererQuery(world);
+  const scenes = sceneQuery(world);
+  const cameras = cameraQuery(world);
 
-  entities.forEach((eid) => {
-    const component = RendererComponent.get(eid);
-    const { renderer, scene, camera, needsResize } = component;
+  if (renderers.length > 0 && scenes.length > 0 && cameras.length > 0) {
+    const rendererEid = renderers[0];
+    const rendererComponent = RendererComponent.storage.get(rendererEid);
+    const { renderer, needsResize } = rendererComponent;
+
+    const sceneEid = scenes[0];
+    const scene = Object3DComponent.storage.get(sceneEid);
+
+    const cameraEid = cameras[0];
+    const camera = Object3DComponent.storage.get(cameraEid);
 
     if (scene && camera) {
       if (needsResize) {
@@ -37,10 +53,10 @@ export const RendererSystem = defineSystem((world) => {
 
         renderer.setSize(window.innerWidth, window.innerHeight);
 
-        component.needsResize = false;
+        rendererComponent.needsResize = false;
       }
 
       renderer.render(scene, camera);
     }
-  });
+  }
 });

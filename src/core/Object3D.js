@@ -1,19 +1,12 @@
-import {
-  addEntity,
-  removeEntity,
-  defineComponent,
-  addComponent,
-  removeComponent,
-} from "bitecs";
+import { addEntity, removeEntity } from "bitecs";
 import { addMapComponent, removeMapComponent } from "./MapComponent";
+import { Object3DComponent } from "../components";
 
 const $object3DEntityMap = Symbol("object3DEntityMap");
 
 export function initObject3DStorage(world) {
   world[$object3DEntityMap] = new Map();
 }
-
-export const Object3DComponent = defineComponent(new Map());
 
 export function addObject3DComponent(world, eid, obj, parent) {
   if (parent) {
@@ -31,7 +24,7 @@ export function addObject3DEntity(world, obj, parent) {
 }
 
 export function removeObject3DComponent(world, eid) {
-  const obj = Object3DComponent.get(eid);
+  const obj = Object3DComponent.storage.get(eid);
 
   if (!obj) {
     return;
@@ -53,7 +46,7 @@ export function removeObject3DComponent(world, eid) {
 
     if (childEid) {
       removeEntity(world, childEid);
-      Object3DComponent.delete(childEid);
+      Object3DComponent.storage.delete(childEid);
       world[$object3DEntityMap].delete(child);
     }
   });
