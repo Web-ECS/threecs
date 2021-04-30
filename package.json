@@ -29,6 +29,6 @@
   },
   "peerDependencies": {
     "bitecs": "github:robertlong/bitecs#dev",
-    "three": "~0.127.0"
+    "three": ">= 0.127.0"
   }
 }
