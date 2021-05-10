@@ -1,6 +1,5 @@
 import { Vector2 } from "three";
 import { Object3DComponent } from "../components";
-import { ActionType } from "./ActionMappingSystem";
 import {
   defineSystem,
   World,
@@ -11,10 +10,7 @@ import {
 import { Types } from "bitecs";
 
 export const DirectionalMovementActions = {
-  Move: {
-    path: "DirectionalMovement/Move",
-    type: ActionType.Vector2,
-  },
+  Move: "DirectionalMovement/Move",
 };
 
 export const DirectionalMovementComponent = defineComponent({
@@ -29,7 +25,7 @@ const directionalMovementQuery = defineQuery([
 export const DirectionalMovementSystem = defineSystem(
   function DirectionalMovementSystem(world: World) {
     const moveVec = world.actions.get(
-      DirectionalMovementActions.Move.path
+      DirectionalMovementActions.Move
     ) as Vector2;
     const entities = directionalMovementQuery(world);
 

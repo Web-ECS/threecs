@@ -1,13 +1,9 @@
 import { Vector2 } from "three";
-import { ActionType } from "./ActionMappingSystem";
 import { defineSystem, World, defineQuery, defineComponent } from "../core/ECS";
 import { Object3DComponent } from "../components";
 
 export const FirstPersonCameraActions = {
-  Look: {
-    path: "FirstPersonCamera/Look",
-    type: ActionType.Vector2,
-  },
+  Look: "FirstPersonCamera/Look",
 };
 
 export const FirstPersonCameraPitchTarget = defineComponent({});
@@ -24,9 +20,7 @@ const cameraYawTargetQuery = defineQuery([
 
 export const FirstPersonCameraSystem = defineSystem(
   function FirstPersonCameraSystem(world: World) {
-    const lookVec = world.actions.get(
-      FirstPersonCameraActions.Look.path
-    ) as Vector2;
+    const lookVec = world.actions.get(FirstPersonCameraActions.Look) as Vector2;
 
     const pitchEntities = cameraPitchTargetQuery(world);
 

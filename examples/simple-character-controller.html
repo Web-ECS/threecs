@@ -8,41 +8,55 @@
   </head>
   <body>
     <script type="module">
-      import { Object3D } from "three";
       import {
+        Object3D,
+        Mesh,
+        BoxBufferGeometry,
+        MeshBasicMaterial,
+        Vector3,
+        TextureLoader,
+      } from "three";
+      import {
+        ActionType,
         createThreeWorld,
         addObject3DEntity,
         addComponent,
         BindingType,
         FirstPersonCameraSystem,
         FirstPersonCameraActions,
-        FirstPersonCameraComponent,
+        FirstPersonCameraYawTarget,
+        FirstPersonCameraPitchTarget,
         DirectionalMovementSystem,
         DirectionalMovementActions,
         DirectionalMovementComponent,
       } from "../src/threecs";
+      import crateTextureUrl from "./assets/crate.gif";
 
       const { world, scene, camera, cameraEid, start } = createThreeWorld({
         systems: [FirstPersonCameraSystem, DirectionalMovementSystem],
         actionMaps: [
           {
-            name: "PlayerControls",
+            id: "movement",
             actions: [
               {
-                action: FirstPersonCameraActions.Look,
+                id: "look",
+                path: FirstPersonCameraActions.Look,
+                type: ActionType.Vector2,
                 bindings: [
                   {
-                    type: BindingType.scalarsToVector2,
+                    type: BindingType.Axes,
                     x: "Mouse/movementX",
                     y: "Mouse/movementY",
                   },
                 ],
               },
               {
-                action: DirectionalMovementActions.Move,
+                id: "move",
+                path: DirectionalMovementActions.Move,
+                type: ActionType.Vector2,
                 bindings: [
                   {
-                    type: BindingType.booleansToVector2,
+                    type: BindingType.DirectionalButtons,
                     up: "Keyboard/w",
                     down: "Keyboard/s",
                     left: "Keyboard/a",
@@ -61,6 +75,15 @@
       addComponent(world, FirstPersonCameraYawTarget, playerRigEid);
       playerRig.add(camera);
       addComponent(world, FirstPersonCameraPitchTarget, cameraEid);
+
+      playerRig.position.z = 5;
+
+      const crateTexture = new TextureLoader().load(crateTextureUrl);
+      const cube = new Mesh(
+        new BoxBufferGeometry(),
+        new MeshBasicMaterial({ map: crateTexture })
+      );
+      const cubeEid = addObject3DEntity(world, cube, scene);
 
       start();
     </script>

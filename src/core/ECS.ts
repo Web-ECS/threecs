@@ -19,18 +19,18 @@ import {
   commitRemovals as _commitRemovals,
   defineSystem as _defineSystem,
 } from "bitecs";
-import { Object3D } from "three";
-import { ActionMap } from "../systems/ActionMappingSystem";
+import { Object3D, Vector2 } from "three";
 import { Object3DComponent } from "../components";
-import { InputMap } from "./World";
+import { ActionMap } from "../systems/ActionMappingSystem";
 
 export { pipe } from "bitecs";
 
 export interface World extends IWorld {
   dt: number;
   time: number;
-  input: InputMap;
-  actions: ActionMap;
+  input: Map<string, number>;
+  actionMaps: ActionMap[];
+  actions: Map<string, number | Vector2>;
   objectEntityMap: Map<Object3D, number>;
 }
 

@@ -12,11 +12,10 @@ import {
   SceneComponent,
   RendererComponent,
 } from "../components";
-import { ActionMap, ActionMappingSystem } from "../systems/ActionMappingSystem";
+import { ActionMappingSystem, ActionMap } from "../systems/ActionMappingSystem";
 import {
   addEntity,
   pipe,
-  Component,
   addComponent,
   System,
   World,
@@ -24,13 +23,11 @@ import {
   addMapComponent,
 } from "./ECS";
 
-export type InputMap = Map<string, number>;
-
 interface GLTFWorldOptions {
   systems?: System[];
   afterRenderSystems?: System[];
   rendererParameters?: WebGLRendererParameters;
-  actionMaps: ActionMap[];
+  actionMaps?: ActionMap[];
 }
 
 export function createThreeWorld(options: GLTFWorldOptions = {}) {
@@ -41,7 +38,7 @@ export function createThreeWorld(options: GLTFWorldOptions = {}) {
     actionMaps,
   } = Object.assign(
     {
-      actionMaps,
+      actionMaps: [],
       systems: [],
       afterRenderSystems: [],
       rendererParameters: {},
