@@ -1,13 +1,4 @@
-import {
-  addEntity,
-  createWorld,
-  registerComponents,
-  pipe,
-  addComponent,
-  System,
-  IComponent,
-  IWorld,
-} from "bitecs";
+import { createWorld } from "bitecs";
 import {
   WebGLRenderer,
   Scene,
@@ -15,52 +6,63 @@ import {
   Clock,
   WebGLRendererParameters,
 } from "three";
-import {
-  GLTF,
-  GLTFLoader,
-  GLTFParser,
-} from "three/examples/jsm/loaders/GLTFLoader";
-import { initRendererSystem, RendererSystem } from "../systems/RendererSystem";
-import { addObject3DEntity, initObject3DStorage } from "../core/Object3D";
-import { addMapComponent } from "../core/MapComponent";
+import { RendererSystem } from "../systems/RendererSystem";
 import {
   CameraComponent,
   SceneComponent,
-  Object3DComponent,
   RendererComponent,
 } from "../components";
+import { ActionMap, ActionMappingSystem } from "../systems/ActionMappingSystem";
+import {
+  addEntity,
+  pipe,
+  Component,
+  addComponent,
+  System,
+  World,
+  addObject3DEntity,
+  addMapComponent,
+} from "./ECS";
+
+export type InputMap = Map<string, number>;
 
 interface GLTFWorldOptions {
-  beforeRenderSystems?: System[];
+  systems?: System[];
   afterRenderSystems?: System[];
   rendererParameters?: WebGLRendererParameters;
-  components?: IComponent[];
+  actionMaps: ActionMap[];
 }
 
 export function createThreeWorld(options: GLTFWorldOptions = {}) {
   const {
-    beforeRenderSystems,
+    systems,
     afterRenderSystems,
     rendererParameters,
-    components,
+    actionMaps,
   } = Object.assign(
     {
-      beforeRenderSystems: [],
+      actionMaps,
+      systems: [],
       afterRenderSystems: [],
       rendererParameters: {},
-      components: [],
     },
     options
   );
 
-  const world = createWorld();
-  initObject3DStorage(world);
+  const world = createWorld() as World;
+  world.dt = 0;
+  world.time = 0;
+  world.objectEntityMap = new Map();
+  world.input = new Map();
+  world.actionMaps = actionMaps || [];
+  world.actions = new Map();
+  world.resizeViewport = true;
 
-  registerComponents(world, [
-    RendererComponent,
-    Object3DComponent,
-    ...components,
-  ]);
+  function onResize() {
+    world.resizeViewport = true;
+  }
+
+  window.addEventListener("resize", onResize);
 
   const scene = new Scene();
   const sceneEid = addObject3DEntity(world, scene);
@@ -89,16 +91,32 @@ export function createThreeWorld(options: GLTFWorldOptions = {}) {
   canvasStyle.width = "100%";
   canvasStyle.height = "100%";
 
-  addMapComponent(world, RendererComponent, rendererEid, {
-    renderer,
-    needsResize: true,
+  addMapComponent(world, RendererComponent, rendererEid, renderer);
+
+  window.addEventListener("keydown", (e) => {
+    world.input.set(`Keyboard/${e.key.toLowerCase()}`, 1);
   });
-  initRendererSystem(world);
+
+  window.addEventListener("keyup", (e) => {
+    world.input.set(`Keyboard/${e.key.toLowerCase()}`, 0);
+  });
+
+  window.addEventListener("mousemove", (e) => {
+    world.input.set("Mouse/movementX", e.movementX);
+    world.input.set("Mouse/movementY", e.movementY);
+  });
+
+  window.addEventListener("blur", () => {
+    for (const key of world.input.keys()) {
+      world.input.set(key, 0);
+    }
+  });
 
   const clock = new Clock();
 
   const pipeline = pipe(
-    ...beforeRenderSystems,
+    ActionMappingSystem,
+    ...systems,
     RendererSystem,
     ...afterRenderSystems
   );
@@ -119,97 +137,4 @@ export function createThreeWorld(options: GLTFWorldOptions = {}) {
       });
     },
   };
-}
-
-function ThreecsGLTFLoaderPlugin(parser: GLTFParser, world: IWorld) {
-  return {
-    async afterRoot(gltf: GLTF) {
-      console.log(gltf);
-    },
-  };
-}
-
-export async function createWorldFromGLTF(
-  gltfSrc: string,
-  options?: GLTFWorldOptions
-) {
-  const {
-    beforeRenderSystems,
-    afterRenderSystems,
-    rendererParameters,
-    components,
-  } = Object.assign(
-    {
-      beforeRenderSystems: [],
-      afterRenderSystems: [],
-      rendererParameters: {},
-      components: [],
-    },
-    options
-  );
-
-  const world = createWorld();
-  initObject3DStorage(world);
-
-  registerComponents(world, [
-    RendererComponent,
-    Object3DComponent,
-    ...components,
-  ]);
-
-  const renderer = new WebGLRenderer({
-    antialias: true,
-    ...rendererParameters,
-  });
-  renderer.setPixelRatio(window.devicePixelRatio);
-
-  if (!rendererParameters.canvas) {
-    document.body.appendChild(renderer.domElement);
-  }
-
-  initRendererSystem(world);
-
-  const clock = new Clock();
-
-  const pipeline = pipe(
-    ...beforeRenderSystems,
-    RendererSystem,
-    ...afterRenderSystems
-  );
-
-  const gltfLoader = new GLTFLoader();
-  gltfLoader.register((parser) => ThreecsGLTFLoaderPlugin(parser, world));
-  const { scene, cameras } = await gltfLoader.loadAsync(gltfSrc);
-
-  if (!scene) {
-    throw new Error("glTF has no scene");
-  }
-
-  const sceneEid = addObject3DEntity(world, scene);
-  addComponent(world, SceneComponent, sceneEid);
-
-  let camera;
-
-  if (cameras.length > 0) {
-    camera = cameras[0];
-  } else {
-    camera = new PerspectiveCamera();
-  }
-
-  const cameraEid = addObject3DEntity(world, camera);
-  addComponent(world, CameraComponent, cameraEid);
-
-  const rendererEid = addEntity(world);
-  addMapComponent(world, RendererComponent, rendererEid, {
-    renderer,
-    needsResize: true,
-  });
-
-  renderer.setAnimationLoop(() => {
-    world.dt = clock.getDelta();
-    world.time = clock.getElapsedTime();
-    pipeline(world);
-  });
-
-  return world;
 }

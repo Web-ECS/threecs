@@ -9,14 +9,6 @@
   <body>
     <script type="module">
       import {
-        registerComponents,
-        defineQuery,
-        defineSystem,
-        defineComponent,
-        Types,
-        addComponent,
-      } from "bitecs";
-      import {
         Mesh,
         BoxBufferGeometry,
         MeshBasicMaterial,
@@ -24,6 +16,11 @@
         TextureLoader,
       } from "three";
       import {
+        defineQuery,
+        defineSystem,
+        defineComponent,
+        Types,
+        addComponent,
         createThreeWorld,
         Object3DComponent,
         addObject3DEntity,
@@ -70,8 +67,7 @@
       });
 
       const { world, scene, camera, start } = createThreeWorld({
-        beforeRenderSystems: [DeferredRemovalSystem, RotateSystem],
-        components: [RotateComponent, DeferredRemovalComponent],
+        systems: [DeferredRemovalSystem, RotateSystem],
       });
 
       camera.position.z = 5;

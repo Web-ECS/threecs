@@ -1,6 +1,5 @@
 import path from "path";
 import fs from "fs";
-import crypto from "crypto";
 
 const ignorePaths = [".git", "node_modules", "dist", "site"];
 
@@ -55,7 +54,7 @@ export default ({ command, mode }) => {
         },
         minify: false,
         rollupOptions: {
-          external: ["three", /^three\//, "bitecs"],
+          external: ["three", /^three\//],
         },
         // Use when npm linking bitecs
         // optimizeDeps: {

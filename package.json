@@ -20,15 +20,16 @@
     "build-site": "vite build --mode site",
     "preview-site": "vite preview"
   },
+  "dependencies": {
+    "bitecs": "github:robertlong/bitecs#dev"
+  },
   "devDependencies": {
     "@types/three": "^0.127.1",
-    "bitecs": "robertlong/bitecs#dev",
     "three": "^0.127.0",
     "typescript": "^4.2.4",
     "vite": "^2.1.5"
   },
   "peerDependencies": {
-    "bitecs": "github:robertlong/bitecs#dev",
     "three": ">= 0.127.0"
   }
 }

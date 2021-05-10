@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>threecs | Examples: Simple Character Controller</title>
+    <link rel="stylesheet" href="./styles.css" />
+  </head>
+  <body>
+    <script type="module">
+      import { Object3D } from "three";
+      import {
+        createThreeWorld,
+        addObject3DEntity,
+        addComponent,
+        BindingType,
+        FirstPersonCameraSystem,
+        FirstPersonCameraActions,
+        FirstPersonCameraComponent,
+        DirectionalMovementSystem,
+        DirectionalMovementActions,
+        DirectionalMovementComponent,
+      } from "../src/threecs";
+
+      const { world, scene, camera, cameraEid, start } = createThreeWorld({
+        systems: [FirstPersonCameraSystem, DirectionalMovementSystem],
+        actionMaps: [
+          {
+            name: "PlayerControls",
+            actions: [
+              {
+                action: FirstPersonCameraActions.Look,
+                bindings: [
+                  {
+                    type: BindingType.scalarsToVector2,
+                    x: "Mouse/movementX",
+                    y: "Mouse/movementY",
+                  },
+                ],
+              },
+              {
+                action: DirectionalMovementActions.Move,
+                bindings: [
+                  {
+                    type: BindingType.booleansToVector2,
+                    up: "Keyboard/w",
+                    down: "Keyboard/s",
+                    left: "Keyboard/a",
+                    right: "Keyboard/d",
+                  },
+                ],
+              },
+            ],
+          },
+        ],
+      });
+
+      const playerRig = new Object3D();
+      const playerRigEid = addObject3DEntity(world, playerRig, scene);
+      addComponent(world, DirectionalMovementComponent, playerRigEid);
+      addComponent(world, FirstPersonCameraYawTarget, playerRigEid);
+      playerRig.add(camera);
+      addComponent(world, FirstPersonCameraPitchTarget, cameraEid);
+
+      start();
+    </script>
+  </body>
+</html>
