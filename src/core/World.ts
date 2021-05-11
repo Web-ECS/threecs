@@ -24,6 +24,7 @@ import {
 } from "./ECS";
 
 interface GLTFWorldOptions {
+  pointerLock?: boolean;
   systems?: System[];
   afterRenderSystems?: System[];
   rendererParameters?: WebGLRendererParameters;
@@ -32,12 +33,14 @@ interface GLTFWorldOptions {
 
 export function createThreeWorld(options: GLTFWorldOptions = {}) {
   const {
+    pointerLock,
     systems,
     afterRenderSystems,
     rendererParameters,
     actionMaps,
   } = Object.assign(
     {
+      pointerLock: false,
       actionMaps: [],
       systems: [],
       afterRenderSystems: [],
@@ -90,6 +93,12 @@ export function createThreeWorld(options: GLTFWorldOptions = {}) {
 
   addMapComponent(world, RendererComponent, rendererEid, renderer);
 
+  if (pointerLock) {
+    renderer.domElement.addEventListener("mousedown", () => {
+      renderer.domElement.requestPointerLock();
+    });
+  }
+
   window.addEventListener("keydown", (e) => {
     world.input.set(`Keyboard/${e.key.toLowerCase()}`, 1);
   });
@@ -99,8 +108,16 @@ export function createThreeWorld(options: GLTFWorldOptions = {}) {
   });
 
   window.addEventListener("mousemove", (e) => {
-    world.input.set("Mouse/movementX", e.movementX);
-    world.input.set("Mouse/movementY", e.movementY);
+    if (pointerLock && document.pointerLockElement === renderer.domElement) {
+      world.input.set(
+        "Mouse/movementX",
+        world.input.get("Mouse/movementX")! + e.movementX
+      );
+      world.input.set(
+        "Mouse/movementY",
+        world.input.get("Mouse/movementY")! + e.movementY
+      );
+    }
   });
 
   window.addEventListener("blur", () => {
@@ -131,6 +148,8 @@ export function createThreeWorld(options: GLTFWorldOptions = {}) {
         world.dt = clock.getDelta();
         world.time = clock.getElapsedTime();
         pipeline(world);
+        world.input.set("Mouse/movementX", 0);
+        world.input.set("Mouse/movementY", 0);
       });
     },
   };

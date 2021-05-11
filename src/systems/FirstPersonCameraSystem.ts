@@ -1,13 +1,26 @@
-import { Vector2 } from "three";
-import { defineSystem, World, defineQuery, defineComponent } from "../core/ECS";
+import { Vector2, MathUtils } from "three";
+import {
+  defineSystem,
+  World,
+  defineQuery,
+  defineComponent,
+  Types,
+  TypedArray,
+} from "../core/ECS";
 import { Object3DComponent } from "../components";
 
 export const FirstPersonCameraActions = {
   Look: "FirstPersonCamera/Look",
 };
 
-export const FirstPersonCameraPitchTarget = defineComponent({});
-export const FirstPersonCameraYawTarget = defineComponent({});
+export const FirstPersonCameraPitchTarget = defineComponent({
+  maxAngle: Types.f32,
+  minAngle: Types.f32,
+  sensitivity: Types.f32,
+});
+export const FirstPersonCameraYawTarget = defineComponent({
+  sensitivity: Types.f32,
+});
 
 const cameraPitchTargetQuery = defineQuery([
   FirstPersonCameraPitchTarget,
@@ -24,16 +37,40 @@ export const FirstPersonCameraSystem = defineSystem(
 
     const pitchEntities = cameraPitchTargetQuery(world);
 
-    pitchEntities.forEach((eid) => {
-      const obj = Object3DComponent.storage.get(eid)!;
-      obj.rotateX(lookVec.y);
-    });
+    if (Math.abs(lookVec.y) > 1) {
+      pitchEntities.forEach((eid) => {
+        const obj = Object3DComponent.storage.get(eid)!;
+        const sensitivity = (FirstPersonCameraPitchTarget.sensitivity as TypedArray)[
+          eid
+        ];
+        const maxAngle = (FirstPersonCameraPitchTarget.maxAngle as TypedArray)[
+          eid
+        ];
+        const minAngle = (FirstPersonCameraPitchTarget.minAngle as TypedArray)[
+          eid
+        ];
+        const maxAngleRads = MathUtils.degToRad(maxAngle || 89);
+        const minAngleRads = MathUtils.degToRad(minAngle || -89);
+        obj.rotation.x -= lookVec.y / (1000 / (sensitivity || 1));
+
+        if (obj.rotation.x > maxAngleRads) {
+          obj.rotation.x = maxAngleRads;
+        } else if (obj.rotation.x < minAngleRads) {
+          obj.rotation.x = minAngleRads;
+        }
+      });
+    }
 
     const yawEntities = cameraYawTargetQuery(world);
 
-    yawEntities.forEach((eid) => {
-      const obj = Object3DComponent.storage.get(eid)!;
-      obj.rotateY(lookVec.x);
-    });
+    if (Math.abs(lookVec.x) > 1) {
+      yawEntities.forEach((eid) => {
+        const obj = Object3DComponent.storage.get(eid)!;
+        const sensitivity = (FirstPersonCameraYawTarget.sensitivity as TypedArray)[
+          eid
+        ];
+        obj.rotation.y -= lookVec.x / (1000 / (sensitivity || 1));
+      });
+    }
   }
 );

@@ -33,6 +33,7 @@
       import crateTextureUrl from "./assets/crate.gif";
 
       const { world, scene, camera, cameraEid, start } = createThreeWorld({
+        pointerLock: true,
         systems: [FirstPersonCameraSystem, DirectionalMovementSystem],
         actionMaps: [
           {

@@ -31,9 +31,9 @@ export const DirectionalMovementSystem = defineSystem(
 
     entities.forEach((eid) => {
       const speed =
-        (DirectionalMovementComponent.speed as TypedArray)[eid] || 1;
+        (DirectionalMovementComponent.speed as TypedArray)[eid] || 0.2;
       const obj = Object3DComponent.storage.get(eid)!;
-      obj.translateZ(moveVec.y * speed);
+      obj.translateZ(-moveVec.y * speed);
       obj.translateX(moveVec.x * speed);
     });
   }
