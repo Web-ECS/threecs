@@ -62,60 +62,52 @@ export const defineQuery = _defineQuery as (
   components: (Component | QueryModifier)[]
 ) => Query;
 
-export const addEntity = (_addEntity as unknown) as (world: World) => number;
+export const addEntity = _addEntity as unknown as (world: World) => number;
 
-export const removeEntity = (_removeEntity as unknown) as (
+export const removeEntity = _removeEntity as unknown as (
   world: World,
   eid: number
 ) => void;
 
-export const defineComponent = (_defineComponent as unknown) as (
+export const defineComponent = _defineComponent as unknown as (
   schema: Schema
 ) => Component;
 
-export const addComponent = (_addComponent as unknown) as (
+export const addComponent = _addComponent as unknown as (
   world: World,
   component: Component,
   eid: number
 ) => void;
 
-export const removeComponent = (_removeComponent as unknown) as (
+export const removeComponent = _removeComponent as unknown as (
   world: World,
   component: Component,
   eid: number
 ) => void;
 
-export const hasComponent = (_hasComponent as unknown) as (
+export const hasComponent = _hasComponent as unknown as (
   world: World,
   component: Component,
   eid: number
 ) => boolean;
 
-export const Changed = (_Changed as unknown) as (
+export const Changed = _Changed as unknown as (
   c: (Component | ComponentProp)[]
 ) => (world: World) => Component | ComponentProp;
 
-export const Not = (_Not as unknown) as (
+export const Not = _Not as unknown as (
   c: (Component | ComponentProp)[]
 ) => (world: World) => Component | ComponentProp;
 
-export const enterQuery = (_enterQuery as unknown) as (
-  world: World,
-  query: Query,
-  fn: (eid: number) => void
-) => void;
+export const enterQuery = _enterQuery as unknown as (query: Query) => Query;
 
-export const exitQuery = (_exitQuery as unknown) as (
-  world: World,
-  query: Query,
-  fn: (eid: number) => void
-) => void;
+export const exitQuery = _exitQuery as unknown as (query: Query) => Query;
 
-export const commitRemovals = (_commitRemovals as unknown) as (
+export const commitRemovals = _commitRemovals as unknown as (
   world: World
 ) => void;
 
-export const defineSystem = (_defineSystem as unknown) as (
+export const defineSystem = _defineSystem as unknown as (
   update: (world: World) => void
 ) => System;
 

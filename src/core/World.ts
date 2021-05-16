@@ -6,12 +6,8 @@ import {
   Clock,
   WebGLRendererParameters,
 } from "three";
-import { RendererSystem } from "../systems/RendererSystem";
-import {
-  CameraComponent,
-  SceneComponent,
-  RendererComponent,
-} from "../components";
+import { RendererSystem, RendererComponent } from "../systems/RendererSystem";
+import { CameraComponent, SceneComponent } from "../components";
 import { ActionMappingSystem, ActionMap } from "../systems/ActionMappingSystem";
 import {
   addEntity,
@@ -125,6 +121,15 @@ export function createThreeWorld(options: GLTFWorldOptions = {}) {
       world.input.set(key, 0);
     }
   });
+
+  if (typeof (window as any).__THREE_DEVTOOLS__ !== "undefined") {
+    (window as any).__THREE_DEVTOOLS__.dispatchEvent(
+      new CustomEvent("observe", { detail: scene })
+    );
+    (window as any).__THREE_DEVTOOLS__.dispatchEvent(
+      new CustomEvent("observe", { detail: renderer })
+    );
+  }
 
   const clock = new Clock();
 

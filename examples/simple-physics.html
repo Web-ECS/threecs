@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>threecs | Examples: Rotating Cube</title>
+    <link rel="stylesheet" href="./styles.css" />
+  </head>
+  <body>
+    <script type="module">
+      import Ammo from "ammo-wasm";
+      import {
+        Mesh,
+        BoxBufferGeometry,
+        SphereBufferGeometry,
+        MeshBasicMaterial,
+        Vector3,
+        TextureLoader,
+      } from "three";
+      import {
+        createThreeWorld,
+        addObject3DEntity,
+        addMapComponent,
+        addComponent,
+        loadPhysicsSystem,
+        PhysicsWorldComponent,
+        PhysicsRigidBodyComponent,
+      } from "../src/threecs";
+      import crateTextureUrl from "./assets/crate.gif";
+
+      async function main() {
+        const PhysicsSystem = await loadPhysicsSystem();
+
+        const { world, scene, sceneEid, camera, start } = createThreeWorld({
+          systems: [PhysicsSystem],
+        });
+
+        addMapComponent(world, PhysicsWorldComponent, sceneEid, {
+          gravity: new Vector3(0, -6, 0),
+        });
+
+        camera.position.z = 5;
+        camera.position.y = 3;
+        camera.lookAt(0, 0, 0);
+
+        const crateTexture = new TextureLoader().load(crateTextureUrl);
+        const cube = new Mesh(
+          new BoxBufferGeometry(0.5, 0.5, 0.5),
+          new MeshBasicMaterial({ map: crateTexture })
+        );
+        const cubeEid = addObject3DEntity(world, cube, scene);
+        cube.position.y = 2;
+        cube.rotation.x = 0.35;
+        cube.rotation.z = 0.25;
+        addMapComponent(world, PhysicsRigidBodyComponent, cubeEid, {
+          mass: 1,
+        });
+
+        const sphere = new Mesh(
+          new SphereBufferGeometry(1, 10, 10),
+          new MeshBasicMaterial({ color: 0xff0000 })
+        );
+        const sphereEid = addObject3DEntity(world, sphere, scene);
+        sphere.position.y = 0.25;
+        sphere.position.z = -0.5;
+        addMapComponent(world, PhysicsRigidBodyComponent, sphereEid, {
+          mass: 0,
+        });
+
+        const ground = new Mesh(
+          new BoxBufferGeometry(10, 0.1, 10),
+          new MeshBasicMaterial()
+        );
+        const groundEid = addObject3DEntity(world, ground, scene);
+        addMapComponent(world, PhysicsRigidBodyComponent, groundEid, {
+          mass: 0,
+        });
+
+        start();
+      }
+
+      main().catch(console.error);
+    </script>
+  </body>
+</html>

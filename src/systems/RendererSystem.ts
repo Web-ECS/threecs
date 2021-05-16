@@ -1,11 +1,14 @@
-import { PerspectiveCamera } from "three";
-import {
-  CameraComponent,
-  SceneComponent,
-  RendererComponent,
-} from "../components";
+import { PerspectiveCamera, WebGLRenderer } from "three";
+import { CameraComponent, SceneComponent } from "../components";
 import { Object3DComponent } from "../components";
-import { World, defineQuery, defineSystem } from "../core/ECS";
+import {
+  World,
+  defineQuery,
+  defineSystem,
+  defineMapComponent,
+} from "../core/ECS";
+
+export const RendererComponent = defineMapComponent<WebGLRenderer>();
 
 export const rendererQuery = defineQuery([RendererComponent]);
 export const sceneQuery = defineQuery([Object3DComponent, SceneComponent]);

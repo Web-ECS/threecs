@@ -7,3 +7,4 @@ export * from "./systems/RendererSystem";
 export * from "./systems/ActionMappingSystem";
 export * from "./systems/DirectionalMovementSystem";
 export * from "./systems/FirstPersonCameraSystem";
+export * from "./systems/PhysicsSystem";
