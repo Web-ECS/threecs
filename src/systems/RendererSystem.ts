@@ -14,7 +14,9 @@ export const rendererQuery = defineQuery([RendererComponent]);
 export const sceneQuery = defineQuery([Object3DComponent, SceneComponent]);
 export const cameraQuery = defineQuery([Object3DComponent, CameraComponent]);
 
-export const RendererSystem = defineSystem((world: World) => {
+export const RendererSystem = defineSystem(function RendererSystem(
+  world: World
+) {
   const renderers = rendererQuery(world);
   const scenes = sceneQuery(world);
   const cameras = cameraQuery(world);
