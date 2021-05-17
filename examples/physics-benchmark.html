@@ -5,6 +5,14 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>threecs | Examples: Rotating Cube</title>
     <link rel="stylesheet" href="./styles.css" />
+    <style>
+      .picker {
+        position: fixed;
+        z-index: 1;
+        background-color: white;
+        padding: 0 20px;
+      }
+    </style>
   </head>
   <body>
     <script type="module">
@@ -22,20 +30,32 @@
         addObject3DEntity,
         addMapComponent,
         addComponent,
-        loadPhysicsSystem,
+        loadAmmoPhysicsSystem,
+        loadRapierPhysicsSystem,
         PhysicsWorldComponent,
         PhysicsRigidBodyComponent,
         InstancedMeshRendererSystem,
         InstancedMeshRendererComponent,
         InstancedMeshRenderer,
+        benchmark,
       } from "../src/threecs";
       import crateTextureUrl from "./assets/crate.gif";
 
       async function main() {
-        const PhysicsSystem = await loadPhysicsSystem({ wasmUrl });
+        let PhysicsSystem;
+
+        const qs = new URLSearchParams(location.search);
+
+        if (qs.has("rapier")) {
+          document.getElementById("rapierLink").style.color = "blue";
+          PhysicsSystem = await loadRapierPhysicsSystem();
+        } else {
+          document.getElementById("ammoLink").style.color = "blue";
+          PhysicsSystem = await loadAmmoPhysicsSystem({ wasmUrl });
+        }
 
         const { world, scene, sceneEid, camera, start } = createThreeWorld({
-          systems: [PhysicsSystem, InstancedMeshRendererSystem],
+          systems: [benchmark(PhysicsSystem), InstancedMeshRendererSystem],
         });
 
         addMapComponent(world, PhysicsWorldComponent, sceneEid, {
@@ -100,5 +120,13 @@
 
       main().catch(console.error);
     </script>
+    <div class="picker">
+      <p>
+        Physics Engine:
+        <a id="ammoLink" href="?ammo">Ammo</a>
+        <a id="rapierLink" href="?rapier">Rapier</a>
+      </p>
+      <p>See console for results.</p>
+    </div>
   </body>
 </html>

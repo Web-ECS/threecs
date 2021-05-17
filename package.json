@@ -21,6 +21,7 @@
     "preview-site": "vite preview"
   },
   "dependencies": {
+    "@dimforge/rapier3d-compat": "^0.5.3",
     "ammo-wasm": "github:robertlong/ammo-wasm",
     "bitecs": "^0.3.2"
   },

@@ -22,14 +22,14 @@
         addObject3DEntity,
         addMapComponent,
         addComponent,
-        loadPhysicsSystem,
+        loadAmmoPhysicsSystem,
         PhysicsWorldComponent,
         PhysicsRigidBodyComponent,
       } from "../src/threecs";
       import crateTextureUrl from "./assets/crate.gif";
 
       async function main() {
-        const PhysicsSystem = await loadPhysicsSystem({ wasmUrl });
+        const PhysicsSystem = await loadAmmoPhysicsSystem({ wasmUrl });
 
         const { world, scene, sceneEid, camera, start } = createThreeWorld({
           systems: [PhysicsSystem],
