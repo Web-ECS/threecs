@@ -21,6 +21,7 @@
     "preview-site": "vite preview"
   },
   "dependencies": {
+    "ammo-wasm": "github:robertlong/ammo-wasm",
     "bitecs": "^0.3.2"
   },
   "devDependencies": {

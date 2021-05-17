@@ -8,7 +8,7 @@
   </head>
   <body>
     <script type="module">
-      import Ammo from "ammo-wasm";
+      import wasmUrl from "ammo-wasm/builds/ammo-wasm.wasm?url";
       import {
         Mesh,
         BoxBufferGeometry,
@@ -29,7 +29,7 @@
       import crateTextureUrl from "./assets/crate.gif";
 
       async function main() {
-        const PhysicsSystem = await loadPhysicsSystem();
+        const PhysicsSystem = await loadPhysicsSystem({ wasmUrl });
 
         const { world, scene, sceneEid, camera, start } = createThreeWorld({
           systems: [PhysicsSystem],

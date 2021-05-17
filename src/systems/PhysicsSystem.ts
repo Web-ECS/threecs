@@ -56,8 +56,21 @@ const rigidBodiesQuery = defineQuery([
 ]);
 const newRigidBodiesQuery = enterQuery(rigidBodiesQuery);
 
-export async function loadPhysicsSystem(): Promise<System> {
-  const ammo = await Ammo();
+interface AmmoOptions {
+  wasmUrl?: string;
+}
+
+export async function loadPhysicsSystem(options: AmmoOptions): Promise<System> {
+  const ammo = await Ammo({
+    locateFile(url: string, scriptDirectory: string) {
+      console.log(url, scriptDirectory);
+      if (url.endsWith(".wasm") && options.wasmUrl) {
+        return options.wasmUrl;
+      }
+
+      return url;
+    },
+  });
 
   const tempTransform = new ammo.btTransform();
   const tempVec3 = new Vector3();
