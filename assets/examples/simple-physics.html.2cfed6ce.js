@@ -1,8 +1,8 @@
 import "../styles.16b1c26f.js";
-import {V as Vector3, T as TextureLoader, M as Mesh, B as BoxGeometry, a as MeshBasicMaterial, m as SphereGeometry, w as wasmUrl} from "../vendor.f5b8cb16.js";
-import {o as loadPhysicsSystem, c as createThreeWorld, g as addMapComponent, P as PhysicsWorldComponent, e as crateTextureUrl, f as addObject3DEntity, p as PhysicsRigidBodyComponent} from "../crate.89a26a60.js";
+import {V as Vector3, T as TextureLoader, M as Mesh, B as BoxGeometry, a as MeshBasicMaterial, n as SphereGeometry, w as wasmUrl} from "../vendor.0520bc5a.js";
+import {j as loadAmmoPhysicsSystem, c as createThreeWorld, g as addMapComponent, P as PhysicsWorldComponent, e as crateTextureUrl, f as addObject3DEntity, m as PhysicsRigidBodyComponent} from "../crate.aae10597.js";
 async function main() {
-  const PhysicsSystem = await loadPhysicsSystem({wasmUrl});
+  const PhysicsSystem = await loadAmmoPhysicsSystem({wasmUrl});
   const {world, scene, sceneEid, camera, start} = createThreeWorld({
     systems: [PhysicsSystem]
   });

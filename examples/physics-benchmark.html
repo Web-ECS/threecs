@@ -5,7 +5,15 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>threecs | Examples: Rotating Cube</title>
     
-  <script type="module" crossorigin src="/threecs/assets/examples/simple-physics.html.2cfed6ce.js"></script>
+    <style>
+      .picker {
+        position: fixed;
+        z-index: 1;
+        background-color: white;
+        padding: 0 20px;
+      }
+    </style>
+  <script type="module" crossorigin src="/threecs/assets/examples/physics-benchmark.html.da5b7f3a.js"></script>
   <link rel="modulepreload" href="/threecs/assets/styles.16b1c26f.js">
   <link rel="modulepreload" href="/threecs/assets/vendor.0520bc5a.js">
   <link rel="modulepreload" href="/threecs/assets/crate.aae10597.js">
@@ -13,5 +21,13 @@
 </head>
   <body>
     
+    <div class="picker">
+      <p>
+        Physics Engine:
+        <a id="ammoLink" href="?ammo">Ammo</a>
+        <a id="rapierLink" href="?rapier">Rapier</a>
+      </p>
+      <p>See console for results.</p>
+    </div>
   </body>
 </html>
