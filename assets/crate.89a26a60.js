@@ -14,7 +14,7 @@ var __assign = (a, b) => {
     }
   return a;
 };
-import {d as defineComponent$1, b as addComponent$1, c as defineSystem$1, e as addEntity$1, f as Types$1, g as defineQuery$1, r as removeEntity$1, h as removeComponent$1, i as Vector2, j as createWorld, S as Scene, P as PerspectiveCamera, W as WebGLRenderer, C as Clock, p as pipe, k as MathUtils} from "./vendor.6455d20e.js";
+import {d as defineComponent$1, b as addComponent$1, c as defineSystem$1, e as addEntity$1, f as Types$1, g as defineQuery$1, r as removeEntity$1, h as enterQuery$1, i as removeComponent$1, j as Vector2, k as createWorld, S as Scene, P as PerspectiveCamera, W as WebGLRenderer, C as Clock, p as pipe, l as MathUtils, V as Vector3, A as Ammo, Q as Quaternion} from "./vendor.f5b8cb16.js";
 const Types = Types$1;
 const defineQuery = defineQuery$1;
 const addEntity = addEntity$1;
@@ -22,6 +22,7 @@ const removeEntity = removeEntity$1;
 const defineComponent = defineComponent$1;
 const addComponent = addComponent$1;
 const removeComponent = removeComponent$1;
+const enterQuery = enterQuery$1;
 const defineSystem = defineSystem$1;
 function defineMapComponent() {
   const component = defineComponent({});
@@ -235,6 +236,10 @@ function createThreeWorld(options = {}) {
       world.input.set(key, 0);
     }
   });
+  if (typeof window.__THREE_DEVTOOLS__ !== "undefined") {
+    window.__THREE_DEVTOOLS__.dispatchEvent(new CustomEvent("observe", {detail: scene}));
+    window.__THREE_DEVTOOLS__.dispatchEvent(new CustomEvent("observe", {detail: renderer}));
+  }
   const clock = new Clock();
   const pipeline = pipe(ActionMappingSystem, ...systems, RendererSystem, ...afterRenderSystems);
   return {
@@ -323,5 +328,122 @@ const FirstPersonCameraSystem = defineSystem(function FirstPersonCameraSystem2(w
     });
   }
 });
+var PhysicsShape;
+(function(PhysicsShape2) {
+  PhysicsShape2["Box"] = "Box";
+  PhysicsShape2["Sphere"] = "Sphere";
+})(PhysicsShape || (PhysicsShape = {}));
+const PhysicsWorldComponent = defineMapComponent();
+const InternalPhysicsWorldComponent = defineMapComponent();
+const PhysicsRigidBodyComponent = defineMapComponent();
+const InternalPhysicsRigidBodyComponent = defineMapComponent();
+const physicsWorldQuery = defineQuery([PhysicsWorldComponent]);
+const newPhysicsWorldsQuery = enterQuery(physicsWorldQuery);
+const rigidBodiesQuery = defineQuery([
+  PhysicsRigidBodyComponent,
+  Object3DComponent
+]);
+const newRigidBodiesQuery = enterQuery(rigidBodiesQuery);
+async function loadPhysicsSystem(options) {
+  const ammo = await Ammo({
+    locateFile(url, scriptDirectory) {
+      console.log(url, scriptDirectory);
+      if (url.endsWith(".wasm") && options.wasmUrl) {
+        return options.wasmUrl;
+      }
+      return url;
+    }
+  });
+  const tempTransform = new ammo.btTransform();
+  const tempVec3 = new Vector3();
+  const tempQuat = new Quaternion();
+  return defineSystem(function PhysicsSystem(world) {
+    const physicsWorldEntities = physicsWorldQuery(world);
+    const newPhysicsWorldEntities = newPhysicsWorldsQuery(world);
+    const rigidBodyEntities = rigidBodiesQuery(world);
+    const newRigidBodyEntities = newRigidBodiesQuery(world);
+    newPhysicsWorldEntities.forEach((eid) => {
+      const physicsWorldComponent = PhysicsWorldComponent.storage.get(eid);
+      InternalPhysicsWorldComponent.storage.get(eid);
+      const collisionConfig = new ammo.btDefaultCollisionConfiguration();
+      const dispatcher = new ammo.btCollisionDispatcher(collisionConfig);
+      const overlappingPairCache = new ammo.btDbvtBroadphase();
+      const solver = new ammo.btSequentialImpulseConstraintSolver();
+      const dynamicsWorld = new ammo.btDiscreteDynamicsWorld(dispatcher, overlappingPairCache, solver, collisionConfig);
+      const gravityVec = new ammo.btVector3(0, -9.8, 0);
+      const gravityConfig = physicsWorldComponent.gravity;
+      if (gravityConfig) {
+        gravityVec.setValue(gravityConfig.x, gravityConfig.y, gravityConfig.z);
+      }
+      dynamicsWorld.setGravity(gravityVec);
+      addMapComponent(world, InternalPhysicsWorldComponent, eid, {
+        gravityVec,
+        dynamicsWorld
+      });
+    });
+    physicsWorldEntities.forEach((physicsWorldEid) => {
+      const physicsWorldComponent = PhysicsWorldComponent.storage.get(physicsWorldEid);
+      const internalPhysicsWorldComponent = InternalPhysicsWorldComponent.storage.get(physicsWorldEid);
+      const {gravity, updateGravity} = physicsWorldComponent;
+      const {gravityVec, dynamicsWorld} = internalPhysicsWorldComponent;
+      newRigidBodyEntities.forEach((rigidBodyEid) => {
+        const obj = Object3DComponent.storage.get(rigidBodyEid);
+        const {mass, shape} = PhysicsRigidBodyComponent.storage.get(rigidBodyEid);
+        const geometry = obj.geometry;
+        if (!geometry) {
+          return;
+        }
+        let colShape;
+        if (geometry.type === "BoxGeometry") {
+          geometry.computeBoundingBox();
+          const boundingBoxSize = geometry.boundingBox.getSize(new Vector3());
+          const halfExtents = new ammo.btVector3(boundingBoxSize.x / 2, boundingBoxSize.y / 2, boundingBoxSize.z / 2);
+          colShape = new ammo.btBoxShape(halfExtents);
+        } else if (geometry.type === "SphereGeometry") {
+          geometry.computeBoundingSphere();
+          const radius = geometry.boundingSphere.radius;
+          colShape = new ammo.btSphereShape(radius);
+        } else {
+          throw new Error("Unimplemented");
+        }
+        const physScale = new ammo.btVector3(1, 1, 1);
+        colShape.setLocalScaling(physScale);
+        const localInertia = new ammo.btVector3(0, 0, 0);
+        if (mass !== 0) {
+          colShape.calculateLocalInertia(mass, localInertia);
+        }
+        obj.getWorldPosition(tempVec3);
+        obj.getWorldQuaternion(tempQuat);
+        const quat = new ammo.btQuaternion(tempQuat.x, tempQuat.y, tempQuat.z, tempQuat.w);
+        const pos = new ammo.btVector3(tempVec3.x, tempVec3.y, tempVec3.z);
+        const transform = new ammo.btTransform(quat, pos);
+        const motionState = new ammo.btDefaultMotionState(transform);
+        const constructionInfo = new ammo.btRigidBodyConstructionInfo(mass || 0, motionState, colShape, localInertia);
+        const body = new ammo.btRigidBody(constructionInfo);
+        dynamicsWorld.addRigidBody(body);
+        addMapComponent(world, InternalPhysicsRigidBodyComponent, rigidBodyEid, {
+          body
+        });
+      });
+      if (gravity && updateGravity) {
+        gravityVec.setValue(gravity.x, gravity.y, gravity.z);
+        dynamicsWorld.setGravity(gravityVec);
+      }
+      dynamicsWorld.stepSimulation(world.dt, 2);
+      rigidBodyEntities.forEach((rigidBodyEid) => {
+        const obj = Object3DComponent.storage.get(rigidBodyEid);
+        const {body} = InternalPhysicsRigidBodyComponent.storage.get(rigidBodyEid);
+        const motionState = body.getMotionState();
+        if (motionState) {
+          motionState.getWorldTransform(tempTransform);
+          const position = tempTransform.getOrigin();
+          const rotation = tempTransform.getRotation();
+          obj.position.set(position.x(), position.y(), position.z());
+          obj.quaternion.set(rotation.x(), rotation.y(), rotation.z(), rotation.w());
+        }
+      });
+    });
+  });
+}
 var crateTextureUrl = "/threecs/assets/crate.a890f0a8.gif";
-export {ActionType as A, BindingType as B, DirectionalMovementSystem as D, FirstPersonCameraSystem as F, Object3DComponent as O, Types as T, defineSystem as a, defineComponent as b, createThreeWorld as c, defineMapComponent as d, crateTextureUrl as e, addObject3DEntity as f, addMapComponent as g, addComponent as h, defineQuery as i, FirstPersonCameraActions as j, DirectionalMovementActions as k, DirectionalMovementComponent as l, FirstPersonCameraYawTarget as m, FirstPersonCameraPitchTarget as n, removeObject3DEntity as r};
+export {ActionType as A, BindingType as B, DirectionalMovementSystem as D, FirstPersonCameraSystem as F, Object3DComponent as O, PhysicsWorldComponent as P, Types as T, defineSystem as a, defineComponent as b, createThreeWorld as c, defineMapComponent as d, crateTextureUrl as e, addObject3DEntity as f, addMapComponent as g, addComponent as h, defineQuery as i, FirstPersonCameraActions as j, DirectionalMovementActions as k, DirectionalMovementComponent as l, FirstPersonCameraYawTarget as m, FirstPersonCameraPitchTarget as n, loadPhysicsSystem as o, PhysicsRigidBodyComponent as p, removeObject3DEntity as r};
