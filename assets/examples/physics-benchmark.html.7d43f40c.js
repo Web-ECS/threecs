@@ -1,6 +1,6 @@
 import "../styles.16b1c26f.js";
 import {V as Vector3, T as TextureLoader, B as BoxGeometry, a as MeshBasicMaterial, M as Mesh, n as SphereGeometry, w as wasmUrl} from "../vendor.0520bc5a.js";
-import {l as loadRapierPhysicsSystem, j as loadAmmoPhysicsSystem, c as createThreeWorld, I as InstancedMeshRendererSystem, g as addMapComponent, P as PhysicsWorldComponent, e as crateTextureUrl, k as InstancedMeshRenderer, f as addObject3DEntity, h as addComponent, m as PhysicsRigidBodyComponent, n as InstancedMeshRendererComponent} from "../crate.aae10597.js";
+import {l as loadRapierPhysicsSystem, j as loadAmmoPhysicsSystem, c as createThreeWorld, I as InstancedMeshRendererSystem, g as addMapComponent, P as PhysicsWorldComponent, e as crateTextureUrl, k as InstancedMeshRenderer, f as addObject3DEntity, h as addComponent, m as PhysicsRigidBodyComponent, n as InstancedMeshRendererComponent} from "../crate.7e0f87d8.js";
 function benchmark(system, count = 500) {
   const times = [];
   let finished = false;
