@@ -194,7 +194,7 @@ export async function loadAmmoPhysicsSystem(
         physicsWorldComponent.updateGravity = false;
       }
 
-      dynamicsWorld!.stepSimulation(world.dt, 2);
+      dynamicsWorld!.stepSimulation(world.dt, 10);
 
       rigidBodyEntities.forEach((rigidBodyEid) => {
         const obj = Object3DComponent.storage.get(rigidBodyEid);
