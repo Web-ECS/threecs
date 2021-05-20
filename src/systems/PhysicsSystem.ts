@@ -481,12 +481,12 @@ export const PhysicsCharacterControllerSystem = defineSystem(
         const _walkSpeed = walkSpeed === undefined ? 1 : walkSpeed;
         const _jumpHeight = jumpHeight === undefined ? 1 : jumpHeight;
 
-        velocity!.z = -moveVec.y * _walkSpeed;
-        velocity!.x = moveVec.x * _walkSpeed;
-
         const isGrounded = obj.position.y <= 0;
 
         if (isGrounded) {
+          velocity!.z = -moveVec.y * _walkSpeed;
+          velocity!.x = moveVec.x * _walkSpeed;
+
           if (jump.pressed) {
             velocity!.y += Math.sqrt(2 * _jumpHeight * Math.abs(gravity!.y));
           } else {
