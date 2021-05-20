@@ -136,12 +136,12 @@ export async function loadRapierPhysicsSystem(): Promise<System> {
     physicsWorldEntities.forEach((physicsWorldEid) => {
       const physicsWorldComponent =
         PhysicsWorldComponent.storage.get(physicsWorldEid)!;
-      const ammoPhysicsWorldComponent =
+      const rapierPhysicsWorldComponent =
         RapierPhysicsWorldComponent.storage.get(physicsWorldEid)!;
 
       const { gravity, updateGravity } = physicsWorldComponent;
       const { physicsWorld, eventQueue, colliderHandleToEntityMap } =
-        ammoPhysicsWorldComponent;
+        rapierPhysicsWorldComponent;
 
       newRigidBodyEntities.forEach((rigidBodyEid) => {
         const obj = Object3DComponent.storage.get(rigidBodyEid)!;
