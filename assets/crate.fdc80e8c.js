@@ -395,16 +395,18 @@ async function loadRapierPhysicsSystem() {
       RapierPhysicsWorldComponent.storage.get(eid);
       const gravityConfig = physicsWorldComponent.gravity;
       const physicsWorld = new rapier.World(gravityConfig || new Vector3(0, -9.8));
+      const eventQueue = new rapier.EventQueue(true);
       addMapComponent(world, RapierPhysicsWorldComponent, eid, {
         physicsWorld,
+        eventQueue,
         colliderHandleToEntityMap: new Map()
       });
     });
     physicsWorldEntities.forEach((physicsWorldEid) => {
       const physicsWorldComponent = PhysicsWorldComponent.storage.get(physicsWorldEid);
-      const ammoPhysicsWorldComponent = RapierPhysicsWorldComponent.storage.get(physicsWorldEid);
+      const rapierPhysicsWorldComponent = RapierPhysicsWorldComponent.storage.get(physicsWorldEid);
       const {gravity, updateGravity} = physicsWorldComponent;
-      const {physicsWorld, eventQueue, colliderHandleToEntityMap} = ammoPhysicsWorldComponent;
+      const {physicsWorld, eventQueue, colliderHandleToEntityMap} = rapierPhysicsWorldComponent;
       newRigidBodyEntities.forEach((rigidBodyEid) => {
         const obj = Object3DComponent.storage.get(rigidBodyEid);
         const _a = PhysicsRigidBodyComponent.storage.get(rigidBodyEid), {bodyStatus, shape, translation, rotation} = _a, rigidBodyProps = __rest(_a, ["bodyStatus", "shape", "translation", "rotation"]);
@@ -484,7 +486,15 @@ async function loadRapierPhysicsSystem() {
         physicsWorld.gravity.z = gravity.z;
         physicsWorldComponent.updateGravity = false;
       }
-      physicsWorld.step();
+      physicsWorld.step(eventQueue);
+      eventQueue.drainContactEvents((handle1, handle2, contactStarted) => {
+        physicsWorld.getCollider(handle1);
+        physicsWorld.getCollider(handle2);
+      });
+      eventQueue.drainIntersectionEvents((handle1, handle2, intersecting) => {
+        physicsWorld.getCollider(handle1);
+        physicsWorld.getCollider(handle2);
+      });
       physicsRaycasterEntities.forEach((rayCasterEid) => {
         const raycaster = PhysicsRaycasterComponent.storage.get(rayCasterEid);
         const obj = Object3DComponent.storage.get(rayCasterEid);
