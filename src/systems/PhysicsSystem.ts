@@ -1,7 +1,6 @@
-import Ammo from "ammo-wasm";
 import * as Rapier from "@dimforge/rapier3d-compat";
 import { Vector2, Vector3, Mesh, Quaternion, Euler, ArrowHelper } from "three";
-import { Object3DComponent, SceneComponent } from "../components";
+import { Object3DComponent } from "../components";
 import {
   System,
   defineSystem,
@@ -125,11 +124,11 @@ export async function loadRapierPhysicsSystem(): Promise<System> {
         gravityConfig || new Vector3(0, -9.8)
       );
 
-      //const eventQueue = new Rapier.EventQueue(true);
+      const eventQueue = new Rapier.EventQueue(true);
 
       addMapComponent(world, RapierPhysicsWorldComponent, eid, {
         physicsWorld,
-        //eventQueue,
+        eventQueue,
         colliderHandleToEntityMap: new Map(),
       });
     });
@@ -280,36 +279,35 @@ export async function loadRapierPhysicsSystem(): Promise<System> {
         physicsWorldComponent.updateGravity = false;
       }
 
-      physicsWorld!.step();
-      //physicsWorld!.step(eventQueue);
+      physicsWorld!.step(eventQueue);
 
-      // eventQueue!.drainContactEvents((handle1, handle2, contactStarted) => {
-      //   const collider1 = physicsWorld!.getCollider(handle1);
-      //   const collider2 = physicsWorld!.getCollider(handle2);
+      eventQueue!.drainContactEvents((handle1, handle2, contactStarted) => {
+        const collider1 = physicsWorld!.getCollider(handle1);
+        const collider2 = physicsWorld!.getCollider(handle2);
 
-      //   // console.log(
-      //   //   "Contact between:",
-      //   //   collider1,
-      //   //   "and",
-      //   //   collider2,
-      //   //   ". Started:",
-      //   //   contactStarted
-      //   // );
-      // });
+        // console.log(
+        //   "Contact between:",
+        //   collider1,
+        //   "and",
+        //   collider2,
+        //   ". Started:",
+        //   contactStarted
+        // );
+      });
 
-      // eventQueue!.drainIntersectionEvents((handle1, handle2, intersecting) => {
-      //   const collider1 = physicsWorld!.getCollider(handle1);
-      //   const collider2 = physicsWorld!.getCollider(handle2);
+      eventQueue!.drainIntersectionEvents((handle1, handle2, intersecting) => {
+        const collider1 = physicsWorld!.getCollider(handle1);
+        const collider2 = physicsWorld!.getCollider(handle2);
 
-      //   // console.log(
-      //   //   "Intersection between: ",
-      //   //   collider1,
-      //   //   "and",
-      //   //   collider2,
-      //   //   ". Currently intersecting:",
-      //   //   intersecting
-      //   // );
-      // });
+        // console.log(
+        //   "Intersection between: ",
+        //   collider1,
+        //   "and",
+        //   collider2,
+        //   ". Currently intersecting:",
+        //   intersecting
+        // );
+      });
 
       physicsRaycasterEntities.forEach((rayCasterEid) => {
         const raycaster = PhysicsRaycasterComponent.storage.get(rayCasterEid)!;
