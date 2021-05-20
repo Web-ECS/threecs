@@ -419,7 +419,8 @@ export const PhysicsCharacterControllerActions = {
 };
 
 interface PhysicsCharacterControllerProps {
-  speed?: number;
+  walkSpeed?: number;
+  jumpHeight?: number;
 }
 
 export const PhysicsCharacterControllerComponent =
@@ -427,7 +428,7 @@ export const PhysicsCharacterControllerComponent =
 
 interface KinematicRigidBodyState {
   velocity?: Vector3;
-  direction?: Vector3;
+  translation?: Vector3;
 }
 
 export const KinematicRigidBodyStateComponent =
@@ -452,11 +453,13 @@ export const PhysicsCharacterControllerSystem = defineSystem(
     addedEntities.forEach((eid) => {
       addMapComponent(world, KinematicRigidBodyStateComponent, eid, {
         velocity: new Vector3(),
-        direction: new Vector3(),
+        translation: new Vector3(),
       });
     });
 
     physicsWorldEntities.forEach((worldEid) => {
+      const { gravity } = PhysicsWorldComponent.storage.get(worldEid)!;
+
       entities.forEach((eid) => {
         const obj = Object3DComponent.storage.get(eid)!;
 
@@ -469,31 +472,39 @@ export const PhysicsCharacterControllerSystem = defineSystem(
         ) as ButtonActionState;
 
         const dt = world.dt;
-        const { speed } = PhysicsCharacterControllerComponent.storage.get(eid)!;
+        const { walkSpeed, jumpHeight } =
+          PhysicsCharacterControllerComponent.storage.get(eid)!;
         const { body } = RapierPhysicsRigidBodyComponent.storage.get(eid)!;
-        const { velocity, direction } =
+        const { velocity, translation } =
           KinematicRigidBodyStateComponent.storage.get(eid)!;
 
-        const _speed = speed === undefined ? 1 : speed;
+        const _walkSpeed = walkSpeed === undefined ? 1 : walkSpeed;
+        const _jumpHeight = jumpHeight === undefined ? 1 : jumpHeight;
 
-        velocity!.z = -moveVec.y * _speed;
-        velocity!.x = moveVec.x * _speed;
+        velocity!.z = -moveVec.y * _walkSpeed;
+        velocity!.x = moveVec.x * _walkSpeed;
 
-        if (jump.pressed) {
-          velocity!.y = 1.5;
-        }
-
-        const isGrounded = true;
+        const isGrounded = obj.position.y <= 0;
 
         if (isGrounded) {
-          velocity!.y = 0;
+          if (jump.pressed) {
+            velocity!.y += Math.sqrt(2 * _jumpHeight * Math.abs(gravity!.y));
+          } else {
+            velocity!.y = 0;
+          }
         } else {
-          velocity!.y += 9.8 * dt;
+          velocity!.y += gravity!.y * dt;
         }
 
-        velocity!.applyQuaternion(obj.quaternion);
-        velocity!.multiplyScalar(dt);
-        obj.position.add(velocity!);
+        translation!
+          .copy(velocity!)
+          .applyQuaternion(obj.quaternion)
+          .multiplyScalar(dt);
+        obj.position.add(translation!);
+
+        if (obj.position.y < 0) {
+          obj.position.y = 0;
+        }
       });
     });
   }

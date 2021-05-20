@@ -97,7 +97,7 @@
           });
 
         addMapComponent(world, PhysicsWorldComponent, sceneEid, {
-          gravity: new Vector3(0, -6, 0),
+          gravity: new Vector3(0, -9.81, 0),
         });
 
         const playerRig = new Object3D();
@@ -107,7 +107,8 @@
           PhysicsCharacterControllerComponent,
           playerRigEid,
           {
-            speed: 2.5,
+            walkSpeed: 2.5,
+            jumpHeight: 1.5,
           }
         );
         addComponent(world, FirstPersonCameraYawTarget, playerRigEid);
@@ -122,7 +123,7 @@
         });
 
         playerRig.position.z = 5;
-        playerRig.position.y = 0.5;
+        playerRig.position.y = 0;
         camera.position.y = 1.6;
 
         const crateTexture = new TextureLoader().load(crateTextureUrl);
