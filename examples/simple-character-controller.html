@@ -58,10 +58,10 @@
                 bindings: [
                   {
                     type: BindingType.DirectionalButtons,
-                    up: "Keyboard/w",
-                    down: "Keyboard/s",
-                    left: "Keyboard/a",
-                    right: "Keyboard/d",
+                    up: "Keyboard/KeyW",
+                    down: "Keyboard/KeyS",
+                    left: "Keyboard/KeyA",
+                    right: "Keyboard/KeyD",
                   },
                 ],
               },
@@ -78,6 +78,8 @@
       addComponent(world, FirstPersonCameraPitchTarget, cameraEid);
 
       playerRig.position.z = 5;
+      playerRig.position.y = 0.5;
+      camera.position.y = 1.6;
 
       const crateTexture = new TextureLoader().load(crateTextureUrl);
       const cube = new Mesh(
@@ -85,6 +87,13 @@
         new MeshBasicMaterial({ map: crateTexture })
       );
       const cubeEid = addObject3DEntity(world, cube, scene);
+      cube.position.y = 0.5;
+
+      const ground = new Mesh(
+        new BoxBufferGeometry(10, 0.1, 10),
+        new MeshBasicMaterial()
+      );
+      const groundEid = addObject3DEntity(world, ground, scene);
 
       start();
     </script>

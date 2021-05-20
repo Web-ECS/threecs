@@ -19,9 +19,9 @@ import {
   commitRemovals as _commitRemovals,
   defineSystem as _defineSystem,
 } from "bitecs";
-import { Object3D, Vector2 } from "three";
+import { Object3D } from "three";
 import { Object3DComponent } from "../components";
-import { ActionMap } from "../systems/ActionMappingSystem";
+import { ActionMap, ActionState } from "../systems/ActionMappingSystem";
 
 export { pipe } from "bitecs";
 
@@ -30,7 +30,7 @@ export interface World extends IWorld {
   time: number;
   input: Map<string, number>;
   actionMaps: ActionMap[];
-  actions: Map<string, number | Vector2>;
+  actions: Map<string, ActionState>;
   objectEntityMap: Map<Object3D, number>;
 }
 
@@ -206,4 +206,13 @@ export function getObject3DEntity(
 export function setEntityObject3D(world: World, eid: number, obj: Object3D) {
   addMapComponent(world, Object3DComponent, eid, obj);
   world.objectEntityMap.set(obj, eid);
+}
+
+export function singletonQuery(
+  query: Query
+): (world: World) => number | undefined {
+  return (world: World) => {
+    const entities = query(world);
+    return entities.length > 0 ? entities[0] : undefined;
+  };
 }

@@ -31,10 +31,10 @@
         addObject3DEntity,
         addMapComponent,
         addComponent,
-        loadAmmoPhysicsSystem,
         loadRapierPhysicsSystem,
         PhysicsWorldComponent,
         PhysicsRigidBodyComponent,
+        PhysicsBodyStatus,
         InstancedMeshRendererSystem,
         InstancedMeshRendererComponent,
         InstancedMeshRenderer,
@@ -43,17 +43,7 @@
       import crateTextureUrl from "./assets/crate.gif";
 
       async function main() {
-        let PhysicsSystem;
-
-        const qs = new URLSearchParams(location.search);
-
-        if (qs.has("rapier")) {
-          document.getElementById("rapierLink").style.color = "blue";
-          PhysicsSystem = await loadRapierPhysicsSystem();
-        } else {
-          document.getElementById("ammoLink").style.color = "blue";
-          PhysicsSystem = await loadAmmoPhysicsSystem({ wasmUrl });
-        }
+        const PhysicsSystem = await loadRapierPhysicsSystem();
 
         const { world, scene, sceneEid, camera, start } = createThreeWorld({
           systems: [benchmark(PhysicsSystem), InstancedMeshRendererSystem],
@@ -92,7 +82,7 @@
           cube.rotation.x = 0.35;
           cube.rotation.z = 0.25;
           addMapComponent(world, PhysicsRigidBodyComponent, cubeEid, {
-            mass: 1,
+            bodyStatus: PhysicsBodyStatus.Dynamic,
           });
         }
 
@@ -104,7 +94,7 @@
         sphere.position.y = 0.25;
         sphere.position.z = -0.5;
         addMapComponent(world, PhysicsRigidBodyComponent, sphereEid, {
-          mass: 0,
+          bodyStatus: PhysicsBodyStatus.Static,
         });
 
         const ground = new Mesh(
@@ -113,7 +103,7 @@
         );
         const groundEid = addObject3DEntity(world, ground, scene);
         addMapComponent(world, PhysicsRigidBodyComponent, groundEid, {
-          mass: 0,
+          bodyStatus: PhysicsBodyStatus.Static,
         });
 
         start();
@@ -121,13 +111,5 @@
 
       main().catch(console.error);
     </script>
-    <div class="picker">
-      <p>
-        Physics Engine:
-        <a id="ammoLink" href="?ammo">Ammo</a>
-        <a id="rapierLink" href="?rapier">Rapier</a>
-      </p>
-      <p>See console for results.</p>
-    </div>
   </body>
 </html>

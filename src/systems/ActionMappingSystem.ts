@@ -3,7 +3,16 @@ import { defineSystem, World } from "../core/ECS";
 
 export enum ActionType {
   Vector2 = "Vector2",
+  Button = "Button",
 }
+
+export interface ButtonActionState {
+  pressed: boolean;
+  released: boolean;
+  held: boolean;
+}
+
+export type ActionState = number | Vector2 | ButtonActionState;
 
 export interface ActionMap {
   id: string;
@@ -19,6 +28,7 @@ interface ActionDefinition {
 
 export enum BindingType {
   Axes = "Axes",
+  Button = "Button",
   DirectionalButtons = "DirectionalButtons",
 }
 
@@ -32,6 +42,11 @@ interface AxesBinding extends ActionBinding {
   y: string;
 }
 
+interface ButtonBinding extends ActionBinding {
+  type: BindingType.Button;
+  path: string;
+}
+
 interface DirectionalButtonsBinding extends ActionBinding {
   type: BindingType.DirectionalButtons;
   up: string;
@@ -42,6 +57,7 @@ interface DirectionalButtonsBinding extends ActionBinding {
 
 type ActionBindingTypes =
   | AxesBinding
+  | ButtonBinding
   | DirectionalButtonsBinding
   | ActionBinding;
 
@@ -53,11 +69,28 @@ const ActionTypesToBindings: {
         path: string,
         bindingDef: ActionBinding,
         input: Map<string, number>,
-        actions: Map<string, number | Vector2>
+        actions: Map<string, ActionState>
       ) => void;
     };
   };
 } = {
+  [ActionType.Button]: {
+    create: () => ({ pressed: false, released: false, held: false }),
+    bindings: {
+      [BindingType.Button]: (
+        path: string,
+        bindingDef: ActionBinding,
+        input: Map<string, number>,
+        actions: Map<string, ActionState>
+      ) => {
+        const state = input.get((bindingDef as ButtonBinding).path);
+        const value = actions.get(path) as ButtonActionState;
+        value.pressed = !value.held && !!state;
+        value.released = value.held && !state;
+        value.held = !!state;
+      },
+    },
+  },
   [ActionType.Vector2]: {
     create: () => new Vector2(),
     bindings: {
@@ -65,7 +98,7 @@ const ActionTypesToBindings: {
         path: string,
         bindingDef: ActionBinding,
         input: Map<string, number>,
-        actions: Map<string, number | Vector2>
+        actions: Map<string, ActionState>
       ) => {
         const { x, y } = bindingDef as AxesBinding;
         const value = actions.get(path) as Vector2;
@@ -75,14 +108,10 @@ const ActionTypesToBindings: {
         path: string,
         bindingDef: ActionBinding,
         input: Map<string, number>,
-        actions: Map<string, number | Vector2>
+        actions: Map<string, ActionState>
       ) => {
-        const {
-          up,
-          down,
-          left,
-          right,
-        } = bindingDef as DirectionalButtonsBinding;
+        const { up, down, left, right } =
+          bindingDef as DirectionalButtonsBinding;
 
         let x = 0;
         let y = 0;

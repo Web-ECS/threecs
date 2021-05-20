@@ -96,11 +96,11 @@ export function createThreeWorld(options: GLTFWorldOptions = {}) {
   }
 
   window.addEventListener("keydown", (e) => {
-    world.input.set(`Keyboard/${e.key.toLowerCase()}`, 1);
+    world.input.set(`Keyboard/${e.code}`, 1);
   });
 
   window.addEventListener("keyup", (e) => {
-    world.input.set(`Keyboard/${e.key.toLowerCase()}`, 0);
+    world.input.set(`Keyboard/${e.code}`, 0);
   });
 
   window.addEventListener("mousemove", (e) => {
