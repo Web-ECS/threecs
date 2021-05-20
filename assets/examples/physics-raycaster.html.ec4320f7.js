@@ -1,13 +1,13 @@
 import "../styles.16b1c26f.js";
 import {V as Vector3, O as Object3D, T as TextureLoader, M as Mesh, B as BoxGeometry, a as MeshBasicMaterial, n as SphereGeometry} from "../vendor.1b858d03.js";
-import {l as loadRapierPhysicsSystem, c as createThreeWorld, F as FirstPersonCameraSystem, P as PhysicsCharacterControllerSystem, j as FirstPersonCameraActions, A as ActionType, B as BindingType, k as PhysicsCharacterControllerActions, g as addMapComponent, m as PhysicsWorldComponent, f as addObject3DEntity, n as PhysicsCharacterControllerComponent, h as addComponent, o as PhysicsBodyStatus, p as PhysicsColliderShape, q as PhysicsRigidBodyComponent, e as crateTextureUrl, s as FirstPersonCameraYawTarget, t as FirstPersonCameraPitchTarget} from "../crate.fdc80e8c.js";
+import {l as loadRapierPhysicsSystem, c as createThreeWorld, F as FirstPersonCameraSystem, D as DirectionalMovementSystem, j as FirstPersonCameraActions, A as ActionType, B as BindingType, w as DirectionalMovementActions, g as addMapComponent, m as PhysicsWorldComponent, f as addObject3DEntity, h as addComponent, x as PhysicsRaycasterComponent, e as crateTextureUrl, o as PhysicsBodyStatus, q as PhysicsRigidBodyComponent, s as FirstPersonCameraYawTarget, t as FirstPersonCameraPitchTarget, y as DirectionalMovementComponent} from "../crate.d68ef853.js";
 async function main() {
   const PhysicsSystem = await loadRapierPhysicsSystem();
   const {world, scene, sceneEid, camera, cameraEid, start} = createThreeWorld({
     pointerLock: true,
     systems: [
       FirstPersonCameraSystem,
-      PhysicsCharacterControllerSystem,
+      DirectionalMovementSystem,
       PhysicsSystem
     ],
     actionMaps: [
@@ -28,7 +28,7 @@ async function main() {
           },
           {
             id: "move",
-            path: PhysicsCharacterControllerActions.Move,
+            path: DirectionalMovementActions.Move,
             type: ActionType.Vector2,
             bindings: [
               {
@@ -37,17 +37,6 @@ async function main() {
                 down: "Keyboard/KeyS",
                 left: "Keyboard/KeyA",
                 right: "Keyboard/KeyD"
-              }
-            ]
-          },
-          {
-            id: "jump",
-            path: PhysicsCharacterControllerActions.Jump,
-            type: ActionType.Button,
-            bindings: [
-              {
-                type: BindingType.Button,
-                path: "Keyboard/Space"
               }
             ]
           }
@@ -60,18 +49,13 @@ async function main() {
   });
   const playerRig = new Object3D();
   const playerRigEid = addObject3DEntity(world, playerRig, scene);
-  addMapComponent(world, PhysicsCharacterControllerComponent, playerRigEid, {
-    speed: 1.5
-  });
   addComponent(world, FirstPersonCameraYawTarget, playerRigEid);
   playerRig.add(camera);
   addComponent(world, FirstPersonCameraPitchTarget, cameraEid);
-  addMapComponent(world, PhysicsRigidBodyComponent, playerRigEid, {
-    bodyStatus: PhysicsBodyStatus.Kinematic,
-    shape: PhysicsColliderShape.Capsule,
-    halfHeight: 0.8,
-    radius: 0.5,
-    translation: new Vector3(0, 0.8, 0)
+  addComponent(world, DirectionalMovementComponent, playerRigEid);
+  addMapComponent(world, PhysicsRaycasterComponent, cameraEid, {
+    withIntersection: true,
+    debug: true
   });
   playerRig.position.z = 5;
   playerRig.position.y = 0.5;

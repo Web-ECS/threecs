@@ -551,11 +551,14 @@ async function loadRapierPhysicsSystem() {
       rigidBodyEntities.forEach((rigidBodyEid) => {
         const obj = Object3DComponent.storage.get(rigidBodyEid);
         const {body} = RapierPhysicsRigidBodyComponent.storage.get(rigidBodyEid);
-        if (body.isDynamic() || body.isKinematic()) {
+        if (body.isDynamic()) {
           const translation = body.translation();
           const rotation = body.rotation();
           obj.position.set(translation.x, translation.y, translation.z);
           obj.quaternion.set(rotation.x, rotation.y, rotation.z, rotation.w);
+        } else if (body.isKinematic()) {
+          body.setNextKinematicTranslation(obj.position);
+          body.setNextKinematicRotation(obj.quaternion);
         }
       });
     });
@@ -569,7 +572,8 @@ const PhysicsCharacterControllerComponent = defineMapComponent();
 const KinematicRigidBodyStateComponent = defineMapComponent();
 const physicsCharacterControllerQuery = defineQuery([
   PhysicsCharacterControllerComponent,
-  RapierPhysicsRigidBodyComponent
+  RapierPhysicsRigidBodyComponent,
+  Object3DComponent
 ]);
 const physicsCharacterControllerAddedQuery = enterQuery(physicsCharacterControllerQuery);
 const PhysicsCharacterControllerSystem = defineSystem(function PhysicsCharacterControllerSystem2(world) {
@@ -578,31 +582,39 @@ const PhysicsCharacterControllerSystem = defineSystem(function PhysicsCharacterC
   const addedEntities = physicsCharacterControllerAddedQuery(world);
   addedEntities.forEach((eid) => {
     addMapComponent(world, KinematicRigidBodyStateComponent, eid, {
-      velocity: new Vector3()
+      velocity: new Vector3(),
+      translation: new Vector3()
     });
   });
   physicsWorldEntities.forEach((worldEid) => {
+    const {gravity} = PhysicsWorldComponent.storage.get(worldEid);
     entities.forEach((eid) => {
+      const obj = Object3DComponent.storage.get(eid);
       const moveVec = world.actions.get(PhysicsCharacterControllerActions.Move);
       const jump = world.actions.get(PhysicsCharacterControllerActions.Jump);
       const dt = world.dt;
-      const {speed} = PhysicsCharacterControllerComponent.storage.get(eid);
-      const {body} = RapierPhysicsRigidBodyComponent.storage.get(eid);
-      const {velocity} = KinematicRigidBodyStateComponent.storage.get(eid);
-      const translation = body.translation();
-      const _speed = speed === void 0 ? 1 : speed;
-      velocity.z = -moveVec.y * _speed;
-      velocity.x = moveVec.x * _speed;
-      if (jump.pressed) {
-        velocity.y = 1.5;
+      const {walkSpeed, jumpHeight} = PhysicsCharacterControllerComponent.storage.get(eid);
+      RapierPhysicsRigidBodyComponent.storage.get(eid);
+      const {velocity, translation} = KinematicRigidBodyStateComponent.storage.get(eid);
+      const _walkSpeed = walkSpeed === void 0 ? 1 : walkSpeed;
+      const _jumpHeight = jumpHeight === void 0 ? 1 : jumpHeight;
+      const isGrounded = obj.position.y <= 0;
+      if (isGrounded) {
+        velocity.z = -moveVec.y * _walkSpeed;
+        velocity.x = moveVec.x * _walkSpeed;
+        if (jump.pressed) {
+          velocity.y += Math.sqrt(2 * _jumpHeight * Math.abs(gravity.y));
+        } else {
+          velocity.y = 0;
+        }
+      } else {
+        velocity.y += gravity.y * dt;
       }
-      {
-        velocity.y = 0;
+      translation.copy(velocity).applyQuaternion(obj.quaternion).multiplyScalar(dt);
+      obj.position.add(translation);
+      if (obj.position.y < 0) {
+        obj.position.y = 0;
       }
-      translation.x += velocity.x * dt;
-      translation.y += velocity.y * dt;
-      translation.z += velocity.z * dt;
-      body.setNextKinematicTranslation(translation);
     });
   });
 });

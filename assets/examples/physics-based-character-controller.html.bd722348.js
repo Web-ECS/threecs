@@ -1,13 +1,13 @@
 import "../styles.16b1c26f.js";
 import {V as Vector3, O as Object3D, T as TextureLoader, M as Mesh, B as BoxGeometry, a as MeshBasicMaterial, n as SphereGeometry} from "../vendor.1b858d03.js";
-import {l as loadRapierPhysicsSystem, c as createThreeWorld, F as FirstPersonCameraSystem, D as DirectionalMovementSystem, j as FirstPersonCameraActions, A as ActionType, B as BindingType, w as DirectionalMovementActions, g as addMapComponent, m as PhysicsWorldComponent, f as addObject3DEntity, h as addComponent, x as PhysicsRaycasterComponent, e as crateTextureUrl, o as PhysicsBodyStatus, q as PhysicsRigidBodyComponent, s as FirstPersonCameraYawTarget, t as FirstPersonCameraPitchTarget, y as DirectionalMovementComponent} from "../crate.fdc80e8c.js";
+import {l as loadRapierPhysicsSystem, c as createThreeWorld, F as FirstPersonCameraSystem, P as PhysicsCharacterControllerSystem, j as FirstPersonCameraActions, A as ActionType, B as BindingType, k as PhysicsCharacterControllerActions, g as addMapComponent, m as PhysicsWorldComponent, f as addObject3DEntity, n as PhysicsCharacterControllerComponent, h as addComponent, o as PhysicsBodyStatus, p as PhysicsColliderShape, q as PhysicsRigidBodyComponent, e as crateTextureUrl, s as FirstPersonCameraYawTarget, t as FirstPersonCameraPitchTarget} from "../crate.d68ef853.js";
 async function main() {
   const PhysicsSystem = await loadRapierPhysicsSystem();
   const {world, scene, sceneEid, camera, cameraEid, start} = createThreeWorld({
     pointerLock: true,
     systems: [
       FirstPersonCameraSystem,
-      DirectionalMovementSystem,
+      PhysicsCharacterControllerSystem,
       PhysicsSystem
     ],
     actionMaps: [
@@ -28,7 +28,7 @@ async function main() {
           },
           {
             id: "move",
-            path: DirectionalMovementActions.Move,
+            path: PhysicsCharacterControllerActions.Move,
             type: ActionType.Vector2,
             bindings: [
               {
@@ -39,26 +39,43 @@ async function main() {
                 right: "Keyboard/KeyD"
               }
             ]
+          },
+          {
+            id: "jump",
+            path: PhysicsCharacterControllerActions.Jump,
+            type: ActionType.Button,
+            bindings: [
+              {
+                type: BindingType.Button,
+                path: "Keyboard/Space"
+              }
+            ]
           }
         ]
       }
     ]
   });
   addMapComponent(world, PhysicsWorldComponent, sceneEid, {
-    gravity: new Vector3(0, -6, 0)
+    gravity: new Vector3(0, -9.81, 0)
   });
   const playerRig = new Object3D();
   const playerRigEid = addObject3DEntity(world, playerRig, scene);
+  addMapComponent(world, PhysicsCharacterControllerComponent, playerRigEid, {
+    walkSpeed: 2.5,
+    jumpHeight: 1.5
+  });
   addComponent(world, FirstPersonCameraYawTarget, playerRigEid);
   playerRig.add(camera);
   addComponent(world, FirstPersonCameraPitchTarget, cameraEid);
-  addComponent(world, DirectionalMovementComponent, playerRigEid);
-  addMapComponent(world, PhysicsRaycasterComponent, cameraEid, {
-    withIntersection: true,
-    debug: true
+  addMapComponent(world, PhysicsRigidBodyComponent, playerRigEid, {
+    bodyStatus: PhysicsBodyStatus.Kinematic,
+    shape: PhysicsColliderShape.Capsule,
+    halfHeight: 0.8,
+    radius: 0.5,
+    translation: new Vector3(0, 0.8, 0)
   });
   playerRig.position.z = 5;
-  playerRig.position.y = 0.5;
+  playerRig.position.y = 0;
   camera.position.y = 1.6;
   const crateTexture = new TextureLoader().load(crateTextureUrl);
   const cube = new Mesh(new BoxGeometry(1, 1, 1), new MeshBasicMaterial({map: crateTexture}));
@@ -74,6 +91,13 @@ async function main() {
   sphere.position.y = 0.25;
   sphere.position.z = -0.5;
   addMapComponent(world, PhysicsRigidBodyComponent, sphereEid, {
+    bodyStatus: PhysicsBodyStatus.Static
+  });
+  const wall = new Mesh(new BoxGeometry(2, 3, 0.5), new MeshBasicMaterial({color: 65280}));
+  const wallEid = addObject3DEntity(world, wall, scene);
+  wall.position.set(-3, 1.5, -1);
+  wall.rotation.y = Math.PI / 4;
+  addMapComponent(world, PhysicsRigidBodyComponent, wallEid, {
     bodyStatus: PhysicsBodyStatus.Static
   });
   const ground = new Mesh(new BoxGeometry(10, 0.1, 10), new MeshBasicMaterial());

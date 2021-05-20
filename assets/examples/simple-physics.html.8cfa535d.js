@@ -1,6 +1,6 @@
 import "../styles.16b1c26f.js";
 import {V as Vector3, T as TextureLoader, M as Mesh, B as BoxGeometry, a as MeshBasicMaterial, n as SphereGeometry} from "../vendor.1b858d03.js";
-import {l as loadRapierPhysicsSystem, c as createThreeWorld, g as addMapComponent, m as PhysicsWorldComponent, e as crateTextureUrl, f as addObject3DEntity, o as PhysicsBodyStatus, q as PhysicsRigidBodyComponent} from "../crate.fdc80e8c.js";
+import {l as loadRapierPhysicsSystem, c as createThreeWorld, g as addMapComponent, m as PhysicsWorldComponent, e as crateTextureUrl, f as addObject3DEntity, o as PhysicsBodyStatus, q as PhysicsRigidBodyComponent} from "../crate.d68ef853.js";
 async function main() {
   const PhysicsSystem = await loadRapierPhysicsSystem();
   const {world, scene, sceneEid, camera, start} = createThreeWorld({
