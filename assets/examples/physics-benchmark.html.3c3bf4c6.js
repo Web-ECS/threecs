@@ -1,6 +1,6 @@
 import "../styles.16b1c26f.js";
-import {V as Vector3, T as TextureLoader, B as BoxGeometry, a as MeshBasicMaterial, M as Mesh, n as SphereGeometry, w as wasmUrl} from "../vendor.0520bc5a.js";
-import {l as loadRapierPhysicsSystem, j as loadAmmoPhysicsSystem, c as createThreeWorld, I as InstancedMeshRendererSystem, g as addMapComponent, P as PhysicsWorldComponent, e as crateTextureUrl, k as InstancedMeshRenderer, f as addObject3DEntity, h as addComponent, m as PhysicsRigidBodyComponent, n as InstancedMeshRendererComponent} from "../crate.7e0f87d8.js";
+import {V as Vector3, T as TextureLoader, B as BoxGeometry, a as MeshBasicMaterial, M as Mesh, n as SphereGeometry} from "../vendor.1b858d03.js";
+import {l as loadRapierPhysicsSystem, c as createThreeWorld, I as InstancedMeshRendererSystem, g as addMapComponent, m as PhysicsWorldComponent, e as crateTextureUrl, u as InstancedMeshRenderer, f as addObject3DEntity, h as addComponent, o as PhysicsBodyStatus, q as PhysicsRigidBodyComponent, v as InstancedMeshRendererComponent} from "../crate.b987737d.js";
 function benchmark(system, count = 500) {
   const times = [];
   let finished = false;
@@ -28,15 +28,7 @@ function benchmark(system, count = 500) {
   };
 }
 async function main() {
-  let PhysicsSystem;
-  const qs = new URLSearchParams(location.search);
-  if (qs.has("rapier")) {
-    document.getElementById("rapierLink").style.color = "blue";
-    PhysicsSystem = await loadRapierPhysicsSystem();
-  } else {
-    document.getElementById("ammoLink").style.color = "blue";
-    PhysicsSystem = await loadAmmoPhysicsSystem({wasmUrl});
-  }
+  const PhysicsSystem = await loadRapierPhysicsSystem();
   const {world, scene, sceneEid, camera, start} = createThreeWorld({
     systems: [benchmark(PhysicsSystem), InstancedMeshRendererSystem]
   });
@@ -58,7 +50,7 @@ async function main() {
     cube.rotation.x = 0.35;
     cube.rotation.z = 0.25;
     addMapComponent(world, PhysicsRigidBodyComponent, cubeEid, {
-      mass: 1
+      bodyStatus: PhysicsBodyStatus.Dynamic
     });
   }
   const sphere = new Mesh(new SphereGeometry(1, 10, 10), new MeshBasicMaterial({color: 16711680}));
@@ -66,12 +58,12 @@ async function main() {
   sphere.position.y = 0.25;
   sphere.position.z = -0.5;
   addMapComponent(world, PhysicsRigidBodyComponent, sphereEid, {
-    mass: 0
+    bodyStatus: PhysicsBodyStatus.Static
   });
   const ground = new Mesh(new BoxGeometry(10, 0.1, 10), new MeshBasicMaterial());
   const groundEid = addObject3DEntity(world, ground, scene);
   addMapComponent(world, PhysicsRigidBodyComponent, groundEid, {
-    mass: 0
+    bodyStatus: PhysicsBodyStatus.Static
   });
   start();
 }
