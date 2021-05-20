@@ -399,11 +399,14 @@ export async function loadRapierPhysicsSystem(): Promise<System> {
         const { body } =
           RapierPhysicsRigidBodyComponent.storage.get(rigidBodyEid)!;
 
-        if (body!.isDynamic() || body!.isKinematic()) {
+        if (body!.isDynamic()) {
           const translation = body!.translation();
           const rotation = body!.rotation();
           obj.position.set(translation.x, translation.y, translation.z);
           obj.quaternion.set(rotation.x, rotation.y, rotation.z, rotation.w);
+        } else if (body!.isKinematic()) {
+          body!.setNextKinematicTranslation(obj.position);
+          body!.setNextKinematicRotation(obj.quaternion);
         }
       });
     });
@@ -424,6 +427,7 @@ export const PhysicsCharacterControllerComponent =
 
 interface KinematicRigidBodyState {
   velocity?: Vector3;
+  direction?: Vector3;
 }
 
 export const KinematicRigidBodyStateComponent =
@@ -432,6 +436,7 @@ export const KinematicRigidBodyStateComponent =
 const physicsCharacterControllerQuery = defineQuery([
   PhysicsCharacterControllerComponent,
   RapierPhysicsRigidBodyComponent,
+  Object3DComponent,
 ]);
 
 const physicsCharacterControllerAddedQuery = enterQuery(
@@ -447,11 +452,14 @@ export const PhysicsCharacterControllerSystem = defineSystem(
     addedEntities.forEach((eid) => {
       addMapComponent(world, KinematicRigidBodyStateComponent, eid, {
         velocity: new Vector3(),
+        direction: new Vector3(),
       });
     });
 
     physicsWorldEntities.forEach((worldEid) => {
       entities.forEach((eid) => {
+        const obj = Object3DComponent.storage.get(eid)!;
+
         const moveVec = world.actions.get(
           PhysicsCharacterControllerActions.Move
         ) as Vector2;
@@ -463,9 +471,8 @@ export const PhysicsCharacterControllerSystem = defineSystem(
         const dt = world.dt;
         const { speed } = PhysicsCharacterControllerComponent.storage.get(eid)!;
         const { body } = RapierPhysicsRigidBodyComponent.storage.get(eid)!;
-        const { velocity } = KinematicRigidBodyStateComponent.storage.get(eid)!;
-
-        const translation = body!.translation();
+        const { velocity, direction } =
+          KinematicRigidBodyStateComponent.storage.get(eid)!;
 
         const _speed = speed === undefined ? 1 : speed;
 
@@ -484,11 +491,9 @@ export const PhysicsCharacterControllerSystem = defineSystem(
           velocity!.y += 9.8 * dt;
         }
 
-        translation.x += velocity!.x * dt;
-        translation.y += velocity!.y * dt;
-        translation.z += velocity!.z * dt;
-
-        body!.setNextKinematicTranslation(translation);
+        velocity!.applyQuaternion(obj.quaternion);
+        velocity!.multiplyScalar(dt);
+        obj.position.add(velocity!);
       });
     });
   }

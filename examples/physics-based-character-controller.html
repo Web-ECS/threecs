@@ -107,7 +107,7 @@
           PhysicsCharacterControllerComponent,
           playerRigEid,
           {
-            speed: 1.5,
+            speed: 2.5,
           }
         );
         addComponent(world, FirstPersonCameraYawTarget, playerRigEid);
@@ -146,6 +146,17 @@
         sphere.position.y = 0.25;
         sphere.position.z = -0.5;
         addMapComponent(world, PhysicsRigidBodyComponent, sphereEid, {
+          bodyStatus: PhysicsBodyStatus.Static,
+        });
+
+        const wall = new Mesh(
+          new BoxBufferGeometry(2, 3, 0.5),
+          new MeshBasicMaterial({ color: 0x00ff00 })
+        );
+        const wallEid = addObject3DEntity(world, wall, scene);
+        wall.position.set(-3, 1.5, -1);
+        wall.rotation.y = Math.PI / 4;
+        addMapComponent(world, PhysicsRigidBodyComponent, wallEid, {
           bodyStatus: PhysicsBodyStatus.Static,
         });
 
