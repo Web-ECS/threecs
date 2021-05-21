@@ -1,5 +1,13 @@
 import * as Rapier from "@dimforge/rapier3d-compat";
-import { Vector2, Vector3, Mesh, Quaternion, Euler, ArrowHelper } from "three";
+import {
+  Vector2,
+  Vector3,
+  Mesh,
+  Quaternion,
+  Euler,
+  ArrowHelper,
+  Object3D,
+} from "three";
 import { Object3DComponent } from "../components";
 import {
   System,
@@ -10,9 +18,26 @@ import {
   enterQuery,
   singletonQuery,
   addMapComponent,
+  addObject3DEntity,
 } from "../core/ECS";
 import { ButtonActionState } from "./ActionMappingSystem";
 import { sceneQuery } from "./RendererSystem";
+
+export enum PhysicsGroups {
+  None = 0,
+  All = 0xffff,
+}
+
+export enum PhysicsInteractionGroups {
+  None = 0,
+  Default = 0xffff_ffff,
+}
+
+export const CharacterPhysicsGroup = 0b1;
+export const CharacterInteractionGroup = createInteractionGroup(
+  CharacterPhysicsGroup,
+  PhysicsGroups.All
+);
 
 interface PhysicsWorldProps {
   gravity?: Vector3;
@@ -35,6 +60,8 @@ interface PhysicsRigidBodyProps {
   rotation?: Euler;
   shape?: PhysicsColliderShape;
   bodyStatus?: Rapier.BodyStatus;
+  solverGroups?: number;
+  collisionGroups?: number;
 }
 
 interface CapsuleRigidBodyProps extends PhysicsRigidBodyProps {
@@ -83,6 +110,7 @@ interface PhysicsRaycasterProps {
   intersection?: Vector3;
   normal?: Vector3;
   maxToi?: number;
+  groups?: number;
   debug?: boolean;
 }
 
@@ -99,6 +127,8 @@ interface RapierRaycasterProps {
 }
 
 const RapierRaycasterComponent = defineMapComponent<RapierRaycasterProps>();
+
+export const PhysicsCharacterControllerGroup = 0x0000_0001;
 
 export async function loadRapierPhysicsSystem(): Promise<System> {
   await Rapier.init();
@@ -212,6 +242,17 @@ export async function loadRapierPhysicsSystem(): Promise<System> {
           );
         }
 
+        if (rigidBodyProps.collisionGroups === undefined) {
+          rigidBodyProps.collisionGroups = PhysicsInteractionGroups.Default;
+        }
+
+        if (rigidBodyProps.solverGroups === undefined) {
+          rigidBodyProps.solverGroups = PhysicsInteractionGroups.Default;
+        }
+
+        colliderDesc.setCollisionGroups(rigidBodyProps.collisionGroups);
+        colliderDesc.setSolverGroups(rigidBodyProps.solverGroups);
+
         // TODO: Handle mass / density
         // TODO: Handle scale
         // TODO: Handle dynamic gravity
@@ -232,6 +273,7 @@ export async function loadRapierPhysicsSystem(): Promise<System> {
         const raycaster = PhysicsRaycasterComponent.storage.get(raycasterEid)!;
 
         raycaster.intersection = new Vector3();
+        raycaster.normal = new Vector3();
 
         if (raycaster.useObject3DTransform === undefined) {
           raycaster.useObject3DTransform = true;
@@ -265,6 +307,10 @@ export async function loadRapierPhysicsSystem(): Promise<System> {
 
         if (raycaster.maxToi === undefined) {
           raycaster.maxToi = Number.MAX_VALUE;
+        }
+
+        if (raycaster.groups === undefined) {
+          raycaster.groups = PhysicsInteractionGroups.Default;
         }
 
         RapierRaycasterComponent.storage.set(raycasterEid, {
@@ -329,12 +375,17 @@ export async function loadRapierPhysicsSystem(): Promise<System> {
         const internalRaycaster =
           RapierRaycasterComponent.storage.get(rayCasterEid)!;
 
+        const colliderSet = physicsWorld!.colliders;
+
         let intersection;
 
         if (raycaster.withNormal) {
-          intersection = physicsWorld!.castRayAndGetNormal(
+          intersection = physicsWorld!.queryPipeline.castRayAndGetNormal(
+            colliderSet,
             internalRaycaster.ray!,
-            raycaster.maxToi!
+            raycaster.maxToi!,
+            true,
+            raycaster.groups!
           );
 
           if (intersection) {
@@ -343,9 +394,12 @@ export async function loadRapierPhysicsSystem(): Promise<System> {
             raycaster.normal!.set(0, 0, 0);
           }
         } else {
-          intersection = physicsWorld!.castRay(
+          intersection = physicsWorld!.queryPipeline.castRay(
+            colliderSet,
             internalRaycaster.ray!,
-            raycaster.maxToi!
+            raycaster.maxToi!,
+            true,
+            raycaster.groups!
           );
         }
 
@@ -426,13 +480,14 @@ interface PhysicsCharacterControllerProps {
 export const PhysicsCharacterControllerComponent =
   defineMapComponent<PhysicsCharacterControllerProps>();
 
-interface KinematicRigidBodyState {
+interface InternalPhysicsCharacterController {
   velocity?: Vector3;
   translation?: Vector3;
+  floorRaycasterEid?: number;
 }
 
-export const KinematicRigidBodyStateComponent =
-  defineMapComponent<KinematicRigidBodyState>();
+export const InternalPhysicsCharacterControllerComponent =
+  defineMapComponent<InternalPhysicsCharacterController>();
 
 const physicsCharacterControllerQuery = defineQuery([
   PhysicsCharacterControllerComponent,
@@ -451,9 +506,25 @@ export const PhysicsCharacterControllerSystem = defineSystem(
     const addedEntities = physicsCharacterControllerAddedQuery(world);
 
     addedEntities.forEach((eid) => {
-      addMapComponent(world, KinematicRigidBodyStateComponent, eid, {
+      const floorRaycaster = new Object3D();
+      floorRaycaster.rotation.x = Math.PI / 2;
+      const obj = Object3DComponent.storage.get(eid);
+      const floorRaycasterEid = addObject3DEntity(world, floorRaycaster, obj);
+      addMapComponent(world, PhysicsRaycasterComponent, floorRaycasterEid, {
+        withIntersection: true,
+        withNormal: true,
+        maxToi: 0.5,
+        debug: true,
+        groups: createInteractionGroup(
+          PhysicsGroups.All,
+          ~CharacterPhysicsGroup
+        ),
+      });
+
+      addMapComponent(world, InternalPhysicsCharacterControllerComponent, eid, {
         velocity: new Vector3(),
         translation: new Vector3(),
+        floorRaycasterEid,
       });
     });
 
@@ -475,13 +546,15 @@ export const PhysicsCharacterControllerSystem = defineSystem(
         const { walkSpeed, jumpHeight } =
           PhysicsCharacterControllerComponent.storage.get(eid)!;
         const { body } = RapierPhysicsRigidBodyComponent.storage.get(eid)!;
-        const { velocity, translation } =
-          KinematicRigidBodyStateComponent.storage.get(eid)!;
+        const { velocity, translation, floorRaycasterEid } =
+          InternalPhysicsCharacterControllerComponent.storage.get(eid)!;
+        const { toi, intersection, normal } =
+          PhysicsRaycasterComponent.storage.get(floorRaycasterEid!)!;
 
         const _walkSpeed = walkSpeed === undefined ? 1 : walkSpeed;
         const _jumpHeight = jumpHeight === undefined ? 1 : jumpHeight;
 
-        const isGrounded = obj.position.y <= 0;
+        const isGrounded = toi === 0;
 
         if (isGrounded) {
           velocity!.z = -moveVec.y * _walkSpeed;
@@ -501,11 +574,35 @@ export const PhysicsCharacterControllerSystem = defineSystem(
           .applyQuaternion(obj.quaternion)
           .multiplyScalar(dt);
         obj.position.add(translation!);
-
-        if (obj.position.y < 0) {
-          obj.position.y = 0;
-        }
       });
     });
   }
 );
+
+export class InteractionGroup {
+  value: number;
+
+  constructor(value: number = 0) {
+    this.value = value;
+  }
+
+  withGroups(groups: number) {
+    this.value = (this.value & 0x0000ffff) | (groups << 16);
+    return this;
+  }
+
+  withMask(mask: number) {
+    this.value = (this.value & 0xffff0000) | mask;
+    return this;
+  }
+
+  test(value: number) {
+    return (
+      ((this.value >> 16) & value) !== 0 && ((value >> 16) & this.value) !== 0
+    );
+  }
+}
+
+export function createInteractionGroup(groups: number, mask: number) {
+  return (groups << 16) | mask;
+}
