@@ -21,7 +21,7 @@
         addObject3DEntity,
         addMapComponent,
         addComponent,
-        loadRapierPhysicsSystem,
+        loadPhysicsSystem,
         PhysicsWorldComponent,
         PhysicsRigidBodyComponent,
         PhysicsBodyStatus,
@@ -29,7 +29,7 @@
       import crateTextureUrl from "./assets/crate.gif";
 
       async function main() {
-        const PhysicsSystem = await loadRapierPhysicsSystem();
+        const PhysicsSystem = await loadPhysicsSystem();
 
         const { world, scene, sceneEid, camera, start } = createThreeWorld({
           systems: [PhysicsSystem],

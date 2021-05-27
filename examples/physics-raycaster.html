@@ -29,7 +29,7 @@
         FirstPersonCameraActions,
         FirstPersonCameraYawTarget,
         FirstPersonCameraPitchTarget,
-        loadRapierPhysicsSystem,
+        loadPhysicsSystem,
         PhysicsWorldComponent,
         PhysicsRigidBodyComponent,
         DirectionalMovementSystem,
@@ -44,7 +44,7 @@
       import crateTextureUrl from "./assets/crate.gif";
 
       async function main() {
-        const PhysicsSystem = await loadRapierPhysicsSystem();
+        const PhysicsSystem = await loadPhysicsSystem();
 
         const { world, scene, sceneEid, camera, cameraEid, start } =
           createThreeWorld({

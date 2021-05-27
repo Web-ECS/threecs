@@ -4,6 +4,7 @@ import { Object3DComponent } from "../components";
 import {
   World,
   defineQuery,
+  singletonQuery,
   defineSystem,
   defineMapComponent,
 } from "../core/ECS";
@@ -12,6 +13,7 @@ export const RendererComponent = defineMapComponent<WebGLRenderer>();
 
 export const rendererQuery = defineQuery([RendererComponent]);
 export const sceneQuery = defineQuery([Object3DComponent, SceneComponent]);
+export const mainSceneQuery = singletonQuery(sceneQuery);
 export const cameraQuery = defineQuery([Object3DComponent, CameraComponent]);
 
 export const RendererSystem = defineSystem(function RendererSystem(

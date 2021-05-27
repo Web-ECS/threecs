@@ -28,7 +28,7 @@
         FirstPersonCameraActions,
         FirstPersonCameraYawTarget,
         FirstPersonCameraPitchTarget,
-        loadRapierPhysicsSystem,
+        loadPhysicsSystem,
         PhysicsWorldComponent,
         PhysicsRigidBodyComponent,
         PhysicsCharacterControllerSystem,
@@ -41,7 +41,7 @@
       import crateTextureUrl from "./assets/crate.gif";
 
       async function main() {
-        const PhysicsSystem = await loadRapierPhysicsSystem();
+        const PhysicsSystem = await loadPhysicsSystem();
 
         const { world, scene, sceneEid, camera, cameraEid, start } =
           createThreeWorld({
@@ -116,7 +116,7 @@
         playerRig.add(camera);
         addComponent(world, FirstPersonCameraPitchTarget, cameraEid);
         addMapComponent(world, PhysicsRigidBodyComponent, playerRigEid, {
-          bodyStatus: PhysicsBodyStatus.Kinematic,
+          bodyStatus: PhysicsBodyStatus.Dynamic,
           shape: PhysicsColliderShape.Capsule,
           halfHeight: 0.8,
           radius: 0.5,
