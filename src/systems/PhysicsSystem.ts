@@ -27,11 +27,22 @@ export function createInteractionGroup(groups: number, mask: number) {
 }
 
 interface PhysicsWorldProps {
-  gravity?: Vector3;
-  debug?: boolean;
+  gravity: Vector3;
+  debug: boolean;
 }
 
 export const PhysicsWorldComponent = defineMapComponent<PhysicsWorldProps>();
+
+export function addPhysicsWorldComponent(
+  world: World,
+  eid: number,
+  props: Partial<PhysicsWorldProps>
+) {
+  addMapComponent(world, PhysicsWorldComponent, eid, {
+    gravity: props.gravity || new Vector3(0, -9.81, 0),
+    debug: !!props.debug,
+  });
+}
 
 export const PhysicsBodyStatus = Rapier.BodyStatus;
 

@@ -22,7 +22,7 @@
         addMapComponent,
         addComponent,
         loadPhysicsSystem,
-        PhysicsWorldComponent,
+        addPhysicsWorldComponent,
         PhysicsRigidBodyComponent,
         PhysicsBodyStatus,
       } from "../src/threecs";
@@ -35,7 +35,7 @@
           systems: [PhysicsSystem],
         });
 
-        addMapComponent(world, PhysicsWorldComponent, sceneEid, {
+        addPhysicsWorldComponent(world, sceneEid, {
           gravity: new Vector3(0, -6, 0),
         });
 

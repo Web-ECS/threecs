@@ -29,9 +29,9 @@
         createThreeWorld,
         addObject3DEntity,
         addMapComponent,
+        addPhysicsWorldComponent,
         addComponent,
         loadPhysicsSystem,
-        PhysicsWorldComponent,
         PhysicsRigidBodyComponent,
         PhysicsBodyStatus,
         InstancedMeshRendererSystem,
@@ -48,7 +48,7 @@
           systems: [benchmark(PhysicsSystem), InstancedMeshRendererSystem],
         });
 
-        addMapComponent(world, PhysicsWorldComponent, sceneEid, {
+        addPhysicsWorldComponent(world, sceneEid, {
           gravity: new Vector3(0, -6, 0),
         });
 

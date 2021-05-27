@@ -29,7 +29,7 @@
         FirstPersonCameraYawTarget,
         FirstPersonCameraPitchTarget,
         loadPhysicsSystem,
-        PhysicsWorldComponent,
+        addPhysicsWorldComponent,
         PhysicsRigidBodyComponent,
         PhysicsCharacterControllerSystem,
         PhysicsCharacterControllerComponent,
@@ -97,9 +97,7 @@
             ],
           });
 
-        addMapComponent(world, PhysicsWorldComponent, sceneEid, {
-          gravity: new Vector3(0, -9.81, 0),
-        });
+        addPhysicsWorldComponent(world, sceneEid);
 
         const playerRig = new Object3D();
         const playerRigEid = addObject3DEntity(world, playerRig, scene);

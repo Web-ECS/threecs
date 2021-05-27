@@ -30,7 +30,7 @@
         FirstPersonCameraYawTarget,
         FirstPersonCameraPitchTarget,
         loadPhysicsSystem,
-        PhysicsWorldComponent,
+        addPhysicsWorldComponent,
         PhysicsRigidBodyComponent,
         DirectionalMovementSystem,
         DirectionalMovementActions,
@@ -89,7 +89,7 @@
             ],
           });
 
-        addMapComponent(world, PhysicsWorldComponent, sceneEid, {
+        addPhysicsWorldComponent(world, sceneEid, {
           gravity: new Vector3(0, -6, 0),
         });
 
