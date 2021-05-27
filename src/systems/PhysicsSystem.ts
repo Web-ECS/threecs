@@ -1,13 +1,5 @@
 import * as Rapier from "@dimforge/rapier3d-compat";
-import {
-  Vector2,
-  Vector3,
-  Mesh,
-  Quaternion,
-  Euler,
-  ArrowHelper,
-  Object3D,
-} from "three";
+import { Vector2, Vector3, Mesh, Quaternion, ArrowHelper } from "three";
 import { Object3DComponent } from "../components";
 import {
   System,
@@ -18,7 +10,6 @@ import {
   enterQuery,
   singletonQuery,
   addMapComponent,
-  addObject3DEntity,
 } from "../core/ECS";
 import { ButtonActionState } from "./ActionMappingSystem";
 import { sceneQuery } from "./RendererSystem";
@@ -57,7 +48,7 @@ export enum PhysicsColliderShape {
 
 interface PhysicsRigidBodyProps {
   translation?: Vector3;
-  rotation?: Euler;
+  rotation?: Quaternion;
   shape?: PhysicsColliderShape;
   bodyStatus?: Rapier.BodyStatus;
   solverGroups?: number;
@@ -92,6 +83,7 @@ const RapierPhysicsWorldComponent =
   defineMapComponent<RapierPhysicsWorldProps>();
 interface RapierPhysicsRigidBodyProps {
   body?: Rapier.RigidBody;
+  colliderShape?: Rapier.Shape;
 }
 
 const RapierPhysicsRigidBodyComponent =
@@ -191,21 +183,19 @@ export async function loadRapierPhysicsSystem(): Promise<System> {
           bodyStatus !== undefined ? bodyStatus : PhysicsBodyStatus.Static
         );
 
-        rigidBodyDesc.setRotation(
-          new Rapier.Quaternion(tempQuat.x, tempQuat.y, tempQuat.z, tempQuat.w)
-        );
+        rigidBodyDesc.setRotation(tempQuat);
         rigidBodyDesc.setTranslation(tempVec3.x, tempVec3.y, tempVec3.z);
 
         const body = physicsWorld!.createRigidBody(rigidBodyDesc);
 
-        let colliderDesc: Rapier.ColliderDesc;
+        let colliderShape: Rapier.Shape;
 
         const geometryType = geometry && geometry.type;
 
         if (geometryType === "BoxGeometry") {
           geometry.computeBoundingBox();
           const boundingBoxSize = geometry.boundingBox!.getSize(new Vector3());
-          colliderDesc = Rapier.ColliderDesc.cuboid(
+          colliderShape = new Rapier.Cuboid(
             boundingBoxSize.x / 2,
             boundingBoxSize.y / 2,
             boundingBoxSize.z / 2
@@ -213,14 +203,16 @@ export async function loadRapierPhysicsSystem(): Promise<System> {
         } else if (geometryType === "SphereGeometry") {
           geometry.computeBoundingSphere();
           const radius = geometry.boundingSphere!.radius;
-          colliderDesc = Rapier.ColliderDesc.ball(radius);
+          colliderShape = new Rapier.Ball(radius);
         } else if (shape === PhysicsColliderShape.Capsule) {
           const { radius, halfHeight } =
             rigidBodyProps as CapsuleRigidBodyProps;
-          colliderDesc = Rapier.ColliderDesc.capsule(halfHeight, radius);
+          colliderShape = new Rapier.Capsule(halfHeight, radius);
         } else {
           throw new Error("Unimplemented");
         }
+
+        const colliderDesc = new Rapier.ColliderDesc(colliderShape);
 
         if (translation) {
           colliderDesc.setTranslation(
@@ -231,15 +223,7 @@ export async function loadRapierPhysicsSystem(): Promise<System> {
         }
 
         if (rotation) {
-          tempQuat.setFromEuler(rotation);
-          colliderDesc.setRotation(
-            new Rapier.Quaternion(
-              tempQuat.x,
-              tempQuat.y,
-              tempQuat.z,
-              tempQuat.w
-            )
-          );
+          colliderDesc.setRotation(rotation);
         }
 
         if (rigidBodyProps.collisionGroups === undefined) {
@@ -266,6 +250,7 @@ export async function loadRapierPhysicsSystem(): Promise<System> {
 
         addMapComponent(world, RapierPhysicsRigidBodyComponent, rigidBodyEid, {
           body,
+          colliderShape,
         });
       });
 
@@ -483,7 +468,10 @@ export const PhysicsCharacterControllerComponent =
 interface InternalPhysicsCharacterController {
   velocity?: Vector3;
   translation?: Vector3;
-  floorRaycasterEid?: number;
+  shapeCastDir?: Vector3;
+  shapeCastTranslation?: Vector3;
+  shapeCastRotation?: Quaternion;
+  interactionGroup?: number;
 }
 
 export const InternalPhysicsCharacterControllerComponent =
@@ -506,34 +494,40 @@ export const PhysicsCharacterControllerSystem = defineSystem(
     const addedEntities = physicsCharacterControllerAddedQuery(world);
 
     addedEntities.forEach((eid) => {
-      const floorRaycaster = new Object3D();
-      floorRaycaster.rotation.x = Math.PI / 2;
-      const obj = Object3DComponent.storage.get(eid);
-      const floorRaycasterEid = addObject3DEntity(world, floorRaycaster, obj);
-      addMapComponent(world, PhysicsRaycasterComponent, floorRaycasterEid, {
-        withIntersection: true,
-        withNormal: true,
-        maxToi: 0.5,
-        debug: true,
-        groups: createInteractionGroup(
-          PhysicsGroups.All,
-          ~CharacterPhysicsGroup
-        ),
-      });
-
       addMapComponent(world, InternalPhysicsCharacterControllerComponent, eid, {
         velocity: new Vector3(),
         translation: new Vector3(),
-        floorRaycasterEid,
+        shapeCastDir: new Vector3(),
+        shapeCastTranslation: new Vector3(),
+        shapeCastRotation: new Quaternion(),
+        interactionGroup: createInteractionGroup(
+          PhysicsGroups.All,
+          ~CharacterPhysicsGroup
+        ),
       });
     });
 
     physicsWorldEntities.forEach((worldEid) => {
       const { gravity } = PhysicsWorldComponent.storage.get(worldEid)!;
+      const physicsWorldComponent =
+        RapierPhysicsWorldComponent.storage.get(worldEid);
+
+      if (!physicsWorldComponent) {
+        return;
+      }
+
+      const { physicsWorld } = physicsWorldComponent;
 
       entities.forEach((eid) => {
+        const character = PhysicsCharacterControllerComponent.storage.get(eid)!;
+        const internalCharacter =
+          InternalPhysicsCharacterControllerComponent.storage.get(eid)!;
         const obj = Object3DComponent.storage.get(eid)!;
+        const rigidBody = PhysicsRigidBodyComponent.storage.get(eid)!;
+        const internalRigidBody =
+          RapierPhysicsRigidBodyComponent.storage.get(eid)!;
 
+        // Handle Input
         const moveVec = world.actions.get(
           PhysicsCharacterControllerActions.Move
         ) as Vector2;
@@ -542,67 +536,179 @@ export const PhysicsCharacterControllerSystem = defineSystem(
           PhysicsCharacterControllerActions.Jump
         ) as ButtonActionState;
 
-        const dt = world.dt;
-        const { walkSpeed, jumpHeight } =
-          PhysicsCharacterControllerComponent.storage.get(eid)!;
-        const { body } = RapierPhysicsRigidBodyComponent.storage.get(eid)!;
-        const { velocity, translation, floorRaycasterEid } =
-          InternalPhysicsCharacterControllerComponent.storage.get(eid)!;
-        const { toi, intersection, normal } =
-          PhysicsRaycasterComponent.storage.get(floorRaycasterEid!)!;
+        const _walkSpeed =
+          character.walkSpeed === undefined ? 1 : character.walkSpeed;
+        const _jumpHeight =
+          character.jumpHeight === undefined ? 1 : character.jumpHeight;
 
-        const _walkSpeed = walkSpeed === undefined ? 1 : walkSpeed;
-        const _jumpHeight = jumpHeight === undefined ? 1 : jumpHeight;
+        internalCharacter.velocity!.z = -moveVec.y * _walkSpeed;
+        internalCharacter.velocity!.x = moveVec.x * _walkSpeed;
 
-        const isGrounded = toi === 0;
+        internalCharacter.velocity!.y += gravity!.y * world.dt;
 
-        if (isGrounded) {
-          velocity!.z = -moveVec.y * _walkSpeed;
-          velocity!.x = moveVec.x * _walkSpeed;
-
-          if (jump.pressed) {
-            velocity!.y += Math.sqrt(2 * _jumpHeight * Math.abs(gravity!.y));
-          } else {
-            velocity!.y = 0;
-          }
-        } else {
-          velocity!.y += gravity!.y * dt;
+        if (jump.pressed) {
+          internalCharacter.velocity!.y += Math.sqrt(
+            2 * _jumpHeight * Math.abs(gravity!.y)
+          );
         }
 
-        translation!
-          .copy(velocity!)
-          .applyQuaternion(obj.quaternion)
-          .multiplyScalar(dt);
-        obj.position.add(translation!);
+        // Move Kinematic Body
+        moveAndSlide(
+          physicsWorld!,
+          internalRigidBody.colliderShape!,
+          rigidBody.translation!,
+          rigidBody.rotation!,
+          obj.position,
+          obj.quaternion,
+          internalCharacter.velocity!,
+          world.dt,
+          internalCharacter.interactionGroup!,
+          1,
+          Math.PI / 4
+        );
       });
     });
   }
 );
 
-export class InteractionGroup {
-  value: number;
+export function createInteractionGroup(groups: number, mask: number) {
+  return (groups << 16) | mask;
+}
 
-  constructor(value: number = 0) {
-    this.value = value;
+const motion = new Vector3();
+const remainder = new Vector3();
+const travel = new Vector3();
+const shapePosition = new Vector3();
+const shapeRotation = new Quaternion();
+const zeroVec3 = new Vector3();
+const downDir = new Vector3();
+const upDir = new Vector3();
+const FLOOR_ANGLE_THRESHOLD = 0.01;
+const normalizedVelocity = new Vector3();
+const deltaV = new Vector3();
+const normal = new Vector3();
+const castOffset = new Vector3(0, 0.005, 0);
+
+// Ported (poorly) from https://github.com/godotengine/godot/blob/master/scene/3d/physics_body_3d.cpp#L849
+// Incomplete and buggy, but may be useful for others.
+
+function moveAndSlide(
+  world: Rapier.World,
+  shape: Rapier.Shape,
+  shapePositionOffset: Vector3,
+  shapeRotationOffset: Quaternion,
+  position: Vector3,
+  rotation: Quaternion,
+  velocity: Vector3,
+  dt: number,
+  interactionGroup: number,
+  maxSlides: number,
+  maxFloorAngle: number
+) {
+  downDir.copy(world.gravity as Vector3).normalize();
+  upDir.copy(downDir).negate();
+  normalizedVelocity.copy(velocity).normalize();
+
+  motion.copy(velocity).multiplyScalar(dt);
+
+  shapePosition.copy(position);
+
+  if (shapePositionOffset) {
+    shapePosition.add(shapePositionOffset).add(castOffset);
   }
 
-  withGroups(groups: number) {
-    this.value = (this.value & 0x0000ffff) | (groups << 16);
-    return this;
+  shapeRotation.copy(rotation);
+
+  if (shapeRotationOffset) {
+    shapeRotation.multiply(shapeRotationOffset);
   }
 
-  withMask(mask: number) {
-    this.value = (this.value & 0xffff0000) | mask;
-    return this;
-  }
+  let slides = maxSlides;
 
-  test(value: number) {
-    return (
-      ((this.value >> 16) & value) !== 0 && ((value >> 16) & this.value) !== 0
-    );
+  while (slides) {
+    let foundCollision = false;
+
+    for (let i = 0; i < 2; i++) {
+      normal.set(0, 0, 0);
+      remainder.set(0, 0, 0);
+      travel.set(0, 0, 0);
+
+      if (i === 0) {
+        const result = world.castShape(
+          world.colliders,
+          shapePosition,
+          shapeRotation,
+          velocity,
+          shape,
+          dt,
+          interactionGroup
+        );
+
+        if (!result) {
+          motion.set(0, 0, 0);
+        } else {
+          foundCollision = true;
+          travel.copy(velocity as Vector3).multiplyScalar(result.toi);
+          position.add(travel);
+          remainder.copy(motion).sub(travel);
+          normal.copy(result.normal2 as Vector3);
+        }
+      } else {
+        const result = world.castShape(
+          world.colliders,
+          shapePosition,
+          shapeRotation,
+          velocity,
+          shape,
+          dt,
+          interactionGroup
+        );
+
+        if (result) {
+          foundCollision = true;
+          travel.set(0, 0, 0);
+          remainder.copy(motion);
+          normal.copy(result.normal2 as Vector3);
+        }
+      }
+
+      const onFloor =
+        Math.acos(normal.dot(upDir)) < maxFloorAngle + FLOOR_ANGLE_THRESHOLD;
+
+      if (foundCollision) {
+        motion.copy(remainder);
+
+        if (
+          onFloor &&
+          deltaV.addVectors(normalizedVelocity, upDir).length() < 0.01 &&
+          travel.length() < 1
+        ) {
+          slideAlongNormal(travel, upDir, motion);
+          position.sub(motion);
+          return;
+        }
+
+        slideAlongNormal(motion, normal, motion);
+        slideAlongNormal(velocity, normal, velocity);
+      }
+
+      if (!foundCollision || motion.equals(zeroVec3)) {
+        break;
+      }
+    }
+
+    --slides;
   }
 }
 
-export function createInteractionGroup(groups: number, mask: number) {
-  return (groups << 16) | mask;
+function slideAlongNormal(
+  vec: Vector3,
+  normal: Vector3,
+  target: Vector3
+): Vector3 {
+  return target
+    .copy(normal)
+    .multiplyScalar(2)
+    .multiplyScalar(vec.dot(normal))
+    .sub(vec);
 }
