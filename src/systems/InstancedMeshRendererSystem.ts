@@ -1,4 +1,5 @@
 import {
+  Object3D,
   InstancedMesh,
   Material,
   Mesh,
@@ -6,7 +7,14 @@ import {
   DynamicDrawUsage,
 } from "three";
 import { Object3DComponent } from "../components";
-import { defineSystem, World, defineComponent, defineQuery } from "../core/ECS";
+import {
+  defineSystem,
+  World,
+  defineComponent,
+  defineQuery,
+  addObject3DEntity,
+  addComponent,
+} from "../core/ECS";
 
 export class InstancedMeshImposter extends Mesh {
   constructor(geometry: BufferGeometry, material: Material) {
@@ -65,6 +73,38 @@ export class InstancedMeshRenderer extends InstancedMesh {
 }
 
 export const InstancedMeshRendererComponent = defineComponent({});
+
+export function addInstancedMeshRendererEntity(
+  world: World,
+  geometry: BufferGeometry,
+  material: Material,
+  maxInstances: number = 100,
+  parent?: Object3D
+) {
+  const instancedMeshRenderer = new InstancedMeshRenderer(
+    geometry,
+    material,
+    maxInstances
+  );
+  const instancedMeshRendererEid = addObject3DEntity(
+    world,
+    instancedMeshRenderer,
+    parent
+  );
+  addComponent(world, InstancedMeshRendererComponent, instancedMeshRendererEid);
+
+  return [instancedMeshRendererEid, instancedMeshRenderer];
+}
+
+export function addInstancedMeshImposterEntity(
+  world: World,
+  instancedMeshRenderer: InstancedMeshRenderer,
+  parent?: Object3D
+) {
+  const obj = instancedMeshRenderer.createInstance();
+  const eid = addObject3DEntity(world, obj, parent);
+  return [eid, obj];
+}
 
 const instancedMeshRendererQuery = defineQuery([
   InstancedMeshRendererComponent,

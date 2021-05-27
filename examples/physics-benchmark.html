@@ -35,8 +35,8 @@
         addRigidBodyComponent,
         PhysicsBodyStatus,
         InstancedMeshRendererSystem,
-        InstancedMeshRendererComponent,
-        InstancedMeshRenderer,
+        addInstancedMeshRendererEntity,
+        addInstancedMeshImposterEntity,
         benchmark,
       } from "../src/threecs";
       import crateTextureUrl from "./assets/crate.gif";
@@ -54,25 +54,20 @@
         camera.lookAt(0, 0, 0);
 
         const crateTexture = new TextureLoader().load(crateTextureUrl);
-        const instancedMeshRenderer = new InstancedMeshRenderer(
+        const [_, instancedMeshRenderer] = addInstancedMeshRendererEntity(
+          world,
           new BoxBufferGeometry(0.5, 0.5, 0.5),
           new MeshBasicMaterial({ map: crateTexture }),
-          2500
-        );
-        const instancedMeshRendererEid = addObject3DEntity(
-          world,
-          instancedMeshRenderer,
+          2500,
           scene
-        );
-        addComponent(
-          world,
-          InstancedMeshRendererComponent,
-          instancedMeshRendererEid
         );
 
         for (let i = 0; i < 2500; i++) {
-          const cube = instancedMeshRenderer.createInstance();
-          const cubeEid = addObject3DEntity(world, cube, scene);
+          const [cubeEid, cube] = addInstancedMeshImposterEntity(
+            world,
+            instancedMeshRenderer,
+            scene
+          );
           cube.position.y = Math.floor(i / 10) + 2;
           cube.position.x = (i % 10) - 5;
           cube.rotation.set(0.35, 0, 0.25);
