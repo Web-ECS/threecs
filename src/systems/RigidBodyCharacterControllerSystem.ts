@@ -11,13 +11,13 @@ import {
 } from "../core/ECS";
 import { ButtonActionState } from "./ActionMappingSystem";
 import {
-  InternalPhysicsRigidBodyComponent,
+  InternalRigidBodyComponent,
   physicsWorldQuery,
   createInteractionGroup,
   PhysicsGroups,
   PhysicsWorldComponent,
   InternalPhysicsWorldComponent,
-  PhysicsRigidBodyComponent,
+  RigidBodyComponent,
 } from "./PhysicsSystem";
 
 export const PhysicsCharacterControllerGroup = 0x0000_0001;
@@ -33,12 +33,31 @@ export const PhysicsCharacterControllerActions = {
 };
 
 interface PhysicsCharacterControllerProps {
-  walkSpeed?: number;
-  jumpHeight?: number;
+  walkSpeed: number;
+  jumpHeight: number;
 }
 
 export const PhysicsCharacterControllerComponent =
   defineMapComponent<PhysicsCharacterControllerProps>();
+
+export function addPhysicsCharacterController(
+  world: World,
+  eid: number,
+  props: Partial<PhysicsCharacterControllerProps>
+) {
+  addMapComponent(
+    world,
+    PhysicsCharacterControllerComponent,
+    eid,
+    Object.assign(
+      {
+        walkSpeed: 1,
+        jumpHeight: 2.5,
+      },
+      props
+    )
+  );
+}
 
 interface InternalPhysicsCharacterController {
   velocity?: Vector3;
@@ -54,7 +73,7 @@ export const InternalPhysicsCharacterControllerComponent =
 
 const physicsCharacterControllerQuery = defineQuery([
   PhysicsCharacterControllerComponent,
-  InternalPhysicsRigidBodyComponent,
+  InternalRigidBodyComponent,
   Object3DComponent,
 ]);
 
@@ -98,9 +117,8 @@ export const PhysicsCharacterControllerSystem = defineSystem(
         const internalCharacter =
           InternalPhysicsCharacterControllerComponent.storage.get(eid)!;
         const obj = Object3DComponent.storage.get(eid)!;
-        const rigidBody = PhysicsRigidBodyComponent.storage.get(eid)!;
-        const internalRigidBody =
-          InternalPhysicsRigidBodyComponent.storage.get(eid)!;
+        const rigidBody = RigidBodyComponent.storage.get(eid)!;
+        const internalRigidBody = InternalRigidBodyComponent.storage.get(eid)!;
 
         // Handle Input
         const moveVec = world.actions.get(

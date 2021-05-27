@@ -12,6 +12,43 @@ import {
 } from "../core/ECS";
 import { mainSceneQuery } from "./RendererSystem";
 
+interface PhysicsWorldProps {
+  gravity: Vector3;
+  debug: boolean;
+}
+
+export const PhysicsWorldComponent = defineMapComponent<PhysicsWorldProps>();
+
+export function addPhysicsWorldComponent(
+  world: World,
+  eid: number,
+  props: Partial<PhysicsWorldProps> = {}
+) {
+  addMapComponent(world, PhysicsWorldComponent, eid, {
+    gravity: props.gravity || new Vector3(0, -9.81, 0),
+    debug: !!props.debug,
+  });
+}
+
+export const physicsWorldQuery = defineQuery([PhysicsWorldComponent]);
+export const newPhysicsWorldsQuery = enterQuery(physicsWorldQuery);
+
+interface InternalPhysicsWorldProps {
+  physicsWorld: Rapier.World;
+  colliderHandleToEntityMap: Map<number, number>;
+}
+
+export const InternalPhysicsWorldComponent =
+  defineMapComponent<InternalPhysicsWorldProps>();
+
+export enum PhysicsColliderShape {
+  Box = "Box",
+  Sphere = "Sphere",
+  Capsule = "Capsule",
+}
+
+export const PhysicsBodyStatus = Rapier.BodyStatus;
+
 export enum PhysicsGroups {
   None = 0,
   All = 0xffff,
@@ -26,103 +63,146 @@ export function createInteractionGroup(groups: number, mask: number) {
   return (groups << 16) | mask;
 }
 
-interface PhysicsWorldProps {
-  gravity: Vector3;
-  debug: boolean;
-}
-
-export const PhysicsWorldComponent = defineMapComponent<PhysicsWorldProps>();
-
-export function addPhysicsWorldComponent(
-  world: World,
-  eid: number,
-  props: Partial<PhysicsWorldProps>
-) {
-  addMapComponent(world, PhysicsWorldComponent, eid, {
-    gravity: props.gravity || new Vector3(0, -9.81, 0),
-    debug: !!props.debug,
-  });
-}
-
-export const PhysicsBodyStatus = Rapier.BodyStatus;
-
-export enum PhysicsColliderShape {
-  Box = "Box",
-  Sphere = "Sphere",
-  Capsule = "Capsule",
-}
-
-interface PhysicsRigidBodyProps {
-  translation?: Vector3;
-  rotation?: Euler;
+interface RigidBodyProps {
+  translation: Vector3;
+  rotation: Quaternion;
   shape?: PhysicsColliderShape;
-  bodyStatus?: Rapier.BodyStatus;
-  solverGroups?: number;
-  collisionGroups?: number;
+  bodyStatus: Rapier.BodyStatus;
+  solverGroups: number;
+  collisionGroups: number;
 }
 
-interface CapsuleRigidBodyProps extends PhysicsRigidBodyProps {
+interface CapsuleRigidBodyProps extends RigidBodyProps {
   shape: PhysicsColliderShape.Capsule;
   halfHeight: number;
   radius: number;
 }
 
-export const PhysicsRigidBodyComponent =
-  defineMapComponent<CapsuleRigidBodyProps | PhysicsRigidBodyProps>();
+export const RigidBodyComponent =
+  defineMapComponent<CapsuleRigidBodyProps | RigidBodyProps>();
 
-export const physicsWorldQuery = defineQuery([PhysicsWorldComponent]);
-export const newPhysicsWorldsQuery = enterQuery(physicsWorldQuery);
+export function addRigidBodyComponent(
+  world: World,
+  eid: number,
+  props: Partial<CapsuleRigidBodyProps | RigidBodyProps> = {}
+) {
+  let defaultProps = {
+    translation: props.translation || new Vector3(),
+    rotation: props.rotation || new Quaternion(),
+    shape: props.shape,
+    bodyStatus:
+      props.bodyStatus === undefined
+        ? Rapier.BodyStatus.Static
+        : props.bodyStatus,
+    solverGroups:
+      props.solverGroups === undefined
+        ? PhysicsInteractionGroups.Default
+        : props.solverGroups,
+    collisionGroups:
+      props.collisionGroups === undefined
+        ? PhysicsInteractionGroups.Default
+        : props.collisionGroups,
+  };
+
+  if (props.shape === PhysicsColliderShape.Capsule) {
+    const capsuleProps = props as Partial<CapsuleRigidBodyProps>;
+    const defaultCapsuleProps = defaultProps as CapsuleRigidBodyProps;
+
+    defaultCapsuleProps.halfHeight =
+      capsuleProps.halfHeight === undefined ? 0.5 : capsuleProps.halfHeight;
+    defaultCapsuleProps.radius =
+      capsuleProps.radius === undefined ? 0.5 : capsuleProps.radius;
+  }
+
+  addMapComponent(world, RigidBodyComponent, eid, defaultProps);
+}
 
 export const rigidBodiesQuery = defineQuery([
-  PhysicsRigidBodyComponent,
+  RigidBodyComponent,
   Object3DComponent,
 ]);
 export const newRigidBodiesQuery = enterQuery(rigidBodiesQuery);
 
-interface InternalPhysicsWorldProps {
-  physicsWorld?: Rapier.World;
-  colliderHandleToEntityMap?: Map<number, number>;
+interface InternalRigidBodyProps {
+  body: Rapier.RigidBody;
 }
 
-export const InternalPhysicsWorldComponent =
-  defineMapComponent<InternalPhysicsWorldProps>();
-interface InternalPhysicsRigidBodyProps {
-  body?: Rapier.RigidBody;
-}
-
-export const InternalPhysicsRigidBodyComponent =
-  defineMapComponent<InternalPhysicsRigidBodyProps>();
+export const InternalRigidBodyComponent =
+  defineMapComponent<InternalRigidBodyProps>();
 
 interface PhysicsRaycasterProps {
-  useObject3DTransform?: boolean;
-  transformNeedsUpdate?: boolean;
-  transformAutoUpdate?: boolean;
-  withIntersection?: boolean;
-  withNormal?: boolean;
-  origin?: Vector3;
-  dir?: Vector3;
+  useObject3DTransform: boolean;
+  transformNeedsUpdate: boolean;
+  transformAutoUpdate: boolean;
+  withIntersection: boolean;
+  withNormal: boolean;
+  origin: Vector3;
+  dir: Vector3;
   colliderEid?: number;
   toi?: number;
-  intersection?: Vector3;
-  normal?: Vector3;
-  maxToi?: number;
-  groups?: number;
-  debug?: boolean;
+  intersection: Vector3;
+  normal: Vector3;
+  maxToi: number;
+  groups: number;
+  debug: boolean;
 }
 
 export const PhysicsRaycasterComponent =
   defineMapComponent<PhysicsRaycasterProps>();
 
+export function addPhysicsRaycasterComponent(
+  world: World,
+  eid: number,
+  props: Partial<Omit<PhysicsRaycasterProps, "intersection" | "normal">> = {}
+) {
+  const useObject3DTransform =
+    props.useObject3DTransform === undefined
+      ? true
+      : props.useObject3DTransform;
+
+  let transformNeedsUpdate = props.transformNeedsUpdate;
+  let transformAutoUpdate = props.transformAutoUpdate;
+
+  if (useObject3DTransform && transformAutoUpdate === undefined) {
+    transformAutoUpdate = true;
+    transformNeedsUpdate = true;
+  } else if (transformNeedsUpdate === undefined) {
+    transformNeedsUpdate = true;
+  }
+
+  if (transformAutoUpdate === undefined) {
+    transformAutoUpdate = false;
+  }
+
+  addMapComponent(world, PhysicsRaycasterComponent, eid, {
+    useObject3DTransform,
+    transformNeedsUpdate,
+    transformAutoUpdate,
+    withIntersection: !!props.withIntersection,
+    withNormal: !!props.withNormal,
+    origin: props.origin || new Vector3(0, 0, 0),
+    dir: props.dir || new Vector3(0, 0, -1),
+    intersection: new Vector3(),
+    normal: new Vector3(),
+    maxToi: props.maxToi === undefined ? Number.MAX_VALUE : props.maxToi,
+    groups:
+      props.groups === undefined
+        ? PhysicsInteractionGroups.Default
+        : props.groups,
+    debug: !!props.debug,
+  });
+}
+
 export const physicsRaycasterQuery = defineQuery([PhysicsRaycasterComponent]);
 export const newPhysicsRaycastersQuery = enterQuery(physicsRaycasterQuery);
 
-interface InternalRaycasterProps {
-  ray?: Rapier.Ray;
+interface InternalPhysicsRaycasterProps {
+  ray: Rapier.Ray;
   arrowHelper?: ArrowHelper;
 }
 
-export const InternalRaycasterComponent =
-  defineMapComponent<InternalRaycasterProps>();
+export const InternalPhysicsRaycasterComponent =
+  defineMapComponent<InternalPhysicsRaycasterProps>();
 
 export async function loadPhysicsSystem(): Promise<System> {
   await Rapier.init();
@@ -141,16 +221,8 @@ export async function loadPhysicsSystem(): Promise<System> {
 
     newPhysicsWorldEntities.forEach((eid) => {
       const physicsWorldComponent = PhysicsWorldComponent.storage.get(eid)!;
-      InternalPhysicsWorldComponent.storage.get(eid)!;
-
-      if (!physicsWorldComponent.gravity) {
-        physicsWorldComponent.gravity = new Vector3(0, -9.8, 0);
-      }
-
-      const physicsWorld = new Rapier.World(physicsWorldComponent.gravity);
-
       addMapComponent(world, InternalPhysicsWorldComponent, eid, {
-        physicsWorld,
+        physicsWorld: new Rapier.World(physicsWorldComponent.gravity),
         colliderHandleToEntityMap: new Map(),
       });
     });
@@ -163,12 +235,11 @@ export async function loadPhysicsSystem(): Promise<System> {
 
       newRigidBodyEntities.forEach((rigidBodyEid) => {
         const obj = Object3DComponent.storage.get(rigidBodyEid)!;
-        const { bodyStatus, shape, translation, rotation, ...rigidBodyProps } =
-          PhysicsRigidBodyComponent.storage.get(rigidBodyEid)!;
+        const rigidBodyProps = RigidBodyComponent.storage.get(rigidBodyEid)!;
 
         const geometry = (obj as Mesh).geometry;
 
-        if (!geometry && !shape) {
+        if (!geometry && !rigidBodyProps.shape) {
           return;
         }
 
@@ -176,15 +247,13 @@ export async function loadPhysicsSystem(): Promise<System> {
         obj.getWorldQuaternion(tempQuat);
 
         const rigidBodyDesc = new Rapier.RigidBodyDesc(
-          bodyStatus !== undefined ? bodyStatus : PhysicsBodyStatus.Static
+          rigidBodyProps.bodyStatus
         );
 
-        rigidBodyDesc.setRotation(
-          new Rapier.Quaternion(tempQuat.x, tempQuat.y, tempQuat.z, tempQuat.w)
-        );
+        rigidBodyDesc.setRotation(tempQuat.clone());
         rigidBodyDesc.setTranslation(tempVec3.x, tempVec3.y, tempVec3.z);
 
-        const body = physicsWorld!.createRigidBody(rigidBodyDesc);
+        const body = physicsWorld.createRigidBody(rigidBodyDesc);
 
         let colliderDesc: Rapier.ColliderDesc;
 
@@ -202,7 +271,7 @@ export async function loadPhysicsSystem(): Promise<System> {
           geometry.computeBoundingSphere();
           const radius = geometry.boundingSphere!.radius;
           colliderDesc = Rapier.ColliderDesc.ball(radius);
-        } else if (shape === PhysicsColliderShape.Capsule) {
+        } else if (rigidBodyProps.shape === PhysicsColliderShape.Capsule) {
           const { radius, halfHeight } =
             rigidBodyProps as CapsuleRigidBodyProps;
           colliderDesc = Rapier.ColliderDesc.capsule(halfHeight, radius);
@@ -210,107 +279,36 @@ export async function loadPhysicsSystem(): Promise<System> {
           throw new Error("Unimplemented");
         }
 
-        if (translation) {
-          colliderDesc.setTranslation(
-            translation.x,
-            translation.y,
-            translation.z
-          );
-        }
-
-        if (rotation) {
-          tempQuat.setFromEuler(rotation);
-          colliderDesc.setRotation(
-            new Rapier.Quaternion(
-              tempQuat.x,
-              tempQuat.y,
-              tempQuat.z,
-              tempQuat.w
-            )
-          );
-        }
-
-        if (rigidBodyProps.collisionGroups === undefined) {
-          rigidBodyProps.collisionGroups = PhysicsInteractionGroups.Default;
-        }
-
-        if (rigidBodyProps.solverGroups === undefined) {
-          rigidBodyProps.solverGroups = PhysicsInteractionGroups.Default;
-        }
-
+        const translation = rigidBodyProps.translation;
+        colliderDesc.setTranslation(
+          translation.x,
+          translation.y,
+          translation.z
+        );
+        colliderDesc.setRotation(rigidBodyProps.rotation);
         colliderDesc.setCollisionGroups(rigidBodyProps.collisionGroups);
         colliderDesc.setSolverGroups(rigidBodyProps.solverGroups);
 
         // TODO: Handle mass / density
         // TODO: Handle scale
 
-        const collider = physicsWorld!.createCollider(
-          colliderDesc,
-          body.handle
-        );
+        const collider = physicsWorld.createCollider(colliderDesc, body.handle);
 
-        colliderHandleToEntityMap!.set(collider.handle, rigidBodyEid);
+        colliderHandleToEntityMap.set(collider.handle, rigidBodyEid);
 
-        addMapComponent(
-          world,
-          InternalPhysicsRigidBodyComponent,
-          rigidBodyEid,
-          {
-            body,
-          }
-        );
+        addMapComponent(world, InternalRigidBodyComponent, rigidBodyEid, {
+          body,
+        });
       });
 
       newPhysicsRaycasterEntities.forEach((raycasterEid) => {
         const raycaster = PhysicsRaycasterComponent.storage.get(raycasterEid)!;
-
-        raycaster.intersection = new Vector3();
-        raycaster.normal = new Vector3();
-
-        if (raycaster.useObject3DTransform === undefined) {
-          raycaster.useObject3DTransform = true;
-        }
-
-        if (raycaster.withIntersection === undefined) {
-          raycaster.withIntersection = false;
-        }
-
-        if (raycaster.withNormal === undefined) {
-          raycaster.withNormal = false;
-        }
-
-        if (!raycaster.origin) {
-          raycaster.origin = new Vector3(0, 0, 0);
-        }
-
-        if (!raycaster.dir) {
-          raycaster.dir = new Vector3(0, 0, -1);
-        }
-
-        if (
-          raycaster.useObject3DTransform &&
-          raycaster.transformAutoUpdate === undefined
-        ) {
-          raycaster.transformAutoUpdate = true;
-          raycaster.transformNeedsUpdate = true;
-        } else if (raycaster.transformNeedsUpdate === undefined) {
-          raycaster.transformNeedsUpdate = true;
-        }
-
-        if (raycaster.maxToi === undefined) {
-          raycaster.maxToi = Number.MAX_VALUE;
-        }
-
-        if (raycaster.groups === undefined) {
-          raycaster.groups = PhysicsInteractionGroups.Default;
-        }
-
-        InternalRaycasterComponent.storage.set(raycasterEid, {
+        InternalPhysicsRaycasterComponent.storage.set(raycasterEid, {
           ray: new Rapier.Ray(raycaster.origin, raycaster.dir),
         });
       });
 
-      physicsWorld!.step();
+      physicsWorld.step();
 
       physicsRaycasterEntities.forEach((rayCasterEid) => {
         const raycaster = PhysicsRaycasterComponent.storage.get(rayCasterEid)!;
@@ -321,8 +319,8 @@ export async function loadPhysicsSystem(): Promise<System> {
           obj &&
           (raycaster.transformNeedsUpdate || raycaster.transformAutoUpdate)
         ) {
-          obj.getWorldPosition(raycaster.origin!);
-          obj.getWorldDirection(raycaster.dir!);
+          obj.getWorldPosition(raycaster.origin);
+          obj.getWorldDirection(raycaster.dir);
 
           if (!raycaster.transformAutoUpdate) {
             raycaster.transformNeedsUpdate = false;
@@ -330,38 +328,38 @@ export async function loadPhysicsSystem(): Promise<System> {
         }
 
         const internalRaycaster =
-          InternalRaycasterComponent.storage.get(rayCasterEid)!;
+          InternalPhysicsRaycasterComponent.storage.get(rayCasterEid)!;
 
-        const colliderSet = physicsWorld!.colliders;
+        const colliderSet = physicsWorld.colliders;
 
         let intersection;
 
         if (raycaster.withNormal) {
-          intersection = physicsWorld!.queryPipeline.castRayAndGetNormal(
+          intersection = physicsWorld.queryPipeline.castRayAndGetNormal(
             colliderSet,
-            internalRaycaster.ray!,
-            raycaster.maxToi!,
+            internalRaycaster.ray,
+            raycaster.maxToi,
             true,
-            raycaster.groups!
+            raycaster.groups
           );
 
           if (intersection) {
-            raycaster.normal!.copy(intersection.normal as Vector3);
+            raycaster.normal.copy(intersection.normal as Vector3);
           } else {
-            raycaster.normal!.set(0, 0, 0);
+            raycaster.normal.set(0, 0, 0);
           }
         } else {
-          intersection = physicsWorld!.queryPipeline.castRay(
+          intersection = physicsWorld.queryPipeline.castRay(
             colliderSet,
-            internalRaycaster.ray!,
-            raycaster.maxToi!,
+            internalRaycaster.ray,
+            raycaster.maxToi,
             true,
-            raycaster.groups!
+            raycaster.groups
           );
         }
 
         if (intersection) {
-          raycaster.colliderEid = colliderHandleToEntityMap!.get(
+          raycaster.colliderEid = colliderHandleToEntityMap.get(
             intersection.colliderHandle
           );
           raycaster.toi = intersection.toi;
@@ -371,13 +369,17 @@ export async function loadPhysicsSystem(): Promise<System> {
         }
 
         if (raycaster.withIntersection) {
-          if (raycaster.colliderEid !== undefined) {
-            raycaster
-              .intersection!.addVectors(raycaster.origin!, raycaster.dir!)
-              .multiplyScalar(raycaster.toi!);
+          if (raycaster.toi !== undefined) {
+            raycaster.intersection
+              .addVectors(raycaster.origin, raycaster.dir)
+              .multiplyScalar(raycaster.toi);
           } else {
-            raycaster.intersection!.set(0, 0, 0);
+            raycaster.intersection.set(0, 0, 0);
           }
+        }
+
+        if (sceneEid === undefined) {
+          return;
         }
 
         if (raycaster.debug) {
@@ -390,16 +392,16 @@ export async function loadPhysicsSystem(): Promise<System> {
               0.2,
               0.1
             );
-            const scene = Object3DComponent.storage.get(sceneEid!)!;
+            const scene = Object3DComponent.storage.get(sceneEid)!;
             scene.add(internalRaycaster.arrowHelper);
           } else {
             const arrowHelper = internalRaycaster.arrowHelper;
-            arrowHelper.position.copy(raycaster.origin!);
-            arrowHelper.setDirection(raycaster.dir!);
-            arrowHelper.setLength(raycaster.toi!, 0.2, 0.1);
+            arrowHelper.position.copy(raycaster.origin);
+            arrowHelper.setDirection(raycaster.dir);
+            arrowHelper.setLength(raycaster.toi || 0, 0.2, 0.1);
           }
         } else if (!raycaster.debug && internalRaycaster.arrowHelper) {
-          const scene = Object3DComponent.storage.get(sceneEid!)!;
+          const scene = Object3DComponent.storage.get(sceneEid)!;
           scene.remove(internalRaycaster.arrowHelper);
           internalRaycaster.arrowHelper = undefined;
         }
@@ -407,17 +409,16 @@ export async function loadPhysicsSystem(): Promise<System> {
 
       rigidBodyEntities.forEach((rigidBodyEid) => {
         const obj = Object3DComponent.storage.get(rigidBodyEid)!;
-        const { body } =
-          InternalPhysicsRigidBodyComponent.storage.get(rigidBodyEid)!;
+        const { body } = InternalRigidBodyComponent.storage.get(rigidBodyEid)!;
 
-        if (body!.isDynamic()) {
-          const translation = body!.translation();
-          const rotation = body!.rotation();
+        if (body.isDynamic()) {
+          const translation = body.translation();
+          const rotation = body.rotation();
           obj.position.set(translation.x, translation.y, translation.z);
           obj.quaternion.set(rotation.x, rotation.y, rotation.z, rotation.w);
-        } else if (body!.isKinematic()) {
-          body!.setNextKinematicTranslation(obj.position);
-          body!.setNextKinematicRotation(obj.quaternion);
+        } else if (body.isKinematic()) {
+          body.setNextKinematicTranslation(obj.position);
+          body.setNextKinematicRotation(obj.quaternion);
         }
       });
     });

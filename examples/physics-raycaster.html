@@ -31,11 +31,11 @@
         FirstPersonCameraPitchTarget,
         loadPhysicsSystem,
         addPhysicsWorldComponent,
-        PhysicsRigidBodyComponent,
+        addRigidBodyComponent,
+        addPhysicsRaycasterComponent,
         DirectionalMovementSystem,
         DirectionalMovementActions,
         DirectionalMovementComponent,
-        PhysicsRaycasterComponent,
         PhysicsBodyStatus,
         PhysicsColliderShape,
         defineSystem,
@@ -89,9 +89,7 @@
             ],
           });
 
-        addPhysicsWorldComponent(world, sceneEid, {
-          gravity: new Vector3(0, -6, 0),
-        });
+        addPhysicsWorldComponent(world, sceneEid);
 
         const playerRig = new Object3D();
         const playerRigEid = addObject3DEntity(world, playerRig, scene);
@@ -99,14 +97,13 @@
         playerRig.add(camera);
         addComponent(world, FirstPersonCameraPitchTarget, cameraEid);
         addComponent(world, DirectionalMovementComponent, playerRigEid);
-        addMapComponent(world, PhysicsRaycasterComponent, cameraEid, {
+        addPhysicsRaycasterComponent(world, cameraEid, {
           withIntersection: true,
           debug: true,
         });
 
-        playerRig.position.z = 5;
-        playerRig.position.y = 0.5;
-        camera.position.y = 1.6;
+        playerRig.position.set(0, 0.5, 5);
+        camera.position.set(0, 1.6, 0);
 
         const crateTexture = new TextureLoader().load(crateTextureUrl);
         const cube = new Mesh(
@@ -114,10 +111,8 @@
           new MeshBasicMaterial({ map: crateTexture })
         );
         const cubeEid = addObject3DEntity(world, cube, scene);
-        cube.position.y = 2;
-        cube.rotation.x = 0.35;
-        cube.rotation.z = 0.25;
-        addMapComponent(world, PhysicsRigidBodyComponent, cubeEid, {
+        cube.position.set(0.35, 2, 0.25);
+        addRigidBodyComponent(world, cubeEid, {
           bodyStatus: PhysicsBodyStatus.Dynamic,
         });
 
@@ -126,20 +121,15 @@
           new MeshBasicMaterial({ color: 0xff0000 })
         );
         const sphereEid = addObject3DEntity(world, sphere, scene);
-        sphere.position.y = 0.25;
-        sphere.position.z = -0.5;
-        addMapComponent(world, PhysicsRigidBodyComponent, sphereEid, {
-          bodyStatus: PhysicsBodyStatus.Static,
-        });
+        sphere.position.set(0, 0.25, -0.5);
+        addRigidBodyComponent(world, sphereEid);
 
         const ground = new Mesh(
           new BoxBufferGeometry(10, 0.1, 10),
           new MeshBasicMaterial()
         );
         const groundEid = addObject3DEntity(world, ground, scene);
-        addMapComponent(world, PhysicsRigidBodyComponent, groundEid, {
-          bodyStatus: PhysicsBodyStatus.Static,
-        });
+        addRigidBodyComponent(world, groundEid);
 
         start();
       }
