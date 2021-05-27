@@ -9,6 +9,7 @@ import {
   defineQuery,
   enterQuery,
   addMapComponent,
+  singletonQuery,
 } from "../core/ECS";
 import { mainSceneQuery } from "./RendererSystem";
 
@@ -31,6 +32,7 @@ export function addPhysicsWorldComponent(
 }
 
 export const physicsWorldQuery = defineQuery([PhysicsWorldComponent]);
+export const mainPhysicsWorldQuery = singletonQuery(physicsWorldQuery);
 export const newPhysicsWorldsQuery = enterQuery(physicsWorldQuery);
 
 interface InternalPhysicsWorldProps {
@@ -211,7 +213,7 @@ export async function loadPhysicsSystem(): Promise<System> {
   const tempQuat = new Quaternion();
 
   return defineSystem(function PhysicsSystem(world: World) {
-    const physicsWorldEntities = physicsWorldQuery(world);
+    const physicsWorldEid = mainPhysicsWorldQuery(world);
     const newPhysicsWorldEntities = newPhysicsWorldsQuery(world);
     const rigidBodyEntities = rigidBodiesQuery(world);
     const newRigidBodyEntities = newRigidBodiesQuery(world);
@@ -227,200 +229,195 @@ export async function loadPhysicsSystem(): Promise<System> {
       });
     });
 
-    physicsWorldEntities.forEach((physicsWorldEid) => {
-      const internalPhysicsWorldComponent =
-        InternalPhysicsWorldComponent.storage.get(physicsWorldEid)!;
-      const { physicsWorld, colliderHandleToEntityMap } =
-        internalPhysicsWorldComponent;
+    if (physicsWorldEid === undefined) {
+      return;
+    }
 
-      newRigidBodyEntities.forEach((rigidBodyEid) => {
-        const obj = Object3DComponent.storage.get(rigidBodyEid)!;
-        const rigidBodyProps = RigidBodyComponent.storage.get(rigidBodyEid)!;
+    const internalPhysicsWorldComponent =
+      InternalPhysicsWorldComponent.storage.get(physicsWorldEid)!;
+    const { physicsWorld, colliderHandleToEntityMap } =
+      internalPhysicsWorldComponent;
 
-        const geometry = (obj as Mesh).geometry;
+    newRigidBodyEntities.forEach((rigidBodyEid) => {
+      const obj = Object3DComponent.storage.get(rigidBodyEid)!;
+      const rigidBodyProps = RigidBodyComponent.storage.get(rigidBodyEid)!;
 
-        if (!geometry && !rigidBodyProps.shape) {
-          return;
-        }
+      const geometry = (obj as Mesh).geometry;
 
-        obj.getWorldPosition(tempVec3);
-        obj.getWorldQuaternion(tempQuat);
+      if (!geometry && !rigidBodyProps.shape) {
+        return;
+      }
 
-        const rigidBodyDesc = new Rapier.RigidBodyDesc(
-          rigidBodyProps.bodyStatus
+      obj.getWorldPosition(tempVec3);
+      obj.getWorldQuaternion(tempQuat);
+
+      const rigidBodyDesc = new Rapier.RigidBodyDesc(rigidBodyProps.bodyStatus);
+
+      rigidBodyDesc.setRotation(tempQuat.clone());
+      rigidBodyDesc.setTranslation(tempVec3.x, tempVec3.y, tempVec3.z);
+
+      const body = physicsWorld.createRigidBody(rigidBodyDesc);
+
+      let colliderDesc: Rapier.ColliderDesc;
+
+      const geometryType = geometry && geometry.type;
+
+      if (geometryType === "BoxGeometry") {
+        geometry.computeBoundingBox();
+        const boundingBoxSize = geometry.boundingBox!.getSize(new Vector3());
+        colliderDesc = Rapier.ColliderDesc.cuboid(
+          boundingBoxSize.x / 2,
+          boundingBoxSize.y / 2,
+          boundingBoxSize.z / 2
         );
+      } else if (geometryType === "SphereGeometry") {
+        geometry.computeBoundingSphere();
+        const radius = geometry.boundingSphere!.radius;
+        colliderDesc = Rapier.ColliderDesc.ball(radius);
+      } else if (rigidBodyProps.shape === PhysicsColliderShape.Capsule) {
+        const { radius, halfHeight } = rigidBodyProps as CapsuleRigidBodyProps;
+        colliderDesc = Rapier.ColliderDesc.capsule(halfHeight, radius);
+      } else {
+        throw new Error("Unimplemented");
+      }
 
-        rigidBodyDesc.setRotation(tempQuat.clone());
-        rigidBodyDesc.setTranslation(tempVec3.x, tempVec3.y, tempVec3.z);
+      const translation = rigidBodyProps.translation;
+      colliderDesc.setTranslation(translation.x, translation.y, translation.z);
+      colliderDesc.setRotation(rigidBodyProps.rotation);
+      colliderDesc.setCollisionGroups(rigidBodyProps.collisionGroups);
+      colliderDesc.setSolverGroups(rigidBodyProps.solverGroups);
 
-        const body = physicsWorld.createRigidBody(rigidBodyDesc);
+      // TODO: Handle mass / density
+      // TODO: Handle scale
 
-        let colliderDesc: Rapier.ColliderDesc;
+      const collider = physicsWorld.createCollider(colliderDesc, body.handle);
 
-        const geometryType = geometry && geometry.type;
+      colliderHandleToEntityMap.set(collider.handle, rigidBodyEid);
 
-        if (geometryType === "BoxGeometry") {
-          geometry.computeBoundingBox();
-          const boundingBoxSize = geometry.boundingBox!.getSize(new Vector3());
-          colliderDesc = Rapier.ColliderDesc.cuboid(
-            boundingBoxSize.x / 2,
-            boundingBoxSize.y / 2,
-            boundingBoxSize.z / 2
-          );
-        } else if (geometryType === "SphereGeometry") {
-          geometry.computeBoundingSphere();
-          const radius = geometry.boundingSphere!.radius;
-          colliderDesc = Rapier.ColliderDesc.ball(radius);
-        } else if (rigidBodyProps.shape === PhysicsColliderShape.Capsule) {
-          const { radius, halfHeight } =
-            rigidBodyProps as CapsuleRigidBodyProps;
-          colliderDesc = Rapier.ColliderDesc.capsule(halfHeight, radius);
-        } else {
-          throw new Error("Unimplemented");
+      addMapComponent(world, InternalRigidBodyComponent, rigidBodyEid, {
+        body,
+      });
+    });
+
+    newPhysicsRaycasterEntities.forEach((raycasterEid) => {
+      const raycaster = PhysicsRaycasterComponent.storage.get(raycasterEid)!;
+      InternalPhysicsRaycasterComponent.storage.set(raycasterEid, {
+        ray: new Rapier.Ray(raycaster.origin, raycaster.dir),
+      });
+    });
+
+    physicsWorld.step();
+
+    physicsRaycasterEntities.forEach((rayCasterEid) => {
+      const raycaster = PhysicsRaycasterComponent.storage.get(rayCasterEid)!;
+      const obj = Object3DComponent.storage.get(rayCasterEid);
+
+      if (
+        raycaster.useObject3DTransform &&
+        obj &&
+        (raycaster.transformNeedsUpdate || raycaster.transformAutoUpdate)
+      ) {
+        obj.getWorldPosition(raycaster.origin);
+        obj.getWorldDirection(raycaster.dir);
+
+        if (!raycaster.transformAutoUpdate) {
+          raycaster.transformNeedsUpdate = false;
         }
+      }
 
-        const translation = rigidBodyProps.translation;
-        colliderDesc.setTranslation(
-          translation.x,
-          translation.y,
-          translation.z
+      const internalRaycaster =
+        InternalPhysicsRaycasterComponent.storage.get(rayCasterEid)!;
+
+      const colliderSet = physicsWorld.colliders;
+
+      let intersection;
+
+      if (raycaster.withNormal) {
+        intersection = physicsWorld.queryPipeline.castRayAndGetNormal(
+          colliderSet,
+          internalRaycaster.ray,
+          raycaster.maxToi,
+          true,
+          raycaster.groups
         );
-        colliderDesc.setRotation(rigidBodyProps.rotation);
-        colliderDesc.setCollisionGroups(rigidBodyProps.collisionGroups);
-        colliderDesc.setSolverGroups(rigidBodyProps.solverGroups);
-
-        // TODO: Handle mass / density
-        // TODO: Handle scale
-
-        const collider = physicsWorld.createCollider(colliderDesc, body.handle);
-
-        colliderHandleToEntityMap.set(collider.handle, rigidBodyEid);
-
-        addMapComponent(world, InternalRigidBodyComponent, rigidBodyEid, {
-          body,
-        });
-      });
-
-      newPhysicsRaycasterEntities.forEach((raycasterEid) => {
-        const raycaster = PhysicsRaycasterComponent.storage.get(raycasterEid)!;
-        InternalPhysicsRaycasterComponent.storage.set(raycasterEid, {
-          ray: new Rapier.Ray(raycaster.origin, raycaster.dir),
-        });
-      });
-
-      physicsWorld.step();
-
-      physicsRaycasterEntities.forEach((rayCasterEid) => {
-        const raycaster = PhysicsRaycasterComponent.storage.get(rayCasterEid)!;
-        const obj = Object3DComponent.storage.get(rayCasterEid);
-
-        if (
-          raycaster.useObject3DTransform &&
-          obj &&
-          (raycaster.transformNeedsUpdate || raycaster.transformAutoUpdate)
-        ) {
-          obj.getWorldPosition(raycaster.origin);
-          obj.getWorldDirection(raycaster.dir);
-
-          if (!raycaster.transformAutoUpdate) {
-            raycaster.transformNeedsUpdate = false;
-          }
-        }
-
-        const internalRaycaster =
-          InternalPhysicsRaycasterComponent.storage.get(rayCasterEid)!;
-
-        const colliderSet = physicsWorld.colliders;
-
-        let intersection;
-
-        if (raycaster.withNormal) {
-          intersection = physicsWorld.queryPipeline.castRayAndGetNormal(
-            colliderSet,
-            internalRaycaster.ray,
-            raycaster.maxToi,
-            true,
-            raycaster.groups
-          );
-
-          if (intersection) {
-            raycaster.normal.copy(intersection.normal as Vector3);
-          } else {
-            raycaster.normal.set(0, 0, 0);
-          }
-        } else {
-          intersection = physicsWorld.queryPipeline.castRay(
-            colliderSet,
-            internalRaycaster.ray,
-            raycaster.maxToi,
-            true,
-            raycaster.groups
-          );
-        }
 
         if (intersection) {
-          raycaster.colliderEid = colliderHandleToEntityMap.get(
-            intersection.colliderHandle
-          );
-          raycaster.toi = intersection.toi;
+          raycaster.normal.copy(intersection.normal as Vector3);
         } else {
-          raycaster.colliderEid = undefined;
-          raycaster.toi = undefined;
+          raycaster.normal.set(0, 0, 0);
         }
+      } else {
+        intersection = physicsWorld.queryPipeline.castRay(
+          colliderSet,
+          internalRaycaster.ray,
+          raycaster.maxToi,
+          true,
+          raycaster.groups
+        );
+      }
 
-        if (raycaster.withIntersection) {
-          if (raycaster.toi !== undefined) {
-            raycaster.intersection
-              .addVectors(raycaster.origin, raycaster.dir)
-              .multiplyScalar(raycaster.toi);
-          } else {
-            raycaster.intersection.set(0, 0, 0);
-          }
+      if (intersection) {
+        raycaster.colliderEid = colliderHandleToEntityMap.get(
+          intersection.colliderHandle
+        );
+        raycaster.toi = intersection.toi;
+      } else {
+        raycaster.colliderEid = undefined;
+        raycaster.toi = undefined;
+      }
+
+      if (raycaster.withIntersection) {
+        if (raycaster.toi !== undefined) {
+          raycaster.intersection
+            .addVectors(raycaster.origin, raycaster.dir)
+            .multiplyScalar(raycaster.toi);
+        } else {
+          raycaster.intersection.set(0, 0, 0);
         }
+      }
 
-        if (sceneEid === undefined) {
-          return;
-        }
+      if (sceneEid === undefined) {
+        return;
+      }
 
-        if (raycaster.debug) {
-          if (!internalRaycaster.arrowHelper) {
-            internalRaycaster.arrowHelper = new ArrowHelper(
-              raycaster.dir,
-              raycaster.origin,
-              raycaster.toi,
-              0xffff00,
-              0.2,
-              0.1
-            );
-            const scene = Object3DComponent.storage.get(sceneEid)!;
-            scene.add(internalRaycaster.arrowHelper);
-          } else {
-            const arrowHelper = internalRaycaster.arrowHelper;
-            arrowHelper.position.copy(raycaster.origin);
-            arrowHelper.setDirection(raycaster.dir);
-            arrowHelper.setLength(raycaster.toi || 0, 0.2, 0.1);
-          }
-        } else if (!raycaster.debug && internalRaycaster.arrowHelper) {
+      if (raycaster.debug) {
+        if (!internalRaycaster.arrowHelper) {
+          internalRaycaster.arrowHelper = new ArrowHelper(
+            raycaster.dir,
+            raycaster.origin,
+            raycaster.toi,
+            0xffff00,
+            0.2,
+            0.1
+          );
           const scene = Object3DComponent.storage.get(sceneEid)!;
-          scene.remove(internalRaycaster.arrowHelper);
-          internalRaycaster.arrowHelper = undefined;
+          scene.add(internalRaycaster.arrowHelper);
+        } else {
+          const arrowHelper = internalRaycaster.arrowHelper;
+          arrowHelper.position.copy(raycaster.origin);
+          arrowHelper.setDirection(raycaster.dir);
+          arrowHelper.setLength(raycaster.toi || 0, 0.2, 0.1);
         }
-      });
+      } else if (!raycaster.debug && internalRaycaster.arrowHelper) {
+        const scene = Object3DComponent.storage.get(sceneEid)!;
+        scene.remove(internalRaycaster.arrowHelper);
+        internalRaycaster.arrowHelper = undefined;
+      }
+    });
 
-      rigidBodyEntities.forEach((rigidBodyEid) => {
-        const obj = Object3DComponent.storage.get(rigidBodyEid)!;
-        const { body } = InternalRigidBodyComponent.storage.get(rigidBodyEid)!;
+    rigidBodyEntities.forEach((rigidBodyEid) => {
+      const obj = Object3DComponent.storage.get(rigidBodyEid)!;
+      const { body } = InternalRigidBodyComponent.storage.get(rigidBodyEid)!;
 
-        if (body.isDynamic()) {
-          const translation = body.translation();
-          const rotation = body.rotation();
-          obj.position.set(translation.x, translation.y, translation.z);
-          obj.quaternion.set(rotation.x, rotation.y, rotation.z, rotation.w);
-        } else if (body.isKinematic()) {
-          body.setNextKinematicTranslation(obj.position);
-          body.setNextKinematicRotation(obj.quaternion);
-        }
-      });
+      if (body.isDynamic()) {
+        const translation = body.translation();
+        const rotation = body.rotation();
+        obj.position.set(translation.x, translation.y, translation.z);
+        obj.quaternion.set(rotation.x, rotation.y, rotation.z, rotation.w);
+      } else if (body.isKinematic()) {
+        body.setNextKinematicTranslation(obj.position);
+        body.setNextKinematicRotation(obj.quaternion);
+      }
     });
   });
 }
