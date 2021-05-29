@@ -21176,4 +21176,4 @@ ${A3.stack}` : C2;
     })();
   });
 });
-export {ArrowHelper as A, BoxGeometry as B, Clock as C, DynamicDrawUsage as D, InstancedMesh as I, Mesh as M, Object3D as O, PerspectiveCamera as P, Quaternion as Q, Scene as S, TextureLoader as T, Vector3 as V, WebGLRenderer as W, MeshBasicMaterial as a, addComponent as b, defineSystem as c, defineComponent as d, addEntity as e, Types as f, defineQuery as g, enterQuery as h, removeComponent as i, Vector2 as j, createWorld as k, MathUtils as l, rapier as m, SphereGeometry as n, pipe as p, removeEntity as r};
+export {ArrowHelper as A, BoxGeometry as B, Clock as C, DynamicDrawUsage as D, InstancedMesh as I, Mesh as M, Object3D as O, PerspectiveCamera as P, Quaternion as Q, RepeatWrapping as R, Scene as S, TextureLoader as T, Vector3 as V, WebGLRenderer as W, MeshBasicMaterial as a, addComponent as b, defineSystem as c, defineComponent as d, addEntity as e, Types as f, defineQuery as g, enterQuery as h, removeComponent as i, Vector2 as j, createWorld as k, MathUtils as l, rapier as m, SphereGeometry as n, pipe as p, removeEntity as r};
