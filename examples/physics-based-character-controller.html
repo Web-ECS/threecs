@@ -5,6 +5,19 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>threecs | Examples: Physics Based Character Controller</title>
     <link rel="stylesheet" href="./styles.css" />
+    <style>
+      .controls {
+        position: absolute;
+        z-index: 1;
+        color: white;
+        margin: 12px 16px 16px 16px;
+        font-size: 12px;
+      }
+
+      .controls p {
+        margin: 4px;
+      }
+    </style>
   </head>
   <body>
     <script type="module">
@@ -16,13 +29,13 @@
         MeshBasicMaterial,
         Vector3,
         TextureLoader,
+        RepeatWrapping,
       } from "three";
       import {
         ActionType,
         createThreeWorld,
         addObject3DEntity,
         addComponent,
-        addMapComponent,
         BindingType,
         FirstPersonCameraSystem,
         FirstPersonCameraActions,
@@ -32,16 +45,56 @@
         addPhysicsWorldComponent,
         addRigidBodyComponent,
         PhysicsCharacterControllerSystem,
-        addPhysicsCharacterControllerComponent,
         PhysicsCharacterControllerActions,
         PhysicsBodyStatus,
-        PhysicsColliderShape,
-        CharacterInteractionGroup,
+        addPhysicsCharacterControllerEntity,
+        defineComponent,
+        defineQuery,
+        singletonQuery,
+        defineSystem,
+        Object3DComponent,
       } from "../src/threecs";
       import crateTextureUrl from "./assets/crate.gif";
+      import grassTextureUrl from "./assets/grass.png";
 
       async function main() {
         const PhysicsSystem = await loadPhysicsSystem();
+
+        const CrouchMeshTarget = defineComponent({});
+        const CrouchCameraTarget = defineComponent({});
+
+        const crouchMeshQuery = singletonQuery(
+          defineQuery([CrouchMeshTarget, Object3DComponent])
+        );
+        const crouchCameraQuery = singletonQuery(
+          defineQuery([CrouchCameraTarget, Object3DComponent])
+        );
+
+        const CrouchSystem = defineSystem(function CrouchSystem(world) {
+          const crouchMeshEid = crouchMeshQuery(world);
+          const crouchCameraEid = crouchCameraQuery(world);
+
+          if (crouchMeshEid === undefined || crouchCameraEid === undefined) {
+            return;
+          }
+
+          const crouch = world.actions.get(
+            PhysicsCharacterControllerActions.Crouch
+          );
+
+          const mesh = Object3DComponent.storage.get(crouchMeshEid);
+          const camera = Object3DComponent.storage.get(crouchCameraEid);
+
+          if (crouch.pressed && crouch.held) {
+            mesh.scale.set(1, 0.5, 1);
+            camera.scale.set(1, 2, 1);
+            camera.position.y = 0.8;
+          } else if (crouch.released && !crouch.held) {
+            mesh.scale.set(1, 1, 1);
+            camera.scale.set(1, 1, 1);
+            camera.position.y = 1.6;
+          }
+        });
 
         const { world, scene, sceneEid, camera, cameraEid, start } =
           createThreeWorld({
@@ -49,6 +102,7 @@
             systems: [
               FirstPersonCameraSystem,
               PhysicsCharacterControllerSystem,
+              CrouchSystem,
               PhysicsSystem,
             ],
             actionMaps: [
@@ -99,11 +153,7 @@
                     bindings: [
                       {
                         type: BindingType.Button,
-                        path: "Keyboard/ControlLeft",
-                      },
-                      {
-                        type: BindingType.Button,
-                        path: "Keyboard/OSLeft",
+                        path: "Keyboard/KeyC",
                       },
                     ],
                   },
@@ -125,14 +175,16 @@
 
         addPhysicsWorldComponent(world, sceneEid);
 
-        const [playerRig, playerRigEid] = addPhysicsCharacterControllerEntity(
+        const [playerRigEid, playerRig] = addPhysicsCharacterControllerEntity(
           world,
           scene
         );
         addComponent(world, FirstPersonCameraYawTarget, playerRigEid);
+        addComponent(world, CrouchMeshTarget, playerRigEid);
         addComponent(world, FirstPersonCameraPitchTarget, cameraEid);
+        addComponent(world, CrouchCameraTarget, cameraEid);
         playerRig.add(camera);
-        playerRig.position.set(0, 0, 5);
+        playerRig.position.set(0, 0.1, 5);
         camera.position.set(0, 1.6, 0);
 
         const crateTexture = new TextureLoader().load(crateTextureUrl);
@@ -142,7 +194,9 @@
         );
         const cubeEid = addObject3DEntity(world, cube, scene);
         cube.position.set(0.35, 2, 0.25);
-        addMapComponent(world, RigidBodyComponent, cubeEid);
+        addRigidBodyComponent(world, cubeEid, {
+          bodyStatus: PhysicsBodyStatus.Dynamic,
+        });
 
         const sphere = new Mesh(
           new SphereBufferGeometry(1, 10, 10),
@@ -150,9 +204,7 @@
         );
         const sphereEid = addObject3DEntity(world, sphere, scene);
         sphere.position.set(0, 0.25, -0.5);
-        addMapComponent(world, RigidBodyComponent, sphereEid, {
-          bodyStatus: PhysicsBodyStatus.Static,
-        });
+        addRigidBodyComponent(world, sphereEid);
 
         const wall = new Mesh(
           new BoxBufferGeometry(2, 3, 0.5),
@@ -161,23 +213,28 @@
         const wallEid = addObject3DEntity(world, wall, scene);
         wall.position.set(-3, 1.5, -1);
         wall.rotation.set(0, Math.PI / 4, 0);
-        addMapComponent(world, RigidBodyComponent, wallEid, {
-          bodyStatus: PhysicsBodyStatus.Static,
-        });
+        addRigidBodyComponent(world, wallEid);
 
+        const grassTexture = new TextureLoader().load(grassTextureUrl);
+        grassTexture.wrapS = grassTexture.wrapT = RepeatWrapping;
+        grassTexture.repeat.set(10, 10);
         const ground = new Mesh(
-          new BoxBufferGeometry(10, 0.1, 10),
-          new MeshBasicMaterial()
+          new BoxBufferGeometry(100, 0.1, 100),
+          new MeshBasicMaterial({ map: grassTexture })
         );
         const groundEid = addObject3DEntity(world, ground, scene);
-        addMapComponent(world, RigidBodyComponent, groundEid, {
-          bodyStatus: PhysicsBodyStatus.Static,
-        });
+        addRigidBodyComponent(world, groundEid);
 
         start();
       }
 
       main().catch(console.error);
     </script>
+    <div class="controls">
+      <p>Move: WASD</p>
+      <p>Sprint: Shift</p>
+      <p>Crouch / Slide: C</p>
+      <p>Jump: Space</p>
+    </div>
   </body>
 </html>

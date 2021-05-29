@@ -72,6 +72,8 @@ interface RigidBodyProps {
   bodyStatus: Rapier.BodyStatus;
   solverGroups: number;
   collisionGroups: number;
+  lockRotations: boolean;
+  friction: number;
 }
 
 interface CapsuleRigidBodyProps extends RigidBodyProps {
@@ -104,6 +106,8 @@ export function addRigidBodyComponent(
       props.collisionGroups === undefined
         ? PhysicsInteractionGroups.Default
         : props.collisionGroups,
+    lockRotations: !!props.lockRotations,
+    friction: props.friction === undefined ? 0.5 : props.friction,
   };
 
   if (props.shape === PhysicsColliderShape.Capsule) {
@@ -127,6 +131,7 @@ export const newRigidBodiesQuery = enterQuery(rigidBodiesQuery);
 
 interface InternalRigidBodyProps {
   body: Rapier.RigidBody;
+  colliderShape: Rapier.Shape;
 }
 
 export const InternalRigidBodyComponent =
@@ -256,16 +261,21 @@ export async function loadPhysicsSystem(): Promise<System> {
       rigidBodyDesc.setRotation(tempQuat.clone());
       rigidBodyDesc.setTranslation(tempVec3.x, tempVec3.y, tempVec3.z);
 
+      if (rigidBodyProps.lockRotations) {
+        rigidBodyDesc.lockRotations();
+      }
+
       const body = physicsWorld.createRigidBody(rigidBodyDesc);
 
-      let colliderDesc: Rapier.ColliderDesc;
+      let colliderShape: Rapier.Shape;
 
       const geometryType = geometry && geometry.type;
 
       if (geometryType === "BoxGeometry") {
         geometry.computeBoundingBox();
         const boundingBoxSize = geometry.boundingBox!.getSize(new Vector3());
-        colliderDesc = Rapier.ColliderDesc.cuboid(
+
+        colliderShape = new Rapier.Cuboid(
           boundingBoxSize.x / 2,
           boundingBoxSize.y / 2,
           boundingBoxSize.z / 2
@@ -273,19 +283,22 @@ export async function loadPhysicsSystem(): Promise<System> {
       } else if (geometryType === "SphereGeometry") {
         geometry.computeBoundingSphere();
         const radius = geometry.boundingSphere!.radius;
-        colliderDesc = Rapier.ColliderDesc.ball(radius);
+        colliderShape = new Rapier.Ball(radius);
       } else if (rigidBodyProps.shape === PhysicsColliderShape.Capsule) {
         const { radius, halfHeight } = rigidBodyProps as CapsuleRigidBodyProps;
-        colliderDesc = Rapier.ColliderDesc.capsule(halfHeight, radius);
+        colliderShape = new Rapier.Capsule(halfHeight, radius);
       } else {
         throw new Error("Unimplemented");
       }
+
+      const colliderDesc = new Rapier.ColliderDesc(colliderShape);
 
       const translation = rigidBodyProps.translation;
       colliderDesc.setTranslation(translation.x, translation.y, translation.z);
       colliderDesc.setRotation(rigidBodyProps.rotation);
       colliderDesc.setCollisionGroups(rigidBodyProps.collisionGroups);
       colliderDesc.setSolverGroups(rigidBodyProps.solverGroups);
+      colliderDesc.setFriction(rigidBodyProps.friction);
 
       // TODO: Handle mass / density
       // TODO: Handle scale
@@ -296,6 +309,7 @@ export async function loadPhysicsSystem(): Promise<System> {
 
       addMapComponent(world, InternalRigidBodyComponent, rigidBodyEid, {
         body,
+        colliderShape,
       });
     });
 
@@ -407,13 +421,17 @@ export async function loadPhysicsSystem(): Promise<System> {
 
     rigidBodyEntities.forEach((rigidBodyEid) => {
       const obj = Object3DComponent.storage.get(rigidBodyEid)!;
+      const { lockRotations } = RigidBodyComponent.storage.get(rigidBodyEid)!;
       const { body } = InternalRigidBodyComponent.storage.get(rigidBodyEid)!;
 
       if (body.isDynamic()) {
         const translation = body.translation();
         const rotation = body.rotation();
         obj.position.set(translation.x, translation.y, translation.z);
-        obj.quaternion.set(rotation.x, rotation.y, rotation.z, rotation.w);
+
+        if (!lockRotations) {
+          obj.quaternion.copy(rotation as Quaternion);
+        }
       } else if (body.isKinematic()) {
         body.setNextKinematicTranslation(obj.position);
         body.setNextKinematicRotation(obj.quaternion);
