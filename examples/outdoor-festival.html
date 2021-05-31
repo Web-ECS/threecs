@@ -17,16 +17,37 @@
       .controls p {
         margin: 4px;
       }
+
+      .hide {
+        display: none;
+      }
+
+      #load-button {
+        position: absolute;
+        color: white;
+        background-color: transparent;
+        border: 1px solid white;
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        justify-items: center;
+        border-radius: 6px;
+        padding: 8px 12px;
+        left: 50%;
+        top: 50%;
+        transform: translate(-50%, -50%);
+        cursor: pointer;
+      }
     </style>
-  <script type="module" crossorigin src="/threecs/assets/examples/outdoor-festival.html.de354c40.js"></script>
-  <link rel="modulepreload" href="/threecs/assets/styles.16b1c26f.js">
-  <link rel="modulepreload" href="/threecs/assets/vendor.2af62ae5.js">
-  <link rel="modulepreload" href="/threecs/assets/AnimationSystem.82b0b2be.js">
-  <link rel="stylesheet" href="/threecs/assets/styles.2925ddbf.css">
+  <script type="module" crossorigin src="/threecs/assets/examples/outdoor-festival.html.1e82c890.js"></script>
+  <link rel="modulepreload" href="/threecs/assets/styles.9cab3664.js">
+  <link rel="modulepreload" href="/threecs/assets/vendor.514f9e0b.js">
+  <link rel="modulepreload" href="/threecs/assets/AnimationSystem.d20b3d79.js">
+  <link rel="stylesheet" href="/threecs/assets/styles.768ff4a6.css">
 </head>
   <body>
     
-    <div class="controls">
+    <div class="controls hide">
       <p>
         <b>Outdoor Festival Scene</b>
       </p>
@@ -48,5 +69,6 @@
       <p>Crouch / Slide: C</p>
       <p>Jump: Space</p>
     </div>
+    <button id="load-button">Load Example</button>
   </body>
 </html>
