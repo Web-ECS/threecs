@@ -122,7 +122,7 @@ async function main() {
     parser: {
       options: {path: gltfPath}
     }
-  } = await new GLTFLoader().loadAsync("/outdoor-festival/OutdoorFestival.glb");
+  } = await new GLTFLoader().loadAsync("../outdoor-festival/OutdoorFestival.glb");
   const gltfRootPath = new URL(gltfPath, window.location).href;
   const gltfEid = addObject3DEntity(world, gltfScene, scene);
   addAnimationClipsComponent(world, gltfEid, animations);
