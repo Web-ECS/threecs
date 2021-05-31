@@ -85,6 +85,9 @@
         AnimationSystem,
         addAnimationMixerComponent,
         addAnimationClipsComponent,
+        AudioSystem,
+        addAudioListenerComponent,
+        addAudioSourceComponent,
       } from "../src/threecs";
 
       async function main() {
@@ -133,6 +136,7 @@
               FirstPersonCameraSystem,
               PhysicsCharacterControllerSystem,
               AnimationSystem,
+              AudioSystem,
               CrouchSystem,
               PhysicsSystem,
             ],
@@ -221,6 +225,7 @@
         playerRig.add(camera);
         playerRig.position.set(0, 0.1, 5);
         camera.position.set(0, 1.6, 0);
+        addAudioListenerComponent(world, cameraEid);
         const audioListener = new AudioListener();
         playerRig.add(audioListener);
 
@@ -240,6 +245,8 @@
         const animationMixerState = [];
 
         scene.traverse((child) => {
+          const eid = addObject3DEntity(world, child);
+
           const components = child.userData.gltfExtensions?.MOZ_hubs_components;
 
           if (components) {
@@ -258,49 +265,11 @@
             }
 
             if (components["audio"]) {
-              const {
-                audioType,
-                coneInnerAngle,
-                coneOuterAngle,
-                coneOuterGain,
-                distanceModel,
-                maxDistance,
-                refDistance,
-                rolloffFactor,
-                src,
-                volume,
-                loop,
-                autoPlay,
-              } = components["audio"];
-
-              let audio;
-
-              const el = document.createElement("audio");
-              el.setAttribute("playsinline", "");
-              el.setAttribute("webkip-playsinline", "");
-              el.crossOrigin = "anonymous";
-              el.src = new URL(src, gltfRootPath);
-              el.loop = loop;
-              el.autoplay = autoPlay;
-
-              if (audioType === "pannernode") {
-                audio = new PositionalAudio(audioListener);
-                audio.setDirectionalCone(
-                  coneInnerAngle,
-                  coneOuterAngle,
-                  coneOuterGain
-                );
-                audio.setDistanceModel(distanceModel);
-                audio.setMaxDistance(maxDistance);
-                audio.setRefDistance(refDistance);
-                audio.setRolloffFactor(rolloffFactor);
-              } else {
-                audio = new Audio(audioListener);
-              }
-
-              audio.setMediaElementSource(el);
-              audio.setVolume(volume);
-              child.add(audio);
+              const { src, ...rest } = components["audio"];
+              addAudioSourceComponent(world, eid, {
+                src: new URL(src, gltfRootPath).href,
+                ...rest,
+              });
             }
           }
 
@@ -312,7 +281,6 @@
               return;
             }
 
-            const eid = addObject3DEntity(world, child);
             addRigidBodyComponent(world, eid, {
               shape: PhysicsColliderShape.Trimesh,
             });

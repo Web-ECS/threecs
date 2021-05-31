@@ -12,3 +12,4 @@ export * from "./systems/PhysicsSystem";
 export * from "./systems/PhysicsCharacterControllerSystem";
 export * from "./systems/InstancedMeshRendererSystem";
 export * from "./systems/AnimationSystem";
+export * from "./systems/AudioSystem";
