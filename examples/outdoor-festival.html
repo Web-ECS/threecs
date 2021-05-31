@@ -231,7 +231,7 @@
             options: { path: gltfPath },
           },
         } = await new GLTFLoader().loadAsync(
-          "/outdoor-festival/OutdoorFestival.glb"
+          "../outdoor-festival/OutdoorFestival.glb"
         );
         const gltfRootPath = new URL(gltfPath, window.location).href;
         const gltfEid = addObject3DEntity(world, gltfScene, scene);
