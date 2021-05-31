@@ -1,6 +1,7 @@
 html, body {
   margin: 0;
   padding: 0;
+  background-color: black;
 }
 
 html, body, .container {
@@ -18,6 +19,7 @@ body {
 nav {
   padding: 20px;
   width: 200px;
+  background-color: white;
 }
 
 nav li {
@@ -44,6 +46,10 @@ iframe, main {
   justify-content: center;
   align-items: center;
   height: 100%;
+}
+
+.center a {
+  color: white;
 }
 
 a:visited {

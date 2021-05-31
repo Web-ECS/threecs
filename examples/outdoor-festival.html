@@ -17,6 +17,27 @@
       .controls p {
         margin: 4px;
       }
+
+      .hide {
+        display: none;
+      }
+
+      #load-button {
+        position: absolute;
+        color: white;
+        background-color: transparent;
+        border: 1px solid white;
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        justify-items: center;
+        border-radius: 6px;
+        padding: 8px 12px;
+        left: 50%;
+        top: 50%;
+        transform: translate(-50%, -50%);
+        cursor: pointer;
+      }
     </style>
   </head>
   <body>
@@ -33,6 +54,9 @@
         ACESFilmicToneMapping,
         sRGBEncoding,
         LoopRepeat,
+        AudioListener,
+        PositionalAudio,
+        Audio,
       } from "three";
       import { GLTFLoader } from "three/examples/jsm/loaders/GLTFLoader";
       import {
@@ -62,7 +86,6 @@
         addAnimationMixerComponent,
         addAnimationClipsComponent,
       } from "../src/threecs";
-      import outdoorFestivalUrl from "./assets/OutdoorFestival.glb?url";
 
       async function main() {
         const PhysicsSystem = await loadPhysicsSystem();
@@ -198,38 +221,97 @@
         playerRig.add(camera);
         playerRig.position.set(0, 0.1, 5);
         camera.position.set(0, 1.6, 0);
+        const audioListener = new AudioListener();
+        playerRig.add(audioListener);
 
-        const { scene: gltfScene, animations } =
-          await new GLTFLoader().loadAsync(outdoorFestivalUrl);
+        const {
+          scene: gltfScene,
+          animations,
+          parser: {
+            options: { path: gltfPath },
+          },
+        } = await new GLTFLoader().loadAsync(
+          "/outdoor-festival/OutdoorFestival.glb"
+        );
+        const gltfRootPath = new URL(gltfPath, window.location).href;
         const gltfEid = addObject3DEntity(world, gltfScene, scene);
         addAnimationClipsComponent(world, gltfEid, animations);
 
         const animationMixerState = [];
 
         scene.traverse((child) => {
-          const gltfExtensions = child.userData.gltfExtensions;
+          const components = child.userData.gltfExtensions?.MOZ_hubs_components;
 
-          if (gltfExtensions) {
-            const components = gltfExtensions.MOZ_hubs_components;
+          if (components) {
+            if (components["visible"]) {
+              child.visible = components["visible"].visible;
+            }
 
-            if (components) {
-              if (components["nav-mesh"]) {
-                child.visible = false;
+            if (components["loop-animation"]) {
+              const { activeClipIndices } = components["loop-animation"];
+              for (const index of activeClipIndices) {
+                animationMixerState.push({
+                  index,
+                  playing: true,
+                });
+              }
+            }
+
+            if (components["audio"]) {
+              const {
+                audioType,
+                coneInnerAngle,
+                coneOuterAngle,
+                coneOuterGain,
+                distanceModel,
+                maxDistance,
+                refDistance,
+                rolloffFactor,
+                src,
+                volume,
+                loop,
+                autoPlay,
+              } = components["audio"];
+
+              let audio;
+
+              const el = document.createElement("audio");
+              el.setAttribute("playsinline", "");
+              el.setAttribute("webkip-playsinline", "");
+              el.crossOrigin = "anonymous";
+              el.src = new URL(src, gltfRootPath);
+              el.loop = loop;
+              el.autoplay = autoPlay;
+
+              if (audioType === "pannernode") {
+                audio = new PositionalAudio(audioListener);
+                audio.setDirectionalCone(
+                  coneInnerAngle,
+                  coneOuterAngle,
+                  coneOuterGain
+                );
+                audio.setDistanceModel(distanceModel);
+                audio.setMaxDistance(maxDistance);
+                audio.setRefDistance(refDistance);
+                audio.setRolloffFactor(rolloffFactor);
+              } else {
+                audio = new Audio(audioListener);
               }
 
-              if (components["loop-animation"]) {
-                const { activeClipIndices } = components["loop-animation"];
-                for (const index of activeClipIndices) {
-                  animationMixerState.push({
-                    index,
-                    playing: true,
-                  });
-                }
-              }
+              audio.setMediaElementSource(el);
+              audio.setVolume(volume);
+              child.add(audio);
             }
           }
 
-          if (child.isMesh) {
+          if (child.isMesh && !child.isSkinnedMesh) {
+            if (
+              components &&
+              (components["nav-mesh"] || components["trimesh"])
+            ) {
+              return;
+            }
+
             const eid = addObject3DEntity(world, child);
             addRigidBodyComponent(world, eid, {
               shape: PhysicsColliderShape.Trimesh,
@@ -244,9 +326,23 @@
         start();
       }
 
-      main().catch(console.error);
+      const loadButton = document.getElementById("load-button");
+
+      const onLoad = () => {
+        loadButton.removeEventListener("click", onLoad);
+        loadButton.innerText = "Loading...";
+
+        main()
+          .then(() => {
+            loadButton.remove();
+            document.querySelector(".controls").classList.remove("hide");
+          })
+          .catch(console.error);
+      };
+
+      loadButton.addEventListener("click", onLoad);
     </script>
-    <div class="controls">
+    <div class="controls hide">
       <p>
         <b>Outdoor Festival Scene</b>
       </p>
@@ -268,5 +364,6 @@
       <p>Crouch / Slide: C</p>
       <p>Jump: Space</p>
     </div>
+    <button id="load-button">Load Example</button>
   </body>
 </html>

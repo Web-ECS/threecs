@@ -42,6 +42,7 @@ export default ({ command, mode }) => {
           input: getHtmlPaths(),
         },
       },
+      publicDir: path.join(__dirname, "examples", "public"),
     };
   } else {
     return {
