@@ -1,6 +1,34 @@
+var __defProp = Object.defineProperty;
+var __hasOwnProp = Object.prototype.hasOwnProperty;
+var __getOwnPropSymbols = Object.getOwnPropertySymbols;
+var __propIsEnum = Object.prototype.propertyIsEnumerable;
+var __defNormalProp = (obj, key, value) => key in obj ? __defProp(obj, key, {enumerable: true, configurable: true, writable: true, value}) : obj[key] = value;
+var __assign = (a, b) => {
+  for (var prop in b || (b = {}))
+    if (__hasOwnProp.call(b, prop))
+      __defNormalProp(a, prop, b[prop]);
+  if (__getOwnPropSymbols)
+    for (var prop of __getOwnPropSymbols(b)) {
+      if (__propIsEnum.call(b, prop))
+        __defNormalProp(a, prop, b[prop]);
+    }
+  return a;
+};
+var __rest = (source, exclude) => {
+  var target = {};
+  for (var prop in source)
+    if (__hasOwnProp.call(source, prop) && exclude.indexOf(prop) < 0)
+      target[prop] = source[prop];
+  if (source != null && __getOwnPropSymbols)
+    for (var prop of __getOwnPropSymbols(source)) {
+      if (exclude.indexOf(prop) < 0 && __propIsEnum.call(source, prop))
+        target[prop] = source[prop];
+    }
+  return target;
+};
 import "../styles.9cab3664.js";
-import {o as ACESFilmicToneMapping, s as sRGBEncoding, q as AudioListener, G as GLTFLoader, t as PositionalAudio, u as Audio} from "../vendor.514f9e0b.js";
-import {l as loadPhysicsSystem, b as defineComponent, s as singletonQuery, h as defineQuery, a as defineSystem, P as PhysicsCharacterControllerActions, O as Object3DComponent, c as createThreeWorld, F as FirstPersonCameraSystem, i as PhysicsCharacterControllerSystem, A as AnimationSystem, j as FirstPersonCameraActions, k as ActionType, B as BindingType, m as addPhysicsWorldComponent, n as addPhysicsCharacterControllerEntity, g as addComponent, o as FirstPersonCameraYawTarget, p as FirstPersonCameraPitchTarget, e as addObject3DEntity, q as addAnimationClipsComponent, t as addRigidBodyComponent, u as PhysicsColliderShape, v as addAnimationMixerComponent} from "../AnimationSystem.d20b3d79.js";
+import {t as ACESFilmicToneMapping, u as sRGBEncoding, o as AudioListener, G as GLTFLoader} from "../vendor.706402a0.js";
+import {l as loadPhysicsSystem, b as defineComponent, s as singletonQuery, h as defineQuery, a as defineSystem, P as PhysicsCharacterControllerActions, O as Object3DComponent, c as createThreeWorld, F as FirstPersonCameraSystem, i as PhysicsCharacterControllerSystem, A as AnimationSystem, j as AudioSystem, k as FirstPersonCameraActions, m as ActionType, B as BindingType, n as addPhysicsWorldComponent, o as addPhysicsCharacterControllerEntity, g as addComponent, p as FirstPersonCameraYawTarget, q as FirstPersonCameraPitchTarget, t as addAudioListenerComponent, e as addObject3DEntity, u as addAnimationClipsComponent, v as addAudioSourceComponent, w as addRigidBodyComponent, x as PhysicsColliderShape, y as addAnimationMixerComponent} from "../AudioSystem.a9f32935.js";
 async function main() {
   const PhysicsSystem = await loadPhysicsSystem();
   const CrouchMeshTarget = defineComponent({});
@@ -32,6 +60,7 @@ async function main() {
       FirstPersonCameraSystem,
       PhysicsCharacterControllerSystem,
       AnimationSystem,
+      AudioSystem,
       CrouchSystem,
       PhysicsSystem
     ],
@@ -114,6 +143,7 @@ async function main() {
   playerRig.add(camera);
   playerRig.position.set(0, 0.1, 5);
   camera.position.set(0, 1.6, 0);
+  addAudioListenerComponent(world, cameraEid);
   const audioListener = new AudioListener();
   playerRig.add(audioListener);
   const {
@@ -129,6 +159,7 @@ async function main() {
   const animationMixerState = [];
   scene.traverse((child) => {
     var _a;
+    const eid = addObject3DEntity(world, child);
     const components = (_a = child.userData.gltfExtensions) == null ? void 0 : _a.MOZ_hubs_components;
     if (components) {
       if (components["visible"]) {
@@ -144,48 +175,16 @@ async function main() {
         }
       }
       if (components["audio"]) {
-        const {
-          audioType,
-          coneInnerAngle,
-          coneOuterAngle,
-          coneOuterGain,
-          distanceModel,
-          maxDistance,
-          refDistance,
-          rolloffFactor,
-          src,
-          volume,
-          loop,
-          autoPlay
-        } = components["audio"];
-        let audio;
-        const el = document.createElement("audio");
-        el.setAttribute("playsinline", "");
-        el.setAttribute("webkip-playsinline", "");
-        el.crossOrigin = "anonymous";
-        el.src = new URL(src, gltfRootPath);
-        el.loop = loop;
-        el.autoplay = autoPlay;
-        if (audioType === "pannernode") {
-          audio = new PositionalAudio(audioListener);
-          audio.setDirectionalCone(coneInnerAngle, coneOuterAngle, coneOuterGain);
-          audio.setDistanceModel(distanceModel);
-          audio.setMaxDistance(maxDistance);
-          audio.setRefDistance(refDistance);
-          audio.setRolloffFactor(rolloffFactor);
-        } else {
-          audio = new Audio(audioListener);
-        }
-        audio.setMediaElementSource(el);
-        audio.setVolume(volume);
-        child.add(audio);
+        const _b = components["audio"], {src} = _b, rest = __rest(_b, ["src"]);
+        addAudioSourceComponent(world, eid, __assign({
+          src: new URL(src, gltfRootPath).href
+        }, rest));
       }
     }
     if (child.isMesh && !child.isSkinnedMesh) {
       if (components && (components["nav-mesh"] || components["trimesh"])) {
         return;
       }
-      const eid = addObject3DEntity(world, child);
       addRigidBodyComponent(world, eid, {
         shape: PhysicsColliderShape.Trimesh
       });

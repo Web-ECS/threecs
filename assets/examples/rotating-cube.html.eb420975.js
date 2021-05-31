@@ -1,6 +1,6 @@
 import "../styles.9cab3664.js";
-import {T as TextureLoader, M as Mesh, B as BoxGeometry, a as MeshBasicMaterial, V as Vector3} from "../vendor.514f9e0b.js";
-import {d as defineMapComponent, a as defineSystem, c as createThreeWorld, e as addObject3DEntity, f as addMapComponent, O as Object3DComponent, h as defineQuery} from "../AnimationSystem.d20b3d79.js";
+import {T as TextureLoader, M as Mesh, B as BoxGeometry, a as MeshBasicMaterial, V as Vector3} from "../vendor.706402a0.js";
+import {d as defineMapComponent, a as defineSystem, c as createThreeWorld, e as addObject3DEntity, f as addMapComponent, O as Object3DComponent, h as defineQuery} from "../AudioSystem.a9f32935.js";
 import {c as crateTextureUrl} from "../crate.9cc70004.js";
 const RotateComponent = defineMapComponent();
 const rotateQuery = defineQuery([RotateComponent, Object3DComponent]);

@@ -14,7 +14,7 @@ var __assign = (a, b) => {
     }
   return a;
 };
-import {d as defineComponent$1, b as addComponent$1, c as defineSystem$1, e as addEntity$1, f as Types$1, g as defineQuery$1, r as removeEntity$1, h as enterQuery$1, i as removeComponent$1, j as Vector2, k as createWorld, S as Scene, P as PerspectiveCamera, W as WebGLRenderer, C as Clock, p as pipe, l as MathUtils, m as rapier, V as Vector3, A as ArrowHelper, Q as Quaternion, O as Object3D, I as InstancedMesh, D as DynamicDrawUsage, M as Mesh, n as AnimationMixer} from "./vendor.514f9e0b.js";
+import {d as defineComponent$1, b as addComponent$1, c as defineSystem$1, e as addEntity$1, f as Types$1, g as defineQuery$1, r as removeEntity$1, h as enterQuery$1, i as removeComponent$1, j as Vector2, k as createWorld, S as Scene, P as PerspectiveCamera, W as WebGLRenderer, C as Clock, p as pipe, l as MathUtils, m as rapier, V as Vector3, A as ArrowHelper, Q as Quaternion, O as Object3D, I as InstancedMesh, D as DynamicDrawUsage, M as Mesh, n as AnimationMixer, o as AudioListener, q as Audio, s as PositionalAudio} from "./vendor.706402a0.js";
 const Types = Types$1;
 const defineQuery = defineQuery$1;
 const addEntity = addEntity$1;
@@ -887,4 +887,113 @@ const AnimationSystem = defineSystem(function AnimationSystem2(world) {
     mixer.update(world.dt);
   });
 });
-export {AnimationSystem as A, BindingType as B, addPhysicsRaycasterComponent as C, DirectionalMovementSystem as D, DirectionalMovementComponent as E, FirstPersonCameraSystem as F, InstancedMeshRendererSystem as I, Object3DComponent as O, PhysicsCharacterControllerActions as P, Types as T, defineSystem as a, defineComponent as b, createThreeWorld as c, defineMapComponent as d, addObject3DEntity as e, addMapComponent as f, addComponent as g, defineQuery as h, PhysicsCharacterControllerSystem as i, FirstPersonCameraActions as j, ActionType as k, loadPhysicsSystem as l, addPhysicsWorldComponent as m, addPhysicsCharacterControllerEntity as n, FirstPersonCameraYawTarget as o, FirstPersonCameraPitchTarget as p, addAnimationClipsComponent as q, removeObject3DEntity as r, singletonQuery as s, addRigidBodyComponent as t, PhysicsColliderShape as u, addAnimationMixerComponent as v, PhysicsBodyStatus as w, addInstancedMeshRendererEntity as x, addInstancedMeshImposterEntity as y, DirectionalMovementActions as z};
+const AudioListenerComponent = defineComponent({});
+function addAudioListenerComponent(world, eid) {
+  addComponent(world, AudioListenerComponent, eid);
+}
+const InternalAudioListenerComponent = defineMapComponent();
+var AudioSourceType;
+(function(AudioSourceType2) {
+  AudioSourceType2["Stereo"] = "stereo";
+  AudioSourceType2["PannerNode"] = "pannernode";
+})(AudioSourceType || (AudioSourceType = {}));
+var AudioDistanceModel;
+(function(AudioDistanceModel2) {
+  AudioDistanceModel2["Linear"] = "linear";
+  AudioDistanceModel2["Inverse"] = "inverse";
+  AudioDistanceModel2["Exponential"] = "exponential";
+})(AudioDistanceModel || (AudioDistanceModel = {}));
+const AudioSourceComponent = defineMapComponent();
+const InternalAudioSourceComponent = defineMapComponent();
+function addAudioSourceComponent(world, eid, props) {
+  addMapComponent(world, AudioSourceComponent, eid, props);
+}
+const audioListenerQuery = defineQuery([
+  AudioListenerComponent,
+  Object3DComponent
+]);
+const mainAudioListenerQuery = singletonQuery(audioListenerQuery);
+const newAudioListenerQuery = enterQuery(audioListenerQuery);
+const audioSourceQuery = defineQuery([
+  AudioSourceComponent,
+  Object3DComponent
+]);
+const AudioSystem = defineSystem(function AudioSystem2(world) {
+  const newAudioListenerEntities = newAudioListenerQuery(world);
+  newAudioListenerEntities.forEach((eid) => {
+    const obj = Object3DComponent.storage.get(eid);
+    const audioListener2 = new AudioListener();
+    obj.add(audioListener2);
+    addMapComponent(world, InternalAudioListenerComponent, eid, audioListener2);
+  });
+  const mainAudioListenerEid = mainAudioListenerQuery(world);
+  if (mainAudioListenerEid === void 0) {
+    return;
+  }
+  const audioListener = InternalAudioListenerComponent.storage.get(mainAudioListenerEid);
+  const audioSourceEntities = audioSourceQuery(world);
+  audioSourceEntities.forEach((eid) => {
+    const obj = Object3DComponent.storage.get(eid);
+    const audioSourceProps = AudioSourceComponent.storage.get(eid);
+    let audioSource = InternalAudioSourceComponent.storage.get(eid);
+    if (!audioSource) {
+      const el2 = document.createElement("audio");
+      el2.setAttribute("playsinline", "");
+      el2.setAttribute("webkip-playsinline", "");
+      el2.crossOrigin = "anonymous";
+      if (audioSourceProps.audioType === AudioSourceType.Stereo) {
+        audioSource = new Audio(audioListener);
+      } else if (audioSourceProps.audioType === AudioSourceType.PannerNode) {
+        audioSource = new PositionalAudio(audioListener);
+      } else {
+        throw new Error("Unknown audio source type");
+      }
+      InternalAudioSourceComponent.storage.set(eid, audioSource);
+      audioSource.setMediaElementSource(el2);
+      obj.add(audioSource);
+    }
+    const {src, volume, loop, autoPlay} = audioSourceProps;
+    if (audioSourceProps.audioType === AudioSourceType.PannerNode) {
+      const {
+        coneInnerAngle,
+        coneOuterAngle,
+        coneOuterGain,
+        distanceModel,
+        maxDistance,
+        refDistance,
+        rolloffFactor
+      } = audioSourceProps;
+      const positionalAudio = audioSource;
+      const pannerNode = positionalAudio.panner;
+      if (pannerNode.coneInnerAngle !== coneInnerAngle || pannerNode.coneOuterAngle !== coneOuterAngle || pannerNode.coneOuterGain !== coneOuterGain) {
+        positionalAudio.setDirectionalCone(coneInnerAngle, coneOuterAngle, coneOuterGain);
+      }
+      if (pannerNode.distanceModel !== distanceModel) {
+        positionalAudio.setDistanceModel(distanceModel);
+      }
+      if (pannerNode.maxDistance !== maxDistance) {
+        positionalAudio.setMaxDistance(maxDistance);
+      }
+      if (pannerNode.refDistance !== refDistance) {
+        positionalAudio.setRefDistance(refDistance);
+      }
+      if (pannerNode.rolloffFactor !== rolloffFactor) {
+        positionalAudio.setRolloffFactor(rolloffFactor);
+      }
+    }
+    const el = audioSource.source.mediaElement;
+    if (el.src !== src) {
+      el.src = src;
+    }
+    if (el.loop !== loop) {
+      el.loop = loop;
+    }
+    if (el.autoplay !== autoPlay) {
+      el.autoplay = autoPlay;
+    }
+    if (audioSource.gain.gain.value !== volume) {
+      audioSource.setVolume(volume);
+    }
+  });
+});
+export {AnimationSystem as A, BindingType as B, addInstancedMeshRendererEntity as C, addInstancedMeshImposterEntity as D, DirectionalMovementSystem as E, FirstPersonCameraSystem as F, DirectionalMovementActions as G, addPhysicsRaycasterComponent as H, InstancedMeshRendererSystem as I, DirectionalMovementComponent as J, Object3DComponent as O, PhysicsCharacterControllerActions as P, Types as T, defineSystem as a, defineComponent as b, createThreeWorld as c, defineMapComponent as d, addObject3DEntity as e, addMapComponent as f, addComponent as g, defineQuery as h, PhysicsCharacterControllerSystem as i, AudioSystem as j, FirstPersonCameraActions as k, loadPhysicsSystem as l, ActionType as m, addPhysicsWorldComponent as n, addPhysicsCharacterControllerEntity as o, FirstPersonCameraYawTarget as p, FirstPersonCameraPitchTarget as q, removeObject3DEntity as r, singletonQuery as s, addAudioListenerComponent as t, addAnimationClipsComponent as u, addAudioSourceComponent as v, addRigidBodyComponent as w, PhysicsColliderShape as x, addAnimationMixerComponent as y, PhysicsBodyStatus as z};

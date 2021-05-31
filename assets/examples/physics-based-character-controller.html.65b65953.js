@@ -1,6 +1,6 @@
 import "../styles.9cab3664.js";
-import {T as TextureLoader, M as Mesh, B as BoxGeometry, a as MeshBasicMaterial, v as SphereGeometry, R as RepeatWrapping} from "../vendor.514f9e0b.js";
-import {l as loadPhysicsSystem, b as defineComponent, a as defineSystem, P as PhysicsCharacterControllerActions, O as Object3DComponent, c as createThreeWorld, F as FirstPersonCameraSystem, i as PhysicsCharacterControllerSystem, j as FirstPersonCameraActions, k as ActionType, B as BindingType, m as addPhysicsWorldComponent, n as addPhysicsCharacterControllerEntity, g as addComponent, e as addObject3DEntity, t as addRigidBodyComponent, w as PhysicsBodyStatus, s as singletonQuery, h as defineQuery, o as FirstPersonCameraYawTarget, p as FirstPersonCameraPitchTarget} from "../AnimationSystem.d20b3d79.js";
+import {T as TextureLoader, M as Mesh, B as BoxGeometry, a as MeshBasicMaterial, v as SphereGeometry, R as RepeatWrapping} from "../vendor.706402a0.js";
+import {l as loadPhysicsSystem, b as defineComponent, a as defineSystem, P as PhysicsCharacterControllerActions, O as Object3DComponent, c as createThreeWorld, F as FirstPersonCameraSystem, i as PhysicsCharacterControllerSystem, k as FirstPersonCameraActions, m as ActionType, B as BindingType, n as addPhysicsWorldComponent, o as addPhysicsCharacterControllerEntity, g as addComponent, e as addObject3DEntity, w as addRigidBodyComponent, z as PhysicsBodyStatus, s as singletonQuery, h as defineQuery, p as FirstPersonCameraYawTarget, q as FirstPersonCameraPitchTarget} from "../AudioSystem.a9f32935.js";
 import {c as crateTextureUrl} from "../crate.9cc70004.js";
 var grassTextureUrl = "/threecs/assets/grass.e6dfe2a4.png";
 async function main() {
