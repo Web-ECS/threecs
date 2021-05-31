@@ -5,6 +5,8 @@ import {
   PerspectiveCamera,
   Clock,
   WebGLRendererParameters,
+  ACESFilmicToneMapping,
+  sRGBEncoding,
 } from "three";
 import { RendererSystem, RendererComponent } from "../systems/RendererSystem";
 import { CameraComponent, SceneComponent } from "../components";

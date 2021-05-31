@@ -1,0 +1,272 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>threecs | Examples: Hubs Outdoor Festival Scene</title>
+    <link rel="stylesheet" href="./styles.css" />
+    <style>
+      .controls {
+        position: absolute;
+        z-index: 1;
+        color: white;
+        margin: 12px 16px 16px 16px;
+        font-size: 12px;
+      }
+
+      .controls p {
+        margin: 4px;
+      }
+    </style>
+  </head>
+  <body>
+    <script type="module">
+      import {
+        Object3D,
+        Mesh,
+        BoxBufferGeometry,
+        SphereBufferGeometry,
+        MeshBasicMaterial,
+        Vector3,
+        TextureLoader,
+        RepeatWrapping,
+        ACESFilmicToneMapping,
+        sRGBEncoding,
+        LoopRepeat,
+      } from "three";
+      import { GLTFLoader } from "three/examples/jsm/loaders/GLTFLoader";
+      import {
+        ActionType,
+        createThreeWorld,
+        addObject3DEntity,
+        addComponent,
+        BindingType,
+        FirstPersonCameraSystem,
+        FirstPersonCameraActions,
+        FirstPersonCameraYawTarget,
+        FirstPersonCameraPitchTarget,
+        loadPhysicsSystem,
+        addPhysicsWorldComponent,
+        addRigidBodyComponent,
+        PhysicsCharacterControllerSystem,
+        PhysicsCharacterControllerActions,
+        PhysicsBodyStatus,
+        addPhysicsCharacterControllerEntity,
+        defineComponent,
+        defineQuery,
+        singletonQuery,
+        defineSystem,
+        Object3DComponent,
+        PhysicsColliderShape,
+        AnimationSystem,
+        addAnimationMixerComponent,
+        addAnimationClipsComponent,
+      } from "../src/threecs";
+      import outdoorFestivalUrl from "./assets/OutdoorFestival.glb?url";
+
+      async function main() {
+        const PhysicsSystem = await loadPhysicsSystem();
+
+        const CrouchMeshTarget = defineComponent({});
+        const CrouchCameraTarget = defineComponent({});
+
+        const crouchMeshQuery = singletonQuery(
+          defineQuery([CrouchMeshTarget, Object3DComponent])
+        );
+        const crouchCameraQuery = singletonQuery(
+          defineQuery([CrouchCameraTarget, Object3DComponent])
+        );
+
+        const CrouchSystem = defineSystem(function CrouchSystem(world) {
+          const crouchMeshEid = crouchMeshQuery(world);
+          const crouchCameraEid = crouchCameraQuery(world);
+
+          if (crouchMeshEid === undefined || crouchCameraEid === undefined) {
+            return;
+          }
+
+          const crouch = world.actions.get(
+            PhysicsCharacterControllerActions.Crouch
+          );
+
+          const mesh = Object3DComponent.storage.get(crouchMeshEid);
+          const camera = Object3DComponent.storage.get(crouchCameraEid);
+
+          if (crouch.pressed && crouch.held) {
+            mesh.scale.set(1, 0.5, 1);
+            camera.scale.set(1, 2, 1);
+            camera.position.y = 0.8;
+          } else if (crouch.released && !crouch.held) {
+            mesh.scale.set(1, 1, 1);
+            camera.scale.set(1, 1, 1);
+            camera.position.y = 1.6;
+          }
+        });
+
+        const { world, scene, sceneEid, camera, cameraEid, renderer, start } =
+          createThreeWorld({
+            pointerLock: true,
+            systems: [
+              FirstPersonCameraSystem,
+              PhysicsCharacterControllerSystem,
+              AnimationSystem,
+              CrouchSystem,
+              PhysicsSystem,
+            ],
+            actionMaps: [
+              {
+                id: "movement",
+                actions: [
+                  {
+                    id: "look",
+                    path: FirstPersonCameraActions.Look,
+                    type: ActionType.Vector2,
+                    bindings: [
+                      {
+                        type: BindingType.Axes,
+                        x: "Mouse/movementX",
+                        y: "Mouse/movementY",
+                      },
+                    ],
+                  },
+                  {
+                    id: "move",
+                    path: PhysicsCharacterControllerActions.Move,
+                    type: ActionType.Vector2,
+                    bindings: [
+                      {
+                        type: BindingType.DirectionalButtons,
+                        up: "Keyboard/KeyW",
+                        down: "Keyboard/KeyS",
+                        left: "Keyboard/KeyA",
+                        right: "Keyboard/KeyD",
+                      },
+                    ],
+                  },
+                  {
+                    id: "jump",
+                    path: PhysicsCharacterControllerActions.Jump,
+                    type: ActionType.Button,
+                    bindings: [
+                      {
+                        type: BindingType.Button,
+                        path: "Keyboard/Space",
+                      },
+                    ],
+                  },
+                  {
+                    id: "crouch",
+                    path: PhysicsCharacterControllerActions.Crouch,
+                    type: ActionType.Button,
+                    bindings: [
+                      {
+                        type: BindingType.Button,
+                        path: "Keyboard/KeyC",
+                      },
+                    ],
+                  },
+                  {
+                    id: "sprint",
+                    path: PhysicsCharacterControllerActions.Sprint,
+                    type: ActionType.Button,
+                    bindings: [
+                      {
+                        type: BindingType.Button,
+                        path: "Keyboard/ShiftLeft",
+                      },
+                    ],
+                  },
+                ],
+              },
+            ],
+          });
+
+        renderer.toneMapping = ACESFilmicToneMapping;
+        renderer.toneMappingExposure = 1;
+        renderer.outputEncoding = sRGBEncoding;
+
+        addPhysicsWorldComponent(world, sceneEid);
+
+        const [playerRigEid, playerRig] = addPhysicsCharacterControllerEntity(
+          world,
+          scene
+        );
+        addComponent(world, FirstPersonCameraYawTarget, playerRigEid);
+        addComponent(world, CrouchMeshTarget, playerRigEid);
+        addComponent(world, FirstPersonCameraPitchTarget, cameraEid);
+        addComponent(world, CrouchCameraTarget, cameraEid);
+        playerRig.add(camera);
+        playerRig.position.set(0, 0.1, 5);
+        camera.position.set(0, 1.6, 0);
+
+        const { scene: gltfScene, animations } =
+          await new GLTFLoader().loadAsync(outdoorFestivalUrl);
+        const gltfEid = addObject3DEntity(world, gltfScene, scene);
+        addAnimationClipsComponent(world, gltfEid, animations);
+
+        const animationMixerState = [];
+
+        scene.traverse((child) => {
+          const gltfExtensions = child.userData.gltfExtensions;
+
+          if (gltfExtensions) {
+            const components = gltfExtensions.MOZ_hubs_components;
+
+            if (components) {
+              if (components["nav-mesh"]) {
+                child.visible = false;
+              }
+
+              if (components["loop-animation"]) {
+                const { activeClipIndices } = components["loop-animation"];
+                for (const index of activeClipIndices) {
+                  animationMixerState.push({
+                    index,
+                    playing: true,
+                  });
+                }
+              }
+            }
+          }
+
+          if (child.isMesh) {
+            const eid = addObject3DEntity(world, child);
+            addRigidBodyComponent(world, eid, {
+              shape: PhysicsColliderShape.Trimesh,
+            });
+          }
+        });
+
+        addAnimationMixerComponent(world, gltfEid, {
+          state: animationMixerState,
+        });
+
+        start();
+      }
+
+      main().catch(console.error);
+    </script>
+    <div class="controls">
+      <p>
+        <b>Outdoor Festival Scene</b>
+      </p>
+      <p>
+        by
+        <a
+          target="_blank"
+          rel="noreferrer noopener"
+          href="https://hubs.mozilla.com/"
+          >the Mozilla Hubs Team</a
+        >
+      </p>
+      <p><b>Small Airplane Long Flyby</b></p>
+      <p>by Mike Koenig</p>
+      <br />
+      <b>Controls:</b>
+      <p>Move: WASD</p>
+      <p>Sprint: Shift</p>
+      <p>Crouch / Slide: C</p>
+      <p>Jump: Space</p>
+    </div>
+  </body>
+</html>

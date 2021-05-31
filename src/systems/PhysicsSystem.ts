@@ -1,5 +1,12 @@
 import * as Rapier from "@dimforge/rapier3d-compat";
-import { Vector3, Mesh, Quaternion, ArrowHelper, Euler } from "three";
+import {
+  Vector3,
+  Mesh,
+  Quaternion,
+  ArrowHelper,
+  Euler,
+  BufferGeometry,
+} from "three";
 import { Object3DComponent } from "../components";
 import {
   System,
@@ -47,6 +54,7 @@ export enum PhysicsColliderShape {
   Box = "Box",
   Sphere = "Sphere",
   Capsule = "Capsule",
+  Trimesh = "Trimesh",
 }
 
 export const PhysicsBodyStatus = Rapier.BodyStatus;
@@ -80,6 +88,11 @@ interface CapsuleRigidBodyProps extends RigidBodyProps {
   shape: PhysicsColliderShape.Capsule;
   halfHeight: number;
   radius: number;
+}
+
+interface TrimeshRigidBodyProps extends RigidBodyProps {
+  indices?: Uint32Array;
+  vertices?: Float32Array;
 }
 
 export const RigidBodyComponent =
@@ -118,6 +131,11 @@ export function addRigidBodyComponent(
       capsuleProps.halfHeight === undefined ? 0.5 : capsuleProps.halfHeight;
     defaultCapsuleProps.radius =
       capsuleProps.radius === undefined ? 0.5 : capsuleProps.radius;
+  } else if (props.shape == PhysicsColliderShape.Trimesh) {
+    const trimeshProps = props as Partial<TrimeshRigidBodyProps>;
+    const defaultTrimeshProps = defaultProps as TrimeshRigidBodyProps;
+    defaultTrimeshProps.indices = trimeshProps.indices;
+    defaultTrimeshProps.vertices = trimeshProps.vertices;
   }
 
   addMapComponent(world, RigidBodyComponent, eid, defaultProps);
@@ -287,6 +305,30 @@ export async function loadPhysicsSystem(): Promise<System> {
       } else if (rigidBodyProps.shape === PhysicsColliderShape.Capsule) {
         const { radius, halfHeight } = rigidBodyProps as CapsuleRigidBodyProps;
         colliderShape = new Rapier.Capsule(halfHeight, radius);
+      } else if (geometryType === "Mesh" || PhysicsColliderShape.Trimesh) {
+        const { vertices, indices } = rigidBodyProps as TrimeshRigidBodyProps;
+        const mesh = obj as Mesh;
+
+        let finalIndices;
+
+        if (indices) {
+          finalIndices = indices;
+        } else if (mesh.geometry.index) {
+          finalIndices = mesh.geometry.index!.array;
+        } else {
+          const { count } = mesh.geometry.attributes.position;
+          const arr = new Uint32Array(count);
+          for (let i = 0; i < count; i++) {
+            arr[i] = i;
+          }
+          finalIndices = arr;
+        }
+
+        colliderShape = new Rapier.TriMesh(
+          vertices ||
+            (mesh.geometry.attributes.position!.array as Float32Array),
+          indices || (finalIndices as Uint32Array)
+        );
       } else {
         throw new Error("Unimplemented");
       }
@@ -320,6 +362,7 @@ export async function loadPhysicsSystem(): Promise<System> {
       });
     });
 
+    physicsWorld.timestep = world.dt;
     physicsWorld.step();
 
     physicsRaycasterEntities.forEach((rayCasterEid) => {

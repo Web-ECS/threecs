@@ -75,9 +75,9 @@ export function addPhysicsCharacterControllerComponent(
     eid,
     Object.assign(
       {
-        walkSpeed: 1750,
+        walkSpeed: 2000,
         drag: 250,
-        maxWalkSpeed: 18,
+        maxWalkSpeed: 20,
         jumpForce: 750,
         inAirModifier: 0.5,
         inAirDrag: 100,
