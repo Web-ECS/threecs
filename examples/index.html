@@ -8,7 +8,7 @@
   </head>
   <body>
     <div class="container">
-      <nav className="nav">
+      <nav class="nav">
         <h1>
           <a href=".."> threecs: </a>
         </h1>
@@ -48,12 +48,28 @@
           </a>
         </li>
       </nav>
-      <iframe
-        name="iframe"
-        src="./rotating-cube.html"
-        allow="autoplay"
-        frameborder="0"
-      ></iframe>
+      <iframe name="iframe" allow="autoplay" frameborder="0"></iframe>
     </div>
+    <script>
+      const iframe = document.querySelector("iframe");
+
+      const firstParams = new URLSearchParams(location.search);
+      const firstExample = firstParams.get("example");
+
+      if (firstExample) {
+        iframe.src = `./${firstExample}.html`;
+      } else {
+        iframe.src = "./rotating-cube.html";
+      }
+
+      iframe.addEventListener("load", (e) => {
+        const params = new URLSearchParams(location.search);
+        const [_, exampleName] = iframe.contentWindow.location.pathname.match(
+          /\/examples\/([^.]+)\.html/
+        );
+        params.set("example", exampleName);
+        history.replaceState({}, "", `${location.pathname}?${params}`);
+      });
+    </script>
   </body>
 </html>
