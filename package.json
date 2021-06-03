@@ -22,6 +22,7 @@
   },
   "dependencies": {
     "@dimforge/rapier3d-compat": "^0.5.3",
+    "@pixiv/three-vrm": "^0.6.4",
     "bitecs": "^0.3.2"
   },
   "devDependencies": {
