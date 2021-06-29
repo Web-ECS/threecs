@@ -1,15 +1,12 @@
 name: Build and Deploy To GH Pages
-
 on:
   push:
-    branches: [ main ]
-
-  # Allows you to run this workflow manually from the Actions tab
-  workflow_dispatch:
+    branches:
+      - main
 jobs:
-  build:
+  gh-pages:
+    name: gh-pages
     runs-on: ubuntu-latest
-
     steps:
       - name: Checkout
         uses: actions/checkout@v2
