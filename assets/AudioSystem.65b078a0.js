@@ -14,7 +14,7 @@ var __assign = (a, b) => {
     }
   return a;
 };
-import {d as defineComponent$1, b as addComponent$1, c as defineSystem$1, e as addEntity$1, f as Types$1, g as defineQuery$1, r as removeEntity$1, h as enterQuery$1, i as removeComponent$1, j as Vector2, k as createWorld, S as Scene, P as PerspectiveCamera, W as WebGLRenderer, C as Clock, p as pipe, l as MathUtils, m as rapier, V as Vector3, A as ArrowHelper, Q as Quaternion, O as Object3D, I as InstancedMesh, D as DynamicDrawUsage, M as Mesh, n as AnimationMixer, o as AudioListener, q as Audio, s as PositionalAudio} from "./vendor.706402a0.js";
+import {d as defineComponent$1, b as addComponent$1, c as defineSystem$1, e as addEntity$1, f as Types$1, g as defineQuery$1, r as removeEntity$1, h as enterQuery$1, i as removeComponent$1, j as Vector2, k as createWorld, S as Scene, P as PerspectiveCamera, W as WebGLRenderer, C as Clock, p as pipe, l as MathUtils, m as rapier, V as Vector3, A as ArrowHelper, Q as Quaternion, O as Object3D, I as InstancedMesh, D as DynamicDrawUsage, M as Mesh, n as AnimationMixer, o as AudioListener, q as Audio, s as PositionalAudio} from "./vendor.62f47fd4.js";
 const Types = Types$1;
 const defineQuery = defineQuery$1;
 const addEntity = addEntity$1;
