@@ -54,7 +54,7 @@ export default ({ command, mode }) => {
         },
         minify: false,
         rollupOptions: {
-          external: ["three", /^three\//],
+          external: ["three", /^three\//, "@dimforge/rapier3d-compat"],
         },
         // Use when npm linking bitecs
         // optimizeDeps: {
