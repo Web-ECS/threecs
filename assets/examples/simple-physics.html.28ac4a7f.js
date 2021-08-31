@@ -1,6 +1,6 @@
 import "../styles.9cab3664.js";
-import {T as TextureLoader, M as Mesh, B as BoxGeometry, a as MeshBasicMaterial, v as SphereGeometry} from "../vendor.62f47fd4.js";
-import {l as loadPhysicsSystem, c as createThreeWorld, n as addPhysicsWorldComponent, e as addObject3DEntity, w as addRigidBodyComponent, z as PhysicsBodyStatus} from "../AudioSystem.65b078a0.js";
+import {T as TextureLoader, M as Mesh, B as BoxGeometry, a as MeshBasicMaterial, J as SphereGeometry} from "../vendor.6c76840a.js";
+import {l as loadPhysicsSystem, c as createThreeWorld, n as addPhysicsWorldComponent, e as addObject3DEntity, w as addRigidBodyComponent, R as RigidBodyType} from "../AudioSystem.3f2ec82b.js";
 import {c as crateTextureUrl} from "../crate.9cc70004.js";
 async function main() {
   const PhysicsSystem = await loadPhysicsSystem();
@@ -15,7 +15,7 @@ async function main() {
   const cubeEid = addObject3DEntity(world, cube, scene);
   cube.position.set(0.35, 2, 0.25);
   addRigidBodyComponent(world, cubeEid, {
-    bodyStatus: PhysicsBodyStatus.Dynamic
+    bodyType: RigidBodyType.Dynamic
   });
   const sphere = new Mesh(new SphereGeometry(1, 10, 10), new MeshBasicMaterial({color: 16711680}));
   const sphereEid = addObject3DEntity(world, sphere, scene);

@@ -1,6 +1,6 @@
 import "../styles.9cab3664.js";
-import {T as TextureLoader, a as MeshBasicMaterial, B as BoxGeometry, M as Mesh, v as SphereGeometry} from "../vendor.62f47fd4.js";
-import {l as loadPhysicsSystem, c as createThreeWorld, I as InstancedMeshRendererSystem, n as addPhysicsWorldComponent, C as addInstancedMeshRendererEntity, D as addInstancedMeshImposterEntity, w as addRigidBodyComponent, z as PhysicsBodyStatus, e as addObject3DEntity} from "../AudioSystem.65b078a0.js";
+import {T as TextureLoader, a as MeshBasicMaterial, B as BoxGeometry, M as Mesh, J as SphereGeometry} from "../vendor.6c76840a.js";
+import {l as loadPhysicsSystem, c as createThreeWorld, I as InstancedMeshRendererSystem, n as addPhysicsWorldComponent, z as addInstancedMeshRendererEntity, C as addInstancedMeshImposterEntity, w as addRigidBodyComponent, R as RigidBodyType, e as addObject3DEntity} from "../AudioSystem.3f2ec82b.js";
 import {c as crateTextureUrl} from "../crate.9cc70004.js";
 function benchmark(system, count = 500) {
   const times = [];
@@ -44,7 +44,7 @@ async function main() {
     cube.position.x = i % 10 - 5;
     cube.rotation.set(0.35, 0, 0.25);
     addRigidBodyComponent(world, cubeEid, {
-      bodyStatus: PhysicsBodyStatus.Dynamic
+      bodyType: RigidBodyType.Dynamic
     });
   }
   const sphere = new Mesh(new SphereGeometry(1, 10, 10), new MeshBasicMaterial({color: 16711680}));

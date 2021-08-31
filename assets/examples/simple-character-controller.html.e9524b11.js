@@ -1,6 +1,6 @@
 import "../styles.9cab3664.js";
-import {O as Object3D, T as TextureLoader, M as Mesh, B as BoxGeometry, a as MeshBasicMaterial} from "../vendor.62f47fd4.js";
-import {c as createThreeWorld, F as FirstPersonCameraSystem, E as DirectionalMovementSystem, k as FirstPersonCameraActions, m as ActionType, B as BindingType, G as DirectionalMovementActions, e as addObject3DEntity, g as addComponent, J as DirectionalMovementComponent, p as FirstPersonCameraYawTarget, q as FirstPersonCameraPitchTarget} from "../AudioSystem.65b078a0.js";
+import {O as Object3D, T as TextureLoader, M as Mesh, B as BoxGeometry, a as MeshBasicMaterial} from "../vendor.6c76840a.js";
+import {c as createThreeWorld, F as FirstPersonCameraSystem, D as DirectionalMovementSystem, k as FirstPersonCameraActions, m as ActionType, B as BindingType, E as DirectionalMovementActions, e as addObject3DEntity, g as addComponent, H as DirectionalMovementComponent, p as FirstPersonCameraYawTarget, q as FirstPersonCameraPitchTarget} from "../AudioSystem.3f2ec82b.js";
 import {c as crateTextureUrl} from "../crate.9cc70004.js";
 const {world, scene, camera, cameraEid, start} = createThreeWorld({
   pointerLock: true,

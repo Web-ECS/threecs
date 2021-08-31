@@ -27,8 +27,8 @@ var __rest = (source, exclude) => {
   return target;
 };
 import "../styles.9cab3664.js";
-import {t as ACESFilmicToneMapping, u as sRGBEncoding, o as AudioListener, G as GLTFLoader} from "../vendor.62f47fd4.js";
-import {l as loadPhysicsSystem, b as defineComponent, s as singletonQuery, h as defineQuery, a as defineSystem, P as PhysicsCharacterControllerActions, O as Object3DComponent, c as createThreeWorld, F as FirstPersonCameraSystem, i as PhysicsCharacterControllerSystem, A as AnimationSystem, j as AudioSystem, k as FirstPersonCameraActions, m as ActionType, B as BindingType, n as addPhysicsWorldComponent, o as addPhysicsCharacterControllerEntity, g as addComponent, p as FirstPersonCameraYawTarget, q as FirstPersonCameraPitchTarget, t as addAudioListenerComponent, e as addObject3DEntity, u as addAnimationClipsComponent, v as addAudioSourceComponent, w as addRigidBodyComponent, x as PhysicsColliderShape, y as addAnimationMixerComponent} from "../AudioSystem.65b078a0.js";
+import {E as ACESFilmicToneMapping, F as sRGBEncoding, w as AudioListener, G as GLTFLoader} from "../vendor.6c76840a.js";
+import {l as loadPhysicsSystem, b as defineComponent, s as singletonQuery, h as defineQuery, a as defineSystem, P as PhysicsCharacterControllerActions, O as Object3DComponent, c as createThreeWorld, F as FirstPersonCameraSystem, i as PhysicsCharacterControllerSystem, A as AnimationSystem, j as AudioSystem, k as FirstPersonCameraActions, m as ActionType, B as BindingType, n as addPhysicsWorldComponent, o as addPhysicsCharacterControllerEntity, g as addComponent, p as FirstPersonCameraYawTarget, q as FirstPersonCameraPitchTarget, t as addAudioListenerComponent, e as addObject3DEntity, u as addAnimationClipsComponent, v as addAudioSourceComponent, w as addRigidBodyComponent, x as PhysicsColliderShape, y as addAnimationMixerComponent} from "../AudioSystem.3f2ec82b.js";
 async function main() {
   const PhysicsSystem = await loadPhysicsSystem();
   const CrouchMeshTarget = defineComponent({});
