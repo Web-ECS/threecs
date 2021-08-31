@@ -57,7 +57,7 @@ export enum PhysicsColliderShape {
   Trimesh = "Trimesh",
 }
 
-export const PhysicsBodyStatus = Rapier.BodyStatus;
+export const RigidBodyType = Rapier.RigidBodyType;
 
 export enum PhysicsGroups {
   None = 0,
@@ -77,7 +77,7 @@ interface RigidBodyProps {
   translation: Vector3;
   rotation: Quaternion;
   shape?: PhysicsColliderShape;
-  bodyStatus: Rapier.BodyStatus;
+  bodyType: Rapier.RigidBodyType;
   solverGroups: number;
   collisionGroups: number;
   lockRotations: boolean;
@@ -95,8 +95,9 @@ interface TrimeshRigidBodyProps extends RigidBodyProps {
   vertices?: Float32Array;
 }
 
-export const RigidBodyComponent =
-  defineMapComponent<CapsuleRigidBodyProps | RigidBodyProps>();
+export const RigidBodyComponent = defineMapComponent<
+  CapsuleRigidBodyProps | RigidBodyProps
+>();
 
 export function addRigidBodyComponent(
   world: World,
@@ -107,10 +108,10 @@ export function addRigidBodyComponent(
     translation: props.translation || new Vector3(),
     rotation: props.rotation || new Quaternion(),
     shape: props.shape,
-    bodyStatus:
-      props.bodyStatus === undefined
-        ? Rapier.BodyStatus.Static
-        : props.bodyStatus,
+    bodyType:
+      props.bodyType === undefined
+        ? Rapier.RigidBodyType.Static
+        : props.bodyType,
     solverGroups:
       props.solverGroups === undefined
         ? PhysicsInteractionGroups.Default
@@ -274,7 +275,7 @@ export async function loadPhysicsSystem(): Promise<System> {
       obj.getWorldPosition(tempVec3);
       obj.getWorldQuaternion(tempQuat);
 
-      const rigidBodyDesc = new Rapier.RigidBodyDesc(rigidBodyProps.bodyStatus);
+      const rigidBodyDesc = new Rapier.RigidBodyDesc(rigidBodyProps.bodyType);
 
       rigidBodyDesc.setRotation(tempQuat.clone());
       rigidBodyDesc.setTranslation(tempVec3.x, tempVec3.y, tempVec3.z);

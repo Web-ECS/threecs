@@ -18,7 +18,7 @@ import {
   createInteractionGroup,
   PhysicsGroups,
   InternalPhysicsWorldComponent,
-  PhysicsBodyStatus,
+  RigidBodyType,
   PhysicsColliderShape,
 } from "./PhysicsSystem";
 
@@ -118,7 +118,7 @@ export function addPhysicsCharacterControllerEntity(
   const playerRigEid = addObject3DEntity(world, playerRig, scene);
   addPhysicsCharacterControllerComponent(world, playerRigEid);
   addRigidBodyComponent(world, playerRigEid, {
-    bodyStatus: PhysicsBodyStatus.Dynamic,
+    bodyType: RigidBodyType.Dynamic,
     shape: PhysicsColliderShape.Capsule,
     halfHeight: 0.8,
     radius: 0.5,
@@ -234,7 +234,6 @@ export const PhysicsCharacterControllerSystem = defineSystem(
       shapeCastRotation.copy(obj.quaternion).multiply(shapeRotationOffset);
 
       const shapeCastResult = physicsWorld.castShape(
-        physicsWorld.colliders,
         shapeCastPosition,
         shapeCastRotation,
         physicsWorld.gravity,

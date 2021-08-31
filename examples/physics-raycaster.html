@@ -36,7 +36,7 @@
         DirectionalMovementSystem,
         DirectionalMovementActions,
         DirectionalMovementComponent,
-        PhysicsBodyStatus,
+        RigidBodyType,
         PhysicsColliderShape,
         defineSystem,
         defineQuery,
@@ -113,7 +113,7 @@
         const cubeEid = addObject3DEntity(world, cube, scene);
         cube.position.set(0.35, 2, 0.25);
         addRigidBodyComponent(world, cubeEid, {
-          bodyStatus: PhysicsBodyStatus.Dynamic,
+          bodyType: RigidBodyType.Dynamic,
         });
 
         const sphere = new Mesh(
