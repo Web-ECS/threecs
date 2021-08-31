@@ -1,0 +1,7 @@
+diff --git a/node_modules/@dimforge/rapier3d-compat/raw.d.ts b/node_modules/@dimforge/rapier3d-compat/raw.d.ts
+index 07c67db..b665b24 100644
+--- a/node_modules/@dimforge/rapier3d-compat/raw.d.ts
++++ b/node_modules/@dimforge/rapier3d-compat/raw.d.ts
+@@ -1 +1 @@
+-export * from "../pkg3d/rapier_wasm3d";
++export * from "./rapier_wasm3d";
