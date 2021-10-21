@@ -1,8 +1,7 @@
-import "../styles.9cab3664.js";
-import {O as Object3D, T as TextureLoader, M as Mesh, B as BoxGeometry, a as MeshBasicMaterial} from "../vendor.6c76840a.js";
-import {c as createThreeWorld, F as FirstPersonCameraSystem, D as DirectionalMovementSystem, k as FirstPersonCameraActions, m as ActionType, B as BindingType, E as DirectionalMovementActions, e as addObject3DEntity, g as addComponent, H as DirectionalMovementComponent, p as FirstPersonCameraYawTarget, q as FirstPersonCameraPitchTarget} from "../AudioSystem.3f2ec82b.js";
-import {c as crateTextureUrl} from "../crate.9cc70004.js";
-const {world, scene, camera, cameraEid, start} = createThreeWorld({
+import { c as createThreeWorld, F as FirstPersonCameraSystem, D as DirectionalMovementSystem, j as FirstPersonCameraActions, k as ActionType, B as BindingType, E as DirectionalMovementActions, e as addObject3DEntity, g as addComponent, H as DirectionalMovementComponent, p as FirstPersonCameraYawTarget, q as FirstPersonCameraPitchTarget } from "../AudioSystem.d48bdf87.js";
+/* empty css                  */import { O as Object3D, T as TextureLoader, M as Mesh, B as BoxGeometry, a as MeshBasicMaterial } from "../vendor.b601bcc0.js";
+import { c as crateTextureUrl } from "../crate.9cc70004.js";
+const { world, scene, camera, cameraEid, start } = createThreeWorld({
   pointerLock: true,
   systems: [FirstPersonCameraSystem, DirectionalMovementSystem],
   actionMaps: [
@@ -49,7 +48,7 @@ playerRig.position.z = 5;
 playerRig.position.y = 0.5;
 camera.position.y = 1.6;
 const crateTexture = new TextureLoader().load(crateTextureUrl);
-const cube = new Mesh(new BoxGeometry(), new MeshBasicMaterial({map: crateTexture}));
+const cube = new Mesh(new BoxGeometry(), new MeshBasicMaterial({ map: crateTexture }));
 addObject3DEntity(world, cube, scene);
 cube.position.y = 0.5;
 const ground = new Mesh(new BoxGeometry(10, 0.1, 10), new MeshBasicMaterial());

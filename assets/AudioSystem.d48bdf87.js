@@ -1,9 +1,9 @@
 var __defProp = Object.defineProperty;
-var __hasOwnProp = Object.prototype.hasOwnProperty;
 var __getOwnPropSymbols = Object.getOwnPropertySymbols;
+var __hasOwnProp = Object.prototype.hasOwnProperty;
 var __propIsEnum = Object.prototype.propertyIsEnumerable;
-var __defNormalProp = (obj, key, value) => key in obj ? __defProp(obj, key, {enumerable: true, configurable: true, writable: true, value}) : obj[key] = value;
-var __assign = (a, b) => {
+var __defNormalProp = (obj, key, value) => key in obj ? __defProp(obj, key, { enumerable: true, configurable: true, writable: true, value }) : obj[key] = value;
+var __spreadValues = (a, b) => {
   for (var prop in b || (b = {}))
     if (__hasOwnProp.call(b, prop))
       __defNormalProp(a, prop, b[prop]);
@@ -14,7 +14,53 @@ var __assign = (a, b) => {
     }
   return a;
 };
-import {d as defineComponent$1, b as addComponent$1, c as defineSystem$1, e as addEntity$1, f as Types$1, g as defineQuery$1, r as removeEntity$1, h as enterQuery$1, i as removeComponent$1, j as Vector2, k as createWorld, S as Scene, P as PerspectiveCamera, W as WebGLRenderer, C as Clock, p as pipe, l as MathUtils, m as BI, n as iA, V as Vector3, o as pA, q as dA, u as uA, z as zA, A as ArrowHelper, $, Q as Quaternion, s as MI, H as HA, t as TA, O as Object3D, I as InstancedMesh, D as DynamicDrawUsage, M as Mesh, v as AnimationMixer, w as AudioListener, x as Audio, y as PositionalAudio} from "./vendor.6c76840a.js";
+var __publicField = (obj, key, value) => {
+  __defNormalProp(obj, typeof key !== "symbol" ? key + "" : key, value);
+  return value;
+};
+import { d as defineQuery$1, b as defineComponent$1, c as addComponent$1, e as Types$1, f as addEntity$1, g as defineSystem$1, r as removeEntity$1, h as enterQuery$1, i as removeComponent$1, j as Vector2, k as createWorld, S as Scene, P as PerspectiveCamera, W as WebGLRenderer, C as Clock, p as pipe, l as MathUtils, V as Vector3, $, Q as Quaternion, F as FI, m as BI, n as iA, o as pA, Z as ZA, u as uA, z as zA, A as ArrowHelper, H as HA, q as TA, O as Object3D, M as Mesh, I as InstancedMesh, D as DynamicDrawUsage, s as AnimationMixer, t as AudioListener, v as Audio, w as PositionalAudio } from "./vendor.b601bcc0.js";
+const p = function polyfill() {
+  const relList = document.createElement("link").relList;
+  if (relList && relList.supports && relList.supports("modulepreload")) {
+    return;
+  }
+  for (const link of document.querySelectorAll('link[rel="modulepreload"]')) {
+    processPreload(link);
+  }
+  new MutationObserver((mutations) => {
+    for (const mutation of mutations) {
+      if (mutation.type !== "childList") {
+        continue;
+      }
+      for (const node of mutation.addedNodes) {
+        if (node.tagName === "LINK" && node.rel === "modulepreload")
+          processPreload(node);
+      }
+    }
+  }).observe(document, { childList: true, subtree: true });
+  function getFetchOpts(script) {
+    const fetchOpts = {};
+    if (script.integrity)
+      fetchOpts.integrity = script.integrity;
+    if (script.referrerpolicy)
+      fetchOpts.referrerPolicy = script.referrerpolicy;
+    if (script.crossorigin === "use-credentials")
+      fetchOpts.credentials = "include";
+    else if (script.crossorigin === "anonymous")
+      fetchOpts.credentials = "omit";
+    else
+      fetchOpts.credentials = "same-origin";
+    return fetchOpts;
+  }
+  function processPreload(link) {
+    if (link.ep)
+      return;
+    link.ep = true;
+    const fetchOpts = getFetchOpts(link);
+    fetch(link.href, fetchOpts);
+  }
+};
+p();
 const Types = Types$1;
 const defineQuery = defineQuery$1;
 const addEntity = addEntity$1;
@@ -130,7 +176,7 @@ var BindingType;
 })(BindingType || (BindingType = {}));
 const ActionTypesToBindings = {
   [ActionType.Button]: {
-    create: () => ({pressed: false, released: false, held: false}),
+    create: () => ({ pressed: false, released: false, held: false }),
     bindings: {
       [BindingType.Button]: (path, bindingDef, input, actions) => {
         const state = input.get(bindingDef.path);
@@ -145,12 +191,12 @@ const ActionTypesToBindings = {
     create: () => new Vector2(),
     bindings: {
       [BindingType.Axes]: (path, bindingDef, input, actions) => {
-        const {x, y} = bindingDef;
+        const { x, y } = bindingDef;
         const value = actions.get(path);
         value.set(input.get(x) || 0, input.get(y) || 0);
       },
       [BindingType.DirectionalButtons]: (path, bindingDef, input, actions) => {
-        const {up, down, left, right} = bindingDef;
+        const { up, down, left, right } = bindingDef;
         let x = 0;
         let y = 0;
         if (input.get(up)) {
@@ -216,7 +262,7 @@ function createThreeWorld(options = {}) {
   const cameraEid = addObject3DEntity(world, camera, scene);
   addComponent(world, CameraComponent, cameraEid);
   const rendererEid = addEntity(world);
-  const renderer = new WebGLRenderer(__assign({
+  const renderer = new WebGLRenderer(__spreadValues({
     antialias: true
   }, rendererParameters));
   renderer.setPixelRatio(window.devicePixelRatio);
@@ -253,8 +299,8 @@ function createThreeWorld(options = {}) {
     }
   });
   if (typeof window.__THREE_DEVTOOLS__ !== "undefined") {
-    window.__THREE_DEVTOOLS__.dispatchEvent(new CustomEvent("observe", {detail: scene}));
-    window.__THREE_DEVTOOLS__.dispatchEvent(new CustomEvent("observe", {detail: renderer}));
+    window.__THREE_DEVTOOLS__.dispatchEvent(new CustomEvent("observe", { detail: scene }));
+    window.__THREE_DEVTOOLS__.dispatchEvent(new CustomEvent("observe", { detail: renderer }));
   }
   const clock = new Clock();
   const pipeline = pipe(ActionMappingSystem, ...systems, RendererSystem, ...afterRenderSystems);
@@ -440,7 +486,7 @@ const physicsRaycasterQuery = defineQuery([PhysicsRaycasterComponent]);
 const newPhysicsRaycastersQuery = enterQuery(physicsRaycasterQuery);
 const InternalPhysicsRaycasterComponent = defineMapComponent();
 async function loadPhysicsSystem() {
-  await MI();
+  await FI();
   const tempVec3 = new Vector3();
   const tempQuat = new Quaternion();
   return defineSystem(function PhysicsSystem(world) {
@@ -462,7 +508,7 @@ async function loadPhysicsSystem() {
       return;
     }
     const internalPhysicsWorldComponent = InternalPhysicsWorldComponent.storage.get(physicsWorldEid);
-    const {physicsWorld, colliderHandleToEntityMap} = internalPhysicsWorldComponent;
+    const { physicsWorld, colliderHandleToEntityMap } = internalPhysicsWorldComponent;
     newRigidBodyEntities.forEach((rigidBodyEid) => {
       const obj = Object3DComponent.storage.get(rigidBodyEid);
       const rigidBodyProps = RigidBodyComponent.storage.get(rigidBodyEid);
@@ -490,10 +536,10 @@ async function loadPhysicsSystem() {
         const radius = geometry.boundingSphere.radius;
         colliderShape = new HA(radius);
       } else if (rigidBodyProps.shape === PhysicsColliderShape.Capsule) {
-        const {radius, halfHeight} = rigidBodyProps;
+        const { radius, halfHeight } = rigidBodyProps;
         colliderShape = new TA(halfHeight, radius);
       } else if (geometryType === "Mesh" || PhysicsColliderShape.Trimesh) {
-        const {vertices, indices} = rigidBodyProps;
+        const { vertices, indices } = rigidBodyProps;
         const mesh = obj;
         let finalIndices;
         if (indices) {
@@ -501,14 +547,14 @@ async function loadPhysicsSystem() {
         } else if (mesh.geometry.index) {
           finalIndices = mesh.geometry.index.array;
         } else {
-          const {count} = mesh.geometry.attributes.position;
+          const { count } = mesh.geometry.attributes.position;
           const arr = new Uint32Array(count);
           for (let i = 0; i < count; i++) {
             arr[i] = i;
           }
           finalIndices = arr;
         }
-        colliderShape = new dA(vertices || mesh.geometry.attributes.position.array, indices || finalIndices);
+        colliderShape = new ZA(vertices || mesh.geometry.attributes.position.array, indices || finalIndices);
       } else {
         throw new Error("Unimplemented");
       }
@@ -593,8 +639,8 @@ async function loadPhysicsSystem() {
     });
     rigidBodyEntities.forEach((rigidBodyEid) => {
       const obj = Object3DComponent.storage.get(rigidBodyEid);
-      const {lockRotations} = RigidBodyComponent.storage.get(rigidBodyEid);
-      const {body} = InternalRigidBodyComponent.storage.get(rigidBodyEid);
+      const { lockRotations } = RigidBodyComponent.storage.get(rigidBodyEid);
+      const { body } = InternalRigidBodyComponent.storage.get(rigidBodyEid);
       if (body.isDynamic()) {
         const translation = body.translation();
         const rotation = body.rotation();
@@ -724,7 +770,7 @@ const PhysicsCharacterControllerSystem = defineSystem(function PhysicsCharacterC
       translation: shapeTranslationOffset,
       rotation: shapeRotationOffset
     } = RigidBodyComponent.storage.get(eid);
-    const {body, colliderShape} = InternalRigidBodyComponent.storage.get(eid);
+    const { body, colliderShape } = InternalRigidBodyComponent.storage.get(eid);
     body.setRotation(obj.quaternion, true);
     linearVelocity.copy(body.linvel());
     shapeCastPosition.copy(obj.position).add(shapeTranslationOffset);
@@ -779,6 +825,8 @@ class InstancedMeshImposter extends Mesh {
 class InstancedMeshRenderer extends InstancedMesh {
   constructor(geometry, material, maxInstances = 100) {
     super(geometry, material, maxInstances);
+    __publicField(this, "instances");
+    __publicField(this, "isInstancedMeshRenderer");
     this.instanceMatrix.setUsage(DynamicDrawUsage);
     this.isInstancedMeshRenderer = true;
     this.instances = [];
@@ -868,8 +916,8 @@ const AnimationSystem = defineSystem(function AnimationSystem2(world) {
     });
   });
   animationMixerEntities.forEach((eid) => {
-    const {state} = AnimationMixerComponent.storage.get(eid);
-    const {mixer, actions, playingActions} = InternalAnimationMixerComponent.storage.get(eid);
+    const { state } = AnimationMixerComponent.storage.get(eid);
+    const { mixer, actions, playingActions } = InternalAnimationMixerComponent.storage.get(eid);
     AnimationClipsComponent.storage.get(eid);
     state.forEach((clipState) => {
       const action = actions[clipState.index];
@@ -952,7 +1000,7 @@ const AudioSystem = defineSystem(function AudioSystem2(world) {
       audioSource.setMediaElementSource(el2);
       obj.add(audioSource);
     }
-    const {src, volume, loop, autoPlay} = audioSourceProps;
+    const { src, volume, loop, autoPlay } = audioSourceProps;
     if (audioSourceProps.audioType === AudioSourceType.PannerNode) {
       const {
         coneInnerAngle,
@@ -996,4 +1044,4 @@ const AudioSystem = defineSystem(function AudioSystem2(world) {
     }
   });
 });
-export {AnimationSystem as A, BindingType as B, addInstancedMeshImposterEntity as C, DirectionalMovementSystem as D, DirectionalMovementActions as E, FirstPersonCameraSystem as F, addPhysicsRaycasterComponent as G, DirectionalMovementComponent as H, InstancedMeshRendererSystem as I, Object3DComponent as O, PhysicsCharacterControllerActions as P, RigidBodyType as R, Types as T, defineSystem as a, defineComponent as b, createThreeWorld as c, defineMapComponent as d, addObject3DEntity as e, addMapComponent as f, addComponent as g, defineQuery as h, PhysicsCharacterControllerSystem as i, AudioSystem as j, FirstPersonCameraActions as k, loadPhysicsSystem as l, ActionType as m, addPhysicsWorldComponent as n, addPhysicsCharacterControllerEntity as o, FirstPersonCameraYawTarget as p, FirstPersonCameraPitchTarget as q, removeObject3DEntity as r, singletonQuery as s, addAudioListenerComponent as t, addAnimationClipsComponent as u, addAudioSourceComponent as v, addRigidBodyComponent as w, PhysicsColliderShape as x, addAnimationMixerComponent as y, addInstancedMeshRendererEntity as z};
+export { AnimationSystem as A, BindingType as B, addInstancedMeshImposterEntity as C, DirectionalMovementSystem as D, DirectionalMovementActions as E, FirstPersonCameraSystem as F, addPhysicsRaycasterComponent as G, DirectionalMovementComponent as H, InstancedMeshRendererSystem as I, Object3DComponent as O, PhysicsCharacterControllerSystem as P, RigidBodyType as R, Types as T, defineQuery as a, defineComponent as b, createThreeWorld as c, defineMapComponent as d, addObject3DEntity as e, addMapComponent as f, addComponent as g, defineSystem as h, AudioSystem as i, FirstPersonCameraActions as j, ActionType as k, loadPhysicsSystem as l, PhysicsCharacterControllerActions as m, addPhysicsWorldComponent as n, addPhysicsCharacterControllerEntity as o, FirstPersonCameraYawTarget as p, FirstPersonCameraPitchTarget as q, removeObject3DEntity as r, singletonQuery as s, addAudioListenerComponent as t, addAnimationClipsComponent as u, addAudioSourceComponent as v, addRigidBodyComponent as w, PhysicsColliderShape as x, addAnimationMixerComponent as y, addInstancedMeshRendererEntity as z };

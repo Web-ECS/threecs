@@ -1,7 +1,6 @@
-import "../styles.9cab3664.js";
-import {T as TextureLoader, M as Mesh, B as BoxGeometry, a as MeshBasicMaterial, J as SphereGeometry, R as RepeatWrapping} from "../vendor.6c76840a.js";
-import {l as loadPhysicsSystem, b as defineComponent, a as defineSystem, P as PhysicsCharacterControllerActions, O as Object3DComponent, c as createThreeWorld, F as FirstPersonCameraSystem, i as PhysicsCharacterControllerSystem, k as FirstPersonCameraActions, m as ActionType, B as BindingType, n as addPhysicsWorldComponent, o as addPhysicsCharacterControllerEntity, g as addComponent, e as addObject3DEntity, w as addRigidBodyComponent, R as RigidBodyType, s as singletonQuery, h as defineQuery, p as FirstPersonCameraYawTarget, q as FirstPersonCameraPitchTarget} from "../AudioSystem.3f2ec82b.js";
-import {c as crateTextureUrl} from "../crate.9cc70004.js";
+import { l as loadPhysicsSystem, b as defineComponent, s as singletonQuery, a as defineQuery, c as createThreeWorld, F as FirstPersonCameraSystem, P as PhysicsCharacterControllerSystem, j as FirstPersonCameraActions, k as ActionType, B as BindingType, m as PhysicsCharacterControllerActions, n as addPhysicsWorldComponent, o as addPhysicsCharacterControllerEntity, g as addComponent, e as addObject3DEntity, w as addRigidBodyComponent, R as RigidBodyType, O as Object3DComponent, h as defineSystem, p as FirstPersonCameraYawTarget, q as FirstPersonCameraPitchTarget } from "../AudioSystem.d48bdf87.js";
+/* empty css                  */import { T as TextureLoader, M as Mesh, B as BoxGeometry, a as MeshBasicMaterial, E as SphereGeometry, R as RepeatWrapping } from "../vendor.b601bcc0.js";
+import { c as crateTextureUrl } from "../crate.9cc70004.js";
 var grassTextureUrl = "/threecs/assets/grass.e6dfe2a4.png";
 async function main() {
   const PhysicsSystem = await loadPhysicsSystem();
@@ -28,7 +27,7 @@ async function main() {
       camera2.position.y = 1.6;
     }
   });
-  const {world, scene, sceneEid, camera, cameraEid, start} = createThreeWorld({
+  const { world, scene, sceneEid, camera, cameraEid, start } = createThreeWorld({
     pointerLock: true,
     systems: [
       FirstPersonCameraSystem,
@@ -113,17 +112,17 @@ async function main() {
   playerRig.position.set(0, 0.1, 5);
   camera.position.set(0, 1.6, 0);
   const crateTexture = new TextureLoader().load(crateTextureUrl);
-  const cube = new Mesh(new BoxGeometry(1, 1, 1), new MeshBasicMaterial({map: crateTexture}));
+  const cube = new Mesh(new BoxGeometry(1, 1, 1), new MeshBasicMaterial({ map: crateTexture }));
   const cubeEid = addObject3DEntity(world, cube, scene);
   cube.position.set(0.35, 2, 0.25);
   addRigidBodyComponent(world, cubeEid, {
     bodyType: RigidBodyType.Dynamic
   });
-  const sphere = new Mesh(new SphereGeometry(1, 10, 10), new MeshBasicMaterial({color: 16711680}));
+  const sphere = new Mesh(new SphereGeometry(1, 10, 10), new MeshBasicMaterial({ color: 16711680 }));
   const sphereEid = addObject3DEntity(world, sphere, scene);
   sphere.position.set(0, 0.25, -0.5);
   addRigidBodyComponent(world, sphereEid);
-  const wall = new Mesh(new BoxGeometry(2, 3, 0.5), new MeshBasicMaterial({color: 65280}));
+  const wall = new Mesh(new BoxGeometry(2, 3, 0.5), new MeshBasicMaterial({ color: 65280 }));
   const wallEid = addObject3DEntity(world, wall, scene);
   wall.position.set(-3, 1.5, -1);
   wall.rotation.set(0, Math.PI / 4, 0);
@@ -131,7 +130,7 @@ async function main() {
   const grassTexture = new TextureLoader().load(grassTextureUrl);
   grassTexture.wrapS = grassTexture.wrapT = RepeatWrapping;
   grassTexture.repeat.set(10, 10);
-  const ground = new Mesh(new BoxGeometry(100, 0.1, 100), new MeshBasicMaterial({map: grassTexture}));
+  const ground = new Mesh(new BoxGeometry(100, 0.1, 100), new MeshBasicMaterial({ map: grassTexture }));
   const groundEid = addObject3DEntity(world, ground, scene);
   addRigidBodyComponent(world, groundEid);
   start();

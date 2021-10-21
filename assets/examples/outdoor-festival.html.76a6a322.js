@@ -1,9 +1,9 @@
 var __defProp = Object.defineProperty;
-var __hasOwnProp = Object.prototype.hasOwnProperty;
 var __getOwnPropSymbols = Object.getOwnPropertySymbols;
+var __hasOwnProp = Object.prototype.hasOwnProperty;
 var __propIsEnum = Object.prototype.propertyIsEnumerable;
-var __defNormalProp = (obj, key, value) => key in obj ? __defProp(obj, key, {enumerable: true, configurable: true, writable: true, value}) : obj[key] = value;
-var __assign = (a, b) => {
+var __defNormalProp = (obj, key, value) => key in obj ? __defProp(obj, key, { enumerable: true, configurable: true, writable: true, value }) : obj[key] = value;
+var __spreadValues = (a, b) => {
   for (var prop in b || (b = {}))
     if (__hasOwnProp.call(b, prop))
       __defNormalProp(a, prop, b[prop]);
@@ -14,7 +14,7 @@ var __assign = (a, b) => {
     }
   return a;
 };
-var __rest = (source, exclude) => {
+var __objRest = (source, exclude) => {
   var target = {};
   for (var prop in source)
     if (__hasOwnProp.call(source, prop) && exclude.indexOf(prop) < 0)
@@ -26,9 +26,8 @@ var __rest = (source, exclude) => {
     }
   return target;
 };
-import "../styles.9cab3664.js";
-import {E as ACESFilmicToneMapping, F as sRGBEncoding, w as AudioListener, G as GLTFLoader} from "../vendor.6c76840a.js";
-import {l as loadPhysicsSystem, b as defineComponent, s as singletonQuery, h as defineQuery, a as defineSystem, P as PhysicsCharacterControllerActions, O as Object3DComponent, c as createThreeWorld, F as FirstPersonCameraSystem, i as PhysicsCharacterControllerSystem, A as AnimationSystem, j as AudioSystem, k as FirstPersonCameraActions, m as ActionType, B as BindingType, n as addPhysicsWorldComponent, o as addPhysicsCharacterControllerEntity, g as addComponent, p as FirstPersonCameraYawTarget, q as FirstPersonCameraPitchTarget, t as addAudioListenerComponent, e as addObject3DEntity, u as addAnimationClipsComponent, v as addAudioSourceComponent, w as addRigidBodyComponent, x as PhysicsColliderShape, y as addAnimationMixerComponent} from "../AudioSystem.3f2ec82b.js";
+import { l as loadPhysicsSystem, b as defineComponent, s as singletonQuery, a as defineQuery, O as Object3DComponent, c as createThreeWorld, F as FirstPersonCameraSystem, P as PhysicsCharacterControllerSystem, A as AnimationSystem, i as AudioSystem, j as FirstPersonCameraActions, k as ActionType, B as BindingType, m as PhysicsCharacterControllerActions, n as addPhysicsWorldComponent, o as addPhysicsCharacterControllerEntity, g as addComponent, p as FirstPersonCameraYawTarget, q as FirstPersonCameraPitchTarget, t as addAudioListenerComponent, e as addObject3DEntity, u as addAnimationClipsComponent, v as addAudioSourceComponent, w as addRigidBodyComponent, x as PhysicsColliderShape, y as addAnimationMixerComponent, h as defineSystem } from "../AudioSystem.d48bdf87.js";
+/* empty css                  */import { x as ACESFilmicToneMapping, y as sRGBEncoding, t as AudioListener, G as GLTFLoader } from "../vendor.b601bcc0.js";
 async function main() {
   const PhysicsSystem = await loadPhysicsSystem();
   const CrouchMeshTarget = defineComponent({});
@@ -54,7 +53,7 @@ async function main() {
       camera2.position.y = 1.6;
     }
   });
-  const {world, scene, sceneEid, camera, cameraEid, renderer, start} = createThreeWorld({
+  const { world, scene, sceneEid, camera, cameraEid, renderer, start } = createThreeWorld({
     pointerLock: true,
     systems: [
       FirstPersonCameraSystem,
@@ -150,7 +149,7 @@ async function main() {
     scene: gltfScene,
     animations,
     parser: {
-      options: {path: gltfPath}
+      options: { path: gltfPath }
     }
   } = await new GLTFLoader().loadAsync("../outdoor-festival/OutdoorFestival.glb");
   const gltfRootPath = new URL(gltfPath, window.location).href;
@@ -166,7 +165,7 @@ async function main() {
         child.visible = components["visible"].visible;
       }
       if (components["loop-animation"]) {
-        const {activeClipIndices} = components["loop-animation"];
+        const { activeClipIndices } = components["loop-animation"];
         for (const index of activeClipIndices) {
           animationMixerState.push({
             index,
@@ -175,8 +174,8 @@ async function main() {
         }
       }
       if (components["audio"]) {
-        const _b = components["audio"], {src} = _b, rest = __rest(_b, ["src"]);
-        addAudioSourceComponent(world, eid, __assign({
+        const _b = components["audio"], { src } = _b, rest = __objRest(_b, ["src"]);
+        addAudioSourceComponent(world, eid, __spreadValues({
           src: new URL(src, gltfRootPath).href
         }, rest));
       }
