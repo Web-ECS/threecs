@@ -18,19 +18,17 @@
     "build": "vite build",
     "build:types": "tsc --declaration --noEmit false --emitDeclarationOnly --strict false --outDir ./dist",
     "build-site": "vite build --mode site",
-    "preview-site": "vite preview",
-    "postinstall": "patch-package"
+    "preview-site": "vite preview"
   },
   "dependencies": {
-    "@dimforge/rapier3d-compat": "^0.7.2",
-    "bitecs": "^0.3.2",
-    "patch-package": "^6.4.7"
+    "@dimforge/rapier3d-compat": "^0.7.6",
+    "bitecs": "^0.3.24"
   },
   "devDependencies": {
-    "@types/three": "^0.127.1",
-    "three": "^0.127.0",
-    "typescript": "^4.2.4",
-    "vite": "^2.1.5"
+    "@types/three": "^0.133.1",
+    "three": "^0.133.1",
+    "typescript": "^4.4.4",
+    "vite": "^2.6.10"
   },
   "peerDependencies": {
     "three": ">= 0.127.0"
