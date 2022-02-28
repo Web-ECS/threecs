@@ -41,11 +41,24 @@ export default ({ command, mode }) => {
         rollupOptions: {
           input: getHtmlPaths(),
         },
+        optimizeDeps: {
+          exclude: ["three"],
+        },
+      },
+      resolve: {
+        dedupe: [
+          "three",
+        ],
       },
       publicDir: path.join(__dirname, "examples", "public"),
     };
   } else {
     return {
+      resolve: {
+        dedupe: [
+          "three",
+        ],
+      },
       build: {
         lib: {
           entry: path.resolve(__dirname, "src/threecs.ts"),
@@ -54,11 +67,11 @@ export default ({ command, mode }) => {
         },
         minify: false,
         rollupOptions: {
-          external: ["three", /^three\//, "@dimforge/rapier3d-compat"],
+          external: ["three", /^three\//, "@dimforge/rapier3d-compat", "@webecs/do-three"],
         },
         // Use when npm linking bitecs
         // optimizeDeps: {
-        //   exclude: ["bitecs"],
+        //   exclude: ["@webecs/do-three"],
         // },
       },
     };

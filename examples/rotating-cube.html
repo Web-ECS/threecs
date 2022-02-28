@@ -23,7 +23,15 @@
         addObject3DEntity,
         addMapComponent,
         defineMapComponent,
+        createMeshEntity,
       } from "../src/threecs";
+      import {
+        MeshProxy
+      } from '../src/core/MeshProxy'
+      import {
+        setQuaternionFromEulerAoA,
+        // MeshProxy,
+      } from '@webecs/do-three'
       import crateTextureUrl from "./assets/crate.gif";
 
       const RotateComponent = defineMapComponent();
@@ -35,9 +43,11 @@
 
         entities.forEach((eid) => {
           const dt = world.dt;
-          const object3D = Object3DComponent.storage.get(eid);
-          const { speed, axis } = RotateComponent.storage.get(eid);
-          object3D.rotateOnAxis(axis, speed * dt);
+          // Object3DComponent.rotation[eid][0] += 0.005
+          // setQuaternionFromEulerAoA(Object3DComponent.quaternion[eid], Object3DComponent.rotation[eid])
+          // const object3D = Object3DComponent.storage.get(eid);
+          // const { speed, axis } = RotateComponent.storage.get(eid);
+          // object3D.rotateOnAxis(axis, speed * dt);
         });
       });
 
@@ -48,15 +58,29 @@
       camera.position.z = 5;
 
       const crateTexture = new TextureLoader().load(crateTextureUrl);
-      const cube = new Mesh(
+      // const cube = new Mesh(
+      //   new BoxBufferGeometry(),
+      //   new MeshBasicMaterial({ map: crateTexture })
+      // );
+
+      const cube = new MeshProxy(
+        Object3DComponent,
+        0,
         new BoxBufferGeometry(),
-        new MeshBasicMaterial({ map: crateTexture })
+        new MeshBasicMaterial({ wireframe: true })
       );
-      const cubeEid = addObject3DEntity(world, cube, scene);
-      addMapComponent(world, RotateComponent, cubeEid, {
-        axis: new Vector3(0.5, 1, 0).normalize(),
-        speed: 1,
-      });
+
+      // const cube = createMeshEntity(
+      //   world,
+      //   new BoxBufferGeometry(),
+      //   new MeshBasicMaterial({ wireframe: true })
+      // )
+      scene.add(cube)
+      // const cubeEid = addObject3DEntity(world, cube, scene);
+      // addMapComponent(world, RotateComponent, cubeEid, {
+      //   axis: new Vector3(0.5, 1, 0).normalize(),
+      //   speed: 1,
+      // });
 
       start();
     </script>

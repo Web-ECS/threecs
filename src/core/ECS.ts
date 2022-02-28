@@ -1,3 +1,4 @@
+import { MeshProxy, Object3DEntity, Object3DProxy, traverse } from "@webecs/do-three";
 import {
   IComponent as _Component,
   IComponentProp as _ComponentProp,
@@ -19,11 +20,14 @@ import {
   commitRemovals as _commitRemovals,
   defineSystem as _defineSystem,
 } from "bitecs";
-import { Object3D } from "three";
+import { BufferGeometry, Material } from "three";
 import { Object3DComponent } from "../components";
 import { ActionMap, ActionState } from "../systems/ActionMappingSystem";
 
 export { pipe } from "bitecs";
+
+
+/* TYPES */
 
 export interface World extends IWorld {
   dt: number;
@@ -31,7 +35,7 @@ export interface World extends IWorld {
   input: Map<string, number>;
   actionMaps: ActionMap[];
   actions: Map<string, ActionState>;
-  objectEntityMap: Map<Object3D, number>;
+  objectEntityMap: Map<Object3DEntity, number>;
 }
 
 export type Query = (world: World) => number[];
@@ -47,7 +51,7 @@ export type TypedArray = _TypedArray;
 export type ComponentProp = _ComponentProp;
 
 export type Schema = {
-  [key: string]: Type | Schema;
+  [key: string]: Type | [string, number] | Schema;
 };
 
 export interface Component {
@@ -57,6 +61,10 @@ export interface Component {
 export type QueryModifier = (
   c: (Component | ComponentProp)[]
 ) => (world: World) => Component | ComponentProp;
+
+
+
+/* bitECS API */
 
 export const defineQuery = _defineQuery as (
   components: (Component | QueryModifier)[]
@@ -111,12 +119,17 @@ export const defineSystem = _defineSystem as unknown as (
   update: (world: World) => void
 ) => System;
 
+
+
+
+/* threecs API */
+
 export type MapComponent<V> = Component & { storage: Map<number, V> };
 
-export function defineMapComponent<V>(): MapComponent<V> {
-  const component = defineComponent({});
+export function defineMapComponent<V>(schema: Schema): MapComponent<V> {
+  const component = defineComponent(schema);
   (component as any).storage = new Map();
-  return component as MapComponent<V>;
+  return component as Schema & MapComponent<V>;
 }
 
 export function addMapComponent<V>(
@@ -141,8 +154,8 @@ export function removeMapComponent(
 export function addObject3DComponent(
   world: World,
   eid: number,
-  obj: Object3D,
-  parent?: Object3D
+  obj: Object3DEntity,
+  parent?: Object3DEntity
 ) {
   if (parent) {
     parent.add(obj);
@@ -154,12 +167,42 @@ export function addObject3DComponent(
 
 export function addObject3DEntity(
   world: World,
-  obj: Object3D,
-  parent?: Object3D
+  obj: Object3DEntity,
+  parent?: Object3DEntity
 ) {
   const eid = addEntity(world);
   addObject3DComponent(world, eid, obj, parent);
   return eid;
+}
+
+export function addMeshEntity(
+  world: World,
+  obj: Object3DEntity,
+  parent?: Object3DEntity
+) {
+  const eid = addEntity(world);
+  addObject3DComponent(world, eid, obj, parent);
+  return eid;
+}
+
+export function createObject3DEntity(
+  world: World
+) {
+  const eid = addEntity(world);
+  const obj = new Object3DProxy(Object3DComponent, eid)
+  addObject3DComponent(world, eid, obj);
+  return obj;
+}
+
+export function createMeshEntity(
+  world: World,
+  geometry: BufferGeometry,
+  material: Material,
+) {
+  const eid = addEntity(world);
+  const obj = new MeshProxy(Object3DComponent, eid, geometry, material)
+  addObject3DComponent(world, eid, obj);
+  return obj;
 }
 
 export function removeObject3DComponent(world: World, eid: number) {
@@ -173,22 +216,28 @@ export function removeObject3DComponent(world: World, eid: number) {
     obj.parent.remove(obj);
   }
 
-  removeMapComponent(world, Object3DComponent, eid);
+  removeComponent(world, Object3DComponent, eid);
   world.objectEntityMap.delete(obj);
 
-  obj.traverse((child) => {
-    if (child === obj) {
-      return;
-    }
-
-    const childEid = getObject3DEntity(world, child);
-
-    if (childEid) {
-      removeEntity(world, childEid);
-      Object3DComponent.storage.delete(childEid);
-      world.objectEntityMap.delete(child);
-    }
+  traverse(Object3DComponent, eid, (childEid: number) => {
+    removeEntity(world, childEid);
+    Object3DComponent.storage.delete(childEid);
   });
+
+  // obj.traverse((child: Object3DEntity) => {
+  //   if (child === obj) {
+  //     return;
+  //   }
+
+  //   // const childEid = getObject3DEntity(world, child);
+  //   const childEid = child.eid
+
+  //   if (childEid) {
+  //     removeEntity(world, childEid);
+  //     Object3DComponent.storage.delete(childEid);
+  //     world.objectEntityMap.delete(child);
+  //   }
+  // });
 }
 
 export function removeObject3DEntity(world: World, eid: number) {
@@ -198,12 +247,13 @@ export function removeObject3DEntity(world: World, eid: number) {
 
 export function getObject3DEntity(
   world: World,
-  obj: Object3D
+  obj: Object3DEntity
 ): number | undefined {
-  return world.objectEntityMap.get(obj);
+  // return world.objectEntityMap.get(obj);
+  return obj.eid
 }
 
-export function setEntityObject3D(world: World, eid: number, obj: Object3D) {
+export function setEntityObject3D(world: World, eid: number, obj: Object3DEntity) {
   addMapComponent(world, Object3DComponent, eid, obj);
   world.objectEntityMap.set(obj, eid);
 }
