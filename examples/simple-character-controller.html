@@ -29,10 +29,29 @@
         DirectionalMovementSystem,
         DirectionalMovementActions,
         DirectionalMovementComponent,
+        setChildEntity,
+        Object3DComponent,
+        addMeshEntity,
       } from "../src/threecs";
       import crateTextureUrl from "./assets/crate.gif";
 
-      const { world, scene, camera, cameraEid, start } = createThreeWorld({
+      const setVec3 = (v1,v2) => {
+        v1[0] = v2[0]
+        v1[1] = v2[1]
+        v1[2] = v2[2]
+      }
+      const addVec3 = (v1,v2) => {
+        v1[0] += v2[0]
+        v1[1] += v2[1]
+        v1[2] += v2[2]
+      }
+      const scaleVec3 = (v,s) => {
+        v[0] *= s
+        v[1] *= s
+        v[2] *= s
+      }
+
+      const { world, start } = createThreeWorld({
         pointerLock: true,
         systems: [FirstPersonCameraSystem, DirectionalMovementSystem],
         actionMaps: [
@@ -70,30 +89,41 @@
         ],
       });
 
-      const playerRig = new Object3D();
-      const playerRigEid = addObject3DEntity(world, playerRig, scene);
+      const { cameraEid, sceneEid } = world;
+
+      const playerRigEid = addObject3DEntity(world);
+      setChildEntity(playerRigEid, cameraEid);
+
       addComponent(world, DirectionalMovementComponent, playerRigEid);
       addComponent(world, FirstPersonCameraYawTarget, playerRigEid);
-      playerRig.add(camera);
+
+      setChildEntity(sceneEid, playerRigEid);
+
       addComponent(world, FirstPersonCameraPitchTarget, cameraEid);
 
-      playerRig.position.z = 5;
-      playerRig.position.y = 0.5;
-      camera.position.y = 1.6;
+      const playerRigPosition = Object3DComponent.position[playerRigEid];
+      const cameraPosition = Object3DComponent.position[cameraEid];
+
+      setVec3(playerRigPosition, [0,0.5,5]);
+      setVec3(cameraPosition, [0,1.6,0]);
 
       const crateTexture = new TextureLoader().load(crateTextureUrl);
-      const cube = new Mesh(
+      const cubeEid = addMeshEntity(
+        world,
         new BoxBufferGeometry(),
         new MeshBasicMaterial({ map: crateTexture })
       );
-      const cubeEid = addObject3DEntity(world, cube, scene);
-      cube.position.y = 0.5;
+      const cubePosition = Object3DComponent.position[cubeEid];
+      setVec3(cubePosition, [0,0.5,0]);
 
-      const ground = new Mesh(
+      const groundEid = addMeshEntity(
+        world,
         new BoxBufferGeometry(10, 0.1, 10),
         new MeshBasicMaterial()
       );
-      const groundEid = addObject3DEntity(world, ground, scene);
+
+      setChildEntity(sceneEid, cubeEid);
+      setChildEntity(sceneEid, groundEid);
 
       start();
     </script>

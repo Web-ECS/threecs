@@ -1,3 +1,4 @@
+import { MeshProxy, Object3DEntity, Object3DProxy, Object3DSoAoA } from "@webecs/do-three";
 import {
   Object3D,
   InstancedMesh,
@@ -6,25 +7,29 @@ import {
   BufferGeometry,
   DynamicDrawUsage,
 } from "three";
-import { Object3DComponent } from "../components";
+import { Object3DComponent } from "../core/components";
 import {
-  defineSystem,
-  World,
   defineComponent,
   defineQuery,
   addObject3DEntity,
   addComponent,
+  addEntity,
+  addObject3DComponent,
+  addMapComponent,
+  setParentEntity,
 } from "../core/ECS";
+import { MeshEntity } from "../core/entities";
+import { World } from '../core/World'
 
-export class InstancedMeshImposter extends Mesh {
-  constructor(geometry: BufferGeometry, material: Material) {
-    super(geometry, material);
-    this.visible = false;
+// todo: replace with addMeshEntity or addObject3DEntity because geom/mat is shared for instanced objects
+export class InstancedMeshImposter extends MeshProxy {
+  constructor(store: Object3DSoAoA, eid: number, geometry: BufferGeometry, material: Material | Material[]) {
+    super(store, eid, geometry, material);
   }
 }
 
 export class InstancedMeshRenderer extends InstancedMesh {
-  instances: Mesh[];
+  instances: MeshProxy[];
   isInstancedMeshRenderer: boolean;
 
   constructor(
@@ -38,10 +43,12 @@ export class InstancedMeshRenderer extends InstancedMesh {
     this.instances = [];
   }
 
-  createInstance() {
+  createInstance(eid: number) {
     const mesh = new InstancedMeshImposter(
+      Object3DComponent,
+      eid,
       this.geometry,
-      this.material as Material
+      this.material
     );
     this.instances.push(mesh);
     return mesh;
@@ -72,38 +79,43 @@ export class InstancedMeshRenderer extends InstancedMesh {
   }
 }
 
-export const InstancedMeshRendererComponent = defineComponent({});
+export const InstancedMeshRendererComponent = defineComponent();
 
 export function addInstancedMeshRendererEntity(
   world: World,
   geometry: BufferGeometry,
   material: Material,
   maxInstances: number = 100,
-  parent?: Object3D
+  parent?: number
 ) {
   const instancedMeshRenderer = new InstancedMeshRenderer(
     geometry,
     material,
     maxInstances
-  );
-  const instancedMeshRendererEid = addObject3DEntity(
-    world,
-    instancedMeshRenderer,
-    parent
-  );
-  addComponent(world, InstancedMeshRendererComponent, instancedMeshRendererEid);
+  ) as unknown as Object3DEntity;
+  const eid = addEntity(world);
+  // const instancedMeshRendererEid = addObject3DEntity(
+  //   world,
+  //   instancedMeshRenderer,
+  //   parent
+  // );
+  // addMapComponent(world, Object3DComponent, eid, instancedMeshRenderer);
+  addObject3DComponent(world, eid, instancedMeshRenderer, parent)
+  addComponent(world, InstancedMeshRendererComponent, eid);
 
-  return [instancedMeshRendererEid, instancedMeshRenderer];
+  return eid;
 }
 
 export function addInstancedMeshImposterEntity(
   world: World,
   instancedMeshRenderer: InstancedMeshRenderer,
-  parent?: Object3D
+  parent?: number
 ) {
-  const obj = instancedMeshRenderer.createInstance();
-  const eid = addObject3DEntity(world, obj, parent);
-  return [eid, obj];
+  const eid = addEntity(world);
+  const obj = instancedMeshRenderer.createInstance(eid);
+  addObject3DComponent(world, eid, obj, parent);
+  // const eid = addObject3DEntity(world, obj, parent);
+  return eid;
 }
 
 const instancedMeshRendererQuery = defineQuery([
@@ -111,12 +123,12 @@ const instancedMeshRendererQuery = defineQuery([
   Object3DComponent,
 ]);
 
-export const InstancedMeshRendererSystem = defineSystem(
+export const InstancedMeshRendererSystem =
   function InstancedMeshRendererSystem(world: World) {
     const entities = instancedMeshRendererQuery(world);
 
     entities.forEach((eid) => {
-      const obj = Object3DComponent.storage.get(eid) as InstancedMeshRenderer;
+      const obj = Object3DComponent.store.get(eid) as unknown as InstancedMeshRenderer;
 
       if (!obj.isInstancedMeshRenderer) {
         return;
@@ -124,5 +136,6 @@ export const InstancedMeshRendererSystem = defineSystem(
 
       obj.update();
     });
-  }
-);
+
+    return world;
+  };

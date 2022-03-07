@@ -7,17 +7,16 @@ import {
   Euler,
   BufferGeometry,
 } from "three";
-import { Object3DComponent } from "../components";
+import { Object3DComponent } from "../core/components";
 import {
   System,
-  defineSystem,
-  World,
   defineMapComponent,
   defineQuery,
   enterQuery,
   addMapComponent,
   singletonQuery,
 } from "../core/ECS";
+import { World } from '../core/World';
 import { mainSceneQuery } from "./RendererSystem";
 
 interface PhysicsWorldProps {
@@ -230,13 +229,13 @@ interface InternalPhysicsRaycasterProps {
 export const InternalPhysicsRaycasterComponent =
   defineMapComponent<InternalPhysicsRaycasterProps>();
 
-export async function loadPhysicsSystem(): Promise<System> {
+export async function loadPhysicsSystem(): Promise<Function> {
   await Rapier.init();
 
   const tempVec3 = new Vector3();
   const tempQuat = new Quaternion();
 
-  return defineSystem(function PhysicsSystem(world: World) {
+  return function PhysicsSystem(world: World) {
     const physicsWorldEid = mainPhysicsWorldQuery(world);
     const newPhysicsWorldEntities = newPhysicsWorldsQuery(world);
     const rigidBodyEntities = rigidBodiesQuery(world);
@@ -246,7 +245,7 @@ export async function loadPhysicsSystem(): Promise<System> {
     const sceneEid = mainSceneQuery(world);
 
     newPhysicsWorldEntities.forEach((eid) => {
-      const physicsWorldComponent = PhysicsWorldComponent.storage.get(eid)!;
+      const physicsWorldComponent = PhysicsWorldComponent.store.get(eid)!;
       addMapComponent(world, InternalPhysicsWorldComponent, eid, {
         physicsWorld: new Rapier.World(physicsWorldComponent.gravity),
         colliderHandleToEntityMap: new Map(),
@@ -258,13 +257,13 @@ export async function loadPhysicsSystem(): Promise<System> {
     }
 
     const internalPhysicsWorldComponent =
-      InternalPhysicsWorldComponent.storage.get(physicsWorldEid)!;
+      InternalPhysicsWorldComponent.store.get(physicsWorldEid)!;
     const { physicsWorld, colliderHandleToEntityMap } =
       internalPhysicsWorldComponent;
 
     newRigidBodyEntities.forEach((rigidBodyEid) => {
-      const obj = Object3DComponent.storage.get(rigidBodyEid)!;
-      const rigidBodyProps = RigidBodyComponent.storage.get(rigidBodyEid)!;
+      const obj = Object3DComponent.store.get(rigidBodyEid)!;
+      const rigidBodyProps = RigidBodyComponent.store.get(rigidBodyEid)!;
 
       const geometry = (obj as Mesh).geometry;
 
@@ -327,7 +326,7 @@ export async function loadPhysicsSystem(): Promise<System> {
 
         colliderShape = new Rapier.TriMesh(
           vertices ||
-            (mesh.geometry.attributes.position!.array as Float32Array),
+          (mesh.geometry.attributes.position!.array as Float32Array),
           indices || (finalIndices as Uint32Array)
         );
       } else {
@@ -357,8 +356,8 @@ export async function loadPhysicsSystem(): Promise<System> {
     });
 
     newPhysicsRaycasterEntities.forEach((raycasterEid) => {
-      const raycaster = PhysicsRaycasterComponent.storage.get(raycasterEid)!;
-      InternalPhysicsRaycasterComponent.storage.set(raycasterEid, {
+      const raycaster = PhysicsRaycasterComponent.store.get(raycasterEid)!;
+      InternalPhysicsRaycasterComponent.store.set(raycasterEid, {
         ray: new Rapier.Ray(raycaster.origin, raycaster.dir),
       });
     });
@@ -367,8 +366,8 @@ export async function loadPhysicsSystem(): Promise<System> {
     physicsWorld.step();
 
     physicsRaycasterEntities.forEach((rayCasterEid) => {
-      const raycaster = PhysicsRaycasterComponent.storage.get(rayCasterEid)!;
-      const obj = Object3DComponent.storage.get(rayCasterEid);
+      const raycaster = PhysicsRaycasterComponent.store.get(rayCasterEid)!;
+      const obj = Object3DComponent.store.get(rayCasterEid);
 
       if (
         raycaster.useObject3DTransform &&
@@ -384,7 +383,7 @@ export async function loadPhysicsSystem(): Promise<System> {
       }
 
       const internalRaycaster =
-        InternalPhysicsRaycasterComponent.storage.get(rayCasterEid)!;
+        InternalPhysicsRaycasterComponent.store.get(rayCasterEid)!;
 
       const colliderSet = physicsWorld.colliders;
 
@@ -448,7 +447,7 @@ export async function loadPhysicsSystem(): Promise<System> {
             0.2,
             0.1
           );
-          const scene = Object3DComponent.storage.get(sceneEid)!;
+          const scene = Object3DComponent.store.get(sceneEid)!;
           scene.add(internalRaycaster.arrowHelper);
         } else {
           const arrowHelper = internalRaycaster.arrowHelper;
@@ -457,16 +456,16 @@ export async function loadPhysicsSystem(): Promise<System> {
           arrowHelper.setLength(raycaster.toi || 0, 0.2, 0.1);
         }
       } else if (!raycaster.debug && internalRaycaster.arrowHelper) {
-        const scene = Object3DComponent.storage.get(sceneEid)!;
+        const scene = Object3DComponent.store.get(sceneEid)!;
         scene.remove(internalRaycaster.arrowHelper);
         internalRaycaster.arrowHelper = undefined;
       }
     });
 
     rigidBodyEntities.forEach((rigidBodyEid) => {
-      const obj = Object3DComponent.storage.get(rigidBodyEid)!;
-      const { lockRotations } = RigidBodyComponent.storage.get(rigidBodyEid)!;
-      const { body } = InternalRigidBodyComponent.storage.get(rigidBodyEid)!;
+      const obj = Object3DComponent.store.get(rigidBodyEid)!;
+      const { lockRotations } = RigidBodyComponent.store.get(rigidBodyEid)!;
+      const { body } = InternalRigidBodyComponent.store.get(rigidBodyEid)!;
 
       if (body.isDynamic()) {
         const translation = body.translation();
@@ -481,5 +480,7 @@ export async function loadPhysicsSystem(): Promise<System> {
         body.setNextKinematicRotation(obj.quaternion);
       }
     });
-  });
+
+    return world;
+  };
 }

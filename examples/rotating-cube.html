@@ -18,69 +18,82 @@
       import {
         defineQuery,
         defineSystem,
+        defineComponent,
         createThreeWorld,
         Object3DComponent,
+        CameraComponent,
         addObject3DEntity,
-        addMapComponent,
-        defineMapComponent,
-        createMeshEntity,
+        addMeshEntity,
+        addComponent,
+        updateQuaternion,
+        setParentEntity,
+        setChildEntity,
+        Types,
       } from "../src/threecs";
-      import {
-        MeshProxy
-      } from '../src/core/MeshProxy'
-      import {
-        setQuaternionFromEulerAoA,
-        // MeshProxy,
-      } from '@webecs/do-three'
       import crateTextureUrl from "./assets/crate.gif";
 
-      const RotateComponent = defineMapComponent();
+      const RotateComponent = defineComponent({
+        axis: [Types.f32, 3],
+        speed: Types.f32,
+      });
 
       const rotateQuery = defineQuery([RotateComponent, Object3DComponent]);
+
+      const setVec3 = (v1,v2) => {
+        v1[0] = v2[0]
+        v1[1] = v2[1]
+        v1[2] = v2[2]
+      }
+      const addVec3 = (v1,v2) => {
+        v1[0] += v2[0]
+        v1[1] += v2[1]
+        v1[2] += v2[2]
+      }
+      const scaleVec3 = (v,s) => {
+        v[0] *= s
+        v[1] *= s
+        v[2] *= s
+      }
+
+      const rotV3 = new Float32Array(3)
 
       const RotateSystem = defineSystem((world) => {
         const entities = rotateQuery(world);
 
         entities.forEach((eid) => {
-          const dt = world.dt;
-          // Object3DComponent.rotation[eid][0] += 0.005
-          // setQuaternionFromEulerAoA(Object3DComponent.quaternion[eid], Object3DComponent.rotation[eid])
-          // const object3D = Object3DComponent.storage.get(eid);
-          // const { speed, axis } = RotateComponent.storage.get(eid);
-          // object3D.rotateOnAxis(axis, speed * dt);
+          const { dt } = world;
+          const rotation = Object3DComponent.rotation[eid];
+          const axis = RotateComponent.axis[eid];
+          const speed = RotateComponent.speed[eid];
+          setVec3(rotV3, axis);
+          scaleVec3(rotV3, speed*dt);
+          addVec3(rotation, rotV3);
+          updateQuaternion(eid);
         });
       });
 
-      const { world, scene, camera, start } = createThreeWorld({
+      const { world, start } = createThreeWorld({
         systems: [RotateSystem],
       });
 
-      camera.position.z = 5;
+      const {sceneEid, cameraEid} = world;
+
+      const cameraPosition = Object3DComponent.position[cameraEid];
+      setVec3(cameraPosition, [0,0,5]);
 
       const crateTexture = new TextureLoader().load(crateTextureUrl);
-      // const cube = new Mesh(
-      //   new BoxBufferGeometry(),
-      //   new MeshBasicMaterial({ map: crateTexture })
-      // );
-
-      const cube = new MeshProxy(
-        Object3DComponent,
-        0,
+      const cubeEid = addMeshEntity(
+        world,
         new BoxBufferGeometry(),
-        new MeshBasicMaterial({ wireframe: true })
+        new MeshBasicMaterial({ map: crateTexture }),
+        sceneEid
       );
 
-      // const cube = createMeshEntity(
-      //   world,
-      //   new BoxBufferGeometry(),
-      //   new MeshBasicMaterial({ wireframe: true })
-      // )
-      scene.add(cube)
-      // const cubeEid = addObject3DEntity(world, cube, scene);
-      // addMapComponent(world, RotateComponent, cubeEid, {
-      //   axis: new Vector3(0.5, 1, 0).normalize(),
-      //   speed: 1,
-      // });
+      addComponent(world, RotateComponent, cubeEid);
+      RotateComponent.axis[cubeEid].set([0.5,1,0]);
+      RotateComponent.speed[cubeEid] = 1;
+
+      // setChildEntity(world.sceneEid, cubeEid)
 
       start();
     </script>

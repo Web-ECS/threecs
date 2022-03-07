@@ -1,13 +1,13 @@
 import { Vector2, MathUtils } from "three";
 import {
   defineSystem,
-  World,
   defineQuery,
   defineComponent,
   Types,
   TypedArray,
 } from "../core/ECS";
-import { Object3DComponent } from "../components";
+import { World } from '../core/World';
+import { Object3DComponent } from "../core/components";
 
 export const FirstPersonCameraActions = {
   Look: "FirstPersonCamera/Look",
@@ -31,7 +31,7 @@ const cameraYawTargetQuery = defineQuery([
   Object3DComponent,
 ]);
 
-export const FirstPersonCameraSystem = defineSystem(
+export const FirstPersonCameraSystem =
   function FirstPersonCameraSystem(world: World) {
     const lookVec = world.actions.get(FirstPersonCameraActions.Look) as Vector2;
 
@@ -39,7 +39,7 @@ export const FirstPersonCameraSystem = defineSystem(
 
     if (Math.abs(lookVec.y) > 1) {
       pitchEntities.forEach((eid) => {
-        const obj = Object3DComponent.storage.get(eid)!;
+        const obj = Object3DComponent.store.get(eid)!;
         const sensitivity = (FirstPersonCameraPitchTarget.sensitivity as TypedArray)[
           eid
         ];
@@ -65,12 +65,13 @@ export const FirstPersonCameraSystem = defineSystem(
 
     if (Math.abs(lookVec.x) > 1) {
       yawEntities.forEach((eid) => {
-        const obj = Object3DComponent.storage.get(eid)!;
+        const obj = Object3DComponent.store.get(eid)!;
         const sensitivity = (FirstPersonCameraYawTarget.sensitivity as TypedArray)[
           eid
         ];
         obj.rotation.y -= lookVec.x / (1000 / (sensitivity || 1));
       });
     }
-  }
-);
+
+    return world;
+  };

@@ -22,8 +22,8 @@
   },
   "dependencies": {
     "@dimforge/rapier3d-compat": "^0.7.6",
-    "@webecs/do-three": "^0.0.9",
-    "bitecs": "^0.3.34"
+    "@webecs/do-three": "^0.0.10",
+    "bitecs": "^0.3.35"
   },
   "devDependencies": {
     "@types/three": "^0.137.0",

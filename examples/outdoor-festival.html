@@ -88,6 +88,9 @@
         AudioSystem,
         addAudioListenerComponent,
         addAudioSourceComponent,
+        addMeshEntity,
+        addEntity,
+        addObject3DComponent,
       } from "../src/threecs";
 
       async function main() {
@@ -103,7 +106,7 @@
           defineQuery([CrouchCameraTarget, Object3DComponent])
         );
 
-        const CrouchSystem = defineSystem(function CrouchSystem(world) {
+        const CrouchSystem = function CrouchSystem(world) {
           const crouchMeshEid = crouchMeshQuery(world);
           const crouchCameraEid = crouchCameraQuery(world);
 
@@ -115,8 +118,8 @@
             PhysicsCharacterControllerActions.Crouch
           );
 
-          const mesh = Object3DComponent.storage.get(crouchMeshEid);
-          const camera = Object3DComponent.storage.get(crouchCameraEid);
+          const mesh = Object3DComponent.store.get(crouchMeshEid);
+          const camera = Object3DComponent.store.get(crouchCameraEid);
 
           if (crouch.pressed && crouch.held) {
             mesh.scale.set(1, 0.5, 1);
@@ -127,9 +130,11 @@
             camera.scale.set(1, 1, 1);
             camera.position.y = 1.6;
           }
-        });
 
-        const { world, scene, sceneEid, camera, cameraEid, renderer, start } =
+          return world;
+        };
+
+        const { world, start } =
           createThreeWorld({
             pointerLock: true,
             systems: [
@@ -208,16 +213,22 @@
             ],
           });
 
+        const { sceneEid, cameraEid, renderer } = world;
+
+        const scene = Object3DComponent.store.get(sceneEid);
+        const camera = Object3DComponent.store.get(cameraEid);
+
         renderer.toneMapping = ACESFilmicToneMapping;
         renderer.toneMappingExposure = 1;
         renderer.outputEncoding = sRGBEncoding;
 
         addPhysicsWorldComponent(world, sceneEid);
 
-        const [playerRigEid, playerRig] = addPhysicsCharacterControllerEntity(
+        const playerRigEid = addPhysicsCharacterControllerEntity(
           world,
-          scene
+          sceneEid
         );
+        const playerRig = Object3DComponent.store.get(playerRigEid);
         addComponent(world, FirstPersonCameraYawTarget, playerRigEid);
         addComponent(world, CrouchMeshTarget, playerRigEid);
         addComponent(world, FirstPersonCameraPitchTarget, cameraEid);
@@ -239,13 +250,15 @@
           "../outdoor-festival/OutdoorFestival.glb"
         );
         const gltfRootPath = new URL(gltfPath, window.location).href;
-        const gltfEid = addObject3DEntity(world, gltfScene, scene);
+        const gltfEid = addEntity(world);
+        addObject3DComponent(world, gltfEid, gltfScene, sceneEid);
         addAnimationClipsComponent(world, gltfEid, animations);
 
         const animationMixerState = [];
 
         scene.traverse((child) => {
-          const eid = addObject3DEntity(world, child);
+          const eid = addEntity(world);
+          addObject3DComponent(world, eid, child);
 
           const components = child.userData.gltfExtensions?.MOZ_hubs_components;
 

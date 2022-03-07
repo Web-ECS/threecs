@@ -1,14 +1,14 @@
 import { Vector2, Vector3, Quaternion, Object3D } from "three";
-import { Object3DComponent } from "../components";
+import { Object3DComponent } from "../core/components";
 import {
   defineSystem,
-  World,
   defineMapComponent,
   defineQuery,
   enterQuery,
   addMapComponent,
   addObject3DEntity,
 } from "../core/ECS";
+import { World } from '../core/World';
 import { ButtonActionState } from "./ActionMappingSystem";
 import {
   addRigidBodyComponent,
@@ -111,11 +111,9 @@ export const InternalPhysicsCharacterControllerComponent =
 
 export function addPhysicsCharacterControllerEntity(
   world: World,
-  scene: Object3D,
-  props?: any
+  parent?: number,
 ) {
-  const playerRig = new Object3D();
-  const playerRigEid = addObject3DEntity(world, playerRig, scene);
+  const playerRigEid = addObject3DEntity(world, parent);
   addPhysicsCharacterControllerComponent(world, playerRigEid);
   addRigidBodyComponent(world, playerRigEid, {
     bodyType: RigidBodyType.Dynamic,
@@ -127,7 +125,7 @@ export function addPhysicsCharacterControllerEntity(
     solverGroups: CharacterInteractionGroup,
     lockRotations: true,
   });
-  return [playerRigEid, playerRig];
+  return playerRigEid;
 }
 
 const physicsCharacterControllerQuery = defineQuery([
@@ -140,7 +138,7 @@ const physicsCharacterControllerAddedQuery = enterQuery(
   physicsCharacterControllerQuery
 );
 
-export const PhysicsCharacterControllerSystem = defineSystem(
+export const PhysicsCharacterControllerSystem =
   function PhysicsCharacterControllerSystem(world: World) {
     const physicsWorldEid = mainPhysicsWorldQuery(world);
     const entities = physicsCharacterControllerQuery(world);
@@ -160,14 +158,14 @@ export const PhysicsCharacterControllerSystem = defineSystem(
     });
 
     if (physicsWorldEid === undefined) {
-      return;
+      return world;
     }
 
     const internalPhysicsWorldComponent =
-      InternalPhysicsWorldComponent.storage.get(physicsWorldEid);
+      InternalPhysicsWorldComponent.store.get(physicsWorldEid);
 
     if (!internalPhysicsWorldComponent) {
-      return;
+      return world;
     }
 
     const physicsWorld = internalPhysicsWorldComponent.physicsWorld;
@@ -205,9 +203,9 @@ export const PhysicsCharacterControllerSystem = defineSystem(
         minSlideSpeed,
         sprintModifier,
         maxSprintSpeed,
-      } = PhysicsCharacterControllerComponent.storage.get(eid)!;
+      } = PhysicsCharacterControllerComponent.store.get(eid)!;
       const internalPhysicsCharacterController =
-        InternalPhysicsCharacterControllerComponent.storage.get(eid)!;
+        InternalPhysicsCharacterControllerComponent.store.get(eid)!;
       const {
         moveForce,
         dragForce,
@@ -218,13 +216,13 @@ export const PhysicsCharacterControllerSystem = defineSystem(
         slideForce,
         lastSlideTime,
       } = internalPhysicsCharacterController;
-      const obj = Object3DComponent.storage.get(eid)!;
+      const obj = Object3DComponent.store.get(eid)!;
       const {
         translation: shapeTranslationOffset,
         rotation: shapeRotationOffset,
-      } = RigidBodyComponent.storage.get(eid)!;
+      } = RigidBodyComponent.store.get(eid)!;
       const { body, colliderShape } =
-        InternalRigidBodyComponent.storage.get(eid)!;
+        InternalRigidBodyComponent.store.get(eid)!;
 
       body.setRotation(obj.quaternion, true);
 
@@ -310,5 +308,6 @@ export const PhysicsCharacterControllerSystem = defineSystem(
 
       body.applyForce(moveForce, true);
     });
-  }
-);
+
+    return world;
+  };

@@ -23,46 +23,76 @@
         addPhysicsWorldComponent,
         addRigidBodyComponent,
         RigidBodyType,
+        Object3DComponent,
+        addMeshEntity,
+        setChildEntity,
       } from "../src/threecs";
       import crateTextureUrl from "./assets/crate.gif";
+
+      const setVec3 = (v1,v2) => {
+        v1[0] = v2[0]
+        v1[1] = v2[1]
+        v1[2] = v2[2]
+      }
+      const addVec3 = (v1,v2) => {
+        v1[0] += v2[0]
+        v1[1] += v2[1]
+        v1[2] += v2[2]
+      }
+      const scaleVec3 = (v,s) => {
+        v[0] *= s
+        v[1] *= s
+        v[2] *= s
+      }
 
       async function main() {
         const PhysicsSystem = await loadPhysicsSystem();
 
-        const { world, scene, sceneEid, camera, start } = createThreeWorld({
+        const { world, start } = createThreeWorld({
           systems: [PhysicsSystem],
         });
 
+        const {sceneEid, cameraEid} = world;
+
         addPhysicsWorldComponent(world, sceneEid);
 
+        const camera = Object3DComponent.store.get(cameraEid);
         camera.position.set(0, 3, 5);
         camera.lookAt(0, 0, 0);
 
         const crateTexture = new TextureLoader().load(crateTextureUrl);
-        const cube = new Mesh(
+        const cubeEid = addMeshEntity(
+          world,
           new BoxBufferGeometry(0.5, 0.5, 0.5),
           new MeshBasicMaterial({ map: crateTexture })
         );
-        const cubeEid = addObject3DEntity(world, cube, scene);
-        cube.position.set(0.35, 2, 0.25);
+        const cubePosition = Object3DComponent.position[cubeEid]
+        setVec3(cubePosition, [0.35, 2, 0.25]);
+
         addRigidBodyComponent(world, cubeEid, {
           bodyType: RigidBodyType.Dynamic,
         });
 
-        const sphere = new Mesh(
+        const sphereEid = addMeshEntity(
+          world,
           new SphereBufferGeometry(1, 10, 10),
           new MeshBasicMaterial({ color: 0xff0000 })
         );
-        const sphereEid = addObject3DEntity(world, sphere, scene);
-        sphere.position.set(0, 0.25, -0.5);
+
+        const spherePosition = Object3DComponent.position[sphereEid]
+        setVec3(spherePosition, [0, 0.25, -0.5]);
         addRigidBodyComponent(world, sphereEid);
 
-        const ground = new Mesh(
+        const groundEid = addMeshEntity(
+          world,
           new BoxBufferGeometry(10, 0.1, 10),
           new MeshBasicMaterial()
         );
-        const groundEid = addObject3DEntity(world, ground, scene);
         addRigidBodyComponent(world, groundEid);
+
+        setChildEntity(sceneEid, cubeEid);
+        setChildEntity(sceneEid, sphereEid);
+        setChildEntity(sceneEid, groundEid);
 
         start();
       }

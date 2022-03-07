@@ -1,12 +1,12 @@
 import { Vector2 } from "three";
-import { Object3DComponent } from "../components";
+import { Object3DComponent } from "../core/components";
 import {
   defineSystem,
-  World,
   defineComponent,
   defineQuery,
   TypedArray,
 } from "../core/ECS";
+import { World } from '../core/World';
 import { Types } from "bitecs";
 
 export const DirectionalMovementActions = {
@@ -22,7 +22,7 @@ const directionalMovementQuery = defineQuery([
   Object3DComponent,
 ]);
 
-export const DirectionalMovementSystem = defineSystem(
+export const DirectionalMovementSystem =
   function DirectionalMovementSystem(world: World) {
     const moveVec = world.actions.get(
       DirectionalMovementActions.Move
@@ -32,9 +32,10 @@ export const DirectionalMovementSystem = defineSystem(
     entities.forEach((eid) => {
       const speed =
         (DirectionalMovementComponent.speed as TypedArray)[eid] || 0.2;
-      const obj = Object3DComponent.storage.get(eid)!;
+      const obj = Object3DComponent.store.get(eid)!;
       obj.translateZ(-moveVec.y * speed);
       obj.translateX(moveVec.x * speed);
     });
-  }
-);
+
+    return world;
+  };
