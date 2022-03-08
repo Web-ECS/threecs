@@ -1,5 +1,6 @@
 import { Vector2 } from "three";
-import { defineSystem, World } from "../core/ECS";
+import { defineSystem } from "../core/ECS";
+import { World } from "../core/World";
 
 export enum ActionType {
   Vector2 = "Vector2",
@@ -162,4 +163,6 @@ export const ActionMappingSystem = defineSystem(function ActionMappingSystem(
       }
     }
   }
+
+  return world;
 });

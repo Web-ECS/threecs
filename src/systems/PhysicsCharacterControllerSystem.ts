@@ -6,7 +6,7 @@ import {
   defineQuery,
   enterQuery,
   addMapComponent,
-  addObject3DEntity,
+  setParentEntity,
 } from "../core/ECS";
 import { World } from '../core/World';
 import { ButtonActionState } from "./ActionMappingSystem";
@@ -21,6 +21,9 @@ import {
   RigidBodyType,
   PhysicsColliderShape,
 } from "./PhysicsSystem";
+import {
+  Object3DEntity
+} from "../core/entities";
 
 export const PhysicsCharacterControllerGroup = 0x0000_0001;
 export const CharacterPhysicsGroup = 0b1;
@@ -113,9 +116,14 @@ export function addPhysicsCharacterControllerEntity(
   world: World,
   parent?: number,
 ) {
-  const playerRigEid = addObject3DEntity(world, parent);
-  addPhysicsCharacterControllerComponent(world, playerRigEid);
-  addRigidBodyComponent(world, playerRigEid, {
+  const playerRig = new Object3DEntity(world);
+
+  if (parent !== undefined) {
+    setParentEntity(playerRig.eid, parent);
+  }
+
+  addPhysicsCharacterControllerComponent(world, playerRig.eid);
+  addRigidBodyComponent(world, playerRig.eid, {
     bodyType: RigidBodyType.Dynamic,
     shape: PhysicsColliderShape.Capsule,
     halfHeight: 0.8,
@@ -125,7 +133,7 @@ export function addPhysicsCharacterControllerEntity(
     solverGroups: CharacterInteractionGroup,
     lockRotations: true,
   });
-  return playerRigEid;
+  return playerRig;
 }
 
 const physicsCharacterControllerQuery = defineQuery([

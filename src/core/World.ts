@@ -1,31 +1,20 @@
 import { createWorld, IWorld } from "bitecs";
 import {
   WebGLRenderer,
-  Scene,
-  PerspectiveCamera,
   Clock,
   WebGLRendererParameters,
-  ACESFilmicToneMapping,
-  sRGBEncoding,
   Renderer,
-  Camera,
 } from "three";
 import { RendererSystem, RendererComponent } from "../systems/RendererSystem";
-// import { CameraComponent, SceneComponent } from "./components";
 import { ActionMappingSystem, ActionMap, ActionState } from "../systems/ActionMappingSystem";
 import {
   addEntity,
   pipe,
-  addComponent,
   System,
-  addObject3DEntity,
-  addMapComponent,
-  addSceneEntity,
-  addPerspectiveCameraEntity,
 } from "./ECS";
-import { Object3DEntity } from "@webecs/do-three";
 import { maxEntities } from "./config";
-import { CameraComponent, Object3DComponent, SceneComponent } from "./components";
+import { PerspectiveCameraEntity, SceneEntity, } from "./entities";
+import { Object3DComponent } from "./components";
 
 export interface World extends IWorld {
   dt: number;
@@ -33,7 +22,6 @@ export interface World extends IWorld {
   input: Map<string, number>;
   actionMaps: ActionMap[];
   actions: Map<string, ActionState>;
-  // objectEntityMap: Map<Object3DEntity, number>;
   sceneEid: number;
   cameraEid: number;
   renderer: Renderer;
@@ -65,6 +53,8 @@ export function createThreeWorld(options: GLTFWorldOptions = {}) {
     options
   );
 
+  // TODO update bitecs type def
+  // @ts-ignore
   const world = createWorld<World>(maxEntities);
   world.dt = 0;
   world.time = 0;
@@ -83,13 +73,12 @@ export function createThreeWorld(options: GLTFWorldOptions = {}) {
   // noop entity 0
   const noop = addEntity(world);
 
-  const sceneEid = addSceneEntity(world);
-  world.sceneEid = sceneEid;
-  const scene = Object3DComponent.store.get(sceneEid)!
+  const scene = new SceneEntity(world);
+  world.scene = scene;
 
-  const cameraEid = addPerspectiveCameraEntity(world);
-  world.cameraEid = cameraEid;
-  const camera = Object3DComponent.store.get(cameraEid)!
+  const camera = new PerspectiveCameraEntity(world);
+  world.camera = camera;
+  scene.add(camera);
 
   const renderer = new WebGLRenderer({
     antialias: true,
@@ -160,17 +149,12 @@ export function createThreeWorld(options: GLTFWorldOptions = {}) {
     ActionMappingSystem,
     ...systems,
     RendererSystem,
-    ...afterRenderSystems
+    ...afterRenderSystems,
+    Object3DComponent.disposeSystem,
   );
 
   return {
     world,
-    // sceneEid,
-    // scene,
-    // cameraEid,
-    // camera,
-    // rendererEid,
-    // renderer,
     start() {
       renderer.setAnimationLoop(() => {
         world.dt = clock.getDelta();

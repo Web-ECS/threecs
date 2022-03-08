@@ -1,4 +1,4 @@
-import { PerspectiveCamera, WebGLRenderer } from "three";
+import { PerspectiveCamera, WebGLRenderer, Scene } from "three";
 import { CameraComponent, SceneComponent } from "../core/components";
 import { Object3DComponent } from "../core/components";
 import {
@@ -49,7 +49,7 @@ export const RendererSystem = function RendererSystem(
         world.resizeViewport = false;
       }
 
-      renderer.render(scene, camera);
+      renderer.render(scene as unknown as Scene, camera);
     }
   }
 

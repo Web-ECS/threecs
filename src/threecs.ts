@@ -1,5 +1,7 @@
 export * from "./core/components";
 
+export * from "./core/entities";
+
 export * from "./core/ECS";
 export * from "./core/World";
 export * from "./core/benchmark";

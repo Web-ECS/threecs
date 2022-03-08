@@ -23,13 +23,12 @@
         addComponent,
         createThreeWorld,
         Object3DComponent,
-        addObject3DEntity,
         addMapComponent,
         removeObject3DEntity,
         defineMapComponent,
-        addMeshEntity,
         setParentEntity,
         updateQuaternion,
+        MeshEntity,
       } from "../src/threecs";
       import crateTextureUrl from "./assets/crate.gif";
 
@@ -82,7 +81,7 @@
         Object3DComponent,
       ]);
 
-      const DeferredRemovalSystem = defineSystem((world) => {
+      const DeferredRemovalSystem = (world) => {
         const entities = deferredRemovalQuery(world);
 
         entities.forEach((eid) => {
@@ -92,40 +91,43 @@
             removeObject3DEntity(world, eid);
           }
         });
-      });
+
+        return world;
+      };
 
       const { world, start } = createThreeWorld({
         systems: [DeferredRemovalSystem, RotateSystem],
       });
 
-      const camera = Object3DComponent.store.get(world.cameraEid)
+      const { camera, scene } = world;
+
       camera.position.z = 5;
 
       const crateTexture = new TextureLoader().load(crateTextureUrl);
 
-      const cubeEid = addMeshEntity(
+      const cube = new MeshEntity(
         world,
         new BoxBufferGeometry(),
         new MeshBasicMaterial({ map: crateTexture })
       );
-      addComponent(world, RotateComponent, cubeEid);
-      RotateComponent.axis[cubeEid].set([0.5,1,0]);
-      RotateComponent.speed[cubeEid] = 1;
-      addComponent(world, DeferredRemovalComponent, cubeEid);
-      DeferredRemovalComponent.removeAfter[cubeEid] = 3;
+      addComponent(world, RotateComponent, cube.eid);
+      RotateComponent.axis[cube.eid].set([0.5,1,0]);
+      RotateComponent.speed[cube.eid] = 1;
+      addComponent(world, DeferredRemovalComponent, cube.eid);
+      DeferredRemovalComponent.removeAfter[cube.eid] = 3;
 
-      const cube2Eid = addMeshEntity(
+      const cube2 = new MeshEntity(
         world,
         new BoxBufferGeometry(),
         new MeshBasicMaterial({ map: crateTexture })
       );
-      addComponent(world, RotateComponent, cube2Eid);
-      RotateComponent.axis[cube2Eid].set([0.5,1,0]);
-      RotateComponent.speed[cube2Eid] = 1;
-      Object3DComponent.position[cube2Eid][0] = 1;
+      addComponent(world, RotateComponent, cube2.eid);
+      RotateComponent.axis[cube2.eid].set([0.5,1,0]);
+      RotateComponent.speed[cube2.eid] = 1;
+      Object3DComponent.position[cube2.eid][0] = 1;
 
-      setParentEntity(cubeEid, world.sceneEid);
-      setParentEntity(cube2Eid, cubeEid);
+      setParentEntity(cube.eid, world.scene.eid);
+      setParentEntity(cube2.eid, cube.eid);
 
       start();
     </script>

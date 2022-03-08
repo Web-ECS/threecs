@@ -1,7 +1,7 @@
-import { Object3DEntity, Object3DSoAoA, PerspectiveCameraProxy, SceneProxy } from "@webecs/do-three";
+import { Object3DSoAoA } from "@webecs/do-three";
 import { Types, defineComponent, ISchema, ListType } from "bitecs";
-import { Scene } from "three";
-import { defineMapComponent, defineProxyComponent } from "./ECS";
+import { defineProxyComponent } from "./ECS";
+import { IObject3DEntity } from "./entities";
 
 const { f32, ui32, ui8 } = Types
 
@@ -35,7 +35,7 @@ const Object3DSchema: ISchema = {
   renderOrder: f32,
 }
 
-export const Object3DComponent = defineProxyComponent<Object3DSoAoA, Object3DEntity>(Object3DSchema);
+export const Object3DComponent = defineProxyComponent<Object3DSoAoA, IObject3DEntity<any>>(Object3DSchema);
 
 export const SceneComponent = defineComponent();
 
