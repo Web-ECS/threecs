@@ -28,6 +28,8 @@
         setChildEntity,
         Types,
         MeshEntity,
+        BoxGeometryEntity,
+        MeshBasicMaterialEntity,
       } from "../src/threecs";
       import crateTextureUrl from "./assets/crate.gif";
 
@@ -85,8 +87,8 @@
       const crateTexture = new TextureLoader().load(crateTextureUrl);
       const cube = new MeshEntity(
         world,
-        new BoxBufferGeometry(),
-        new MeshBasicMaterial({ map: crateTexture }),
+        new BoxGeometryEntity(world),
+        new MeshBasicMaterialEntity(world, { map: crateTexture }),
       );
 
       scene.add(cube);
