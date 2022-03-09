@@ -30,11 +30,10 @@ export const DirectionalMovementSystem =
     const entities = directionalMovementQuery(world);
 
     entities.forEach((eid) => {
-      const speed =
-        (DirectionalMovementComponent.speed as TypedArray)[eid] || 0.2;
+      const speed = DirectionalMovementComponent.speed[eid] || 10;
       const obj = Object3DComponent.store.get(eid)!;
-      obj.translateZ(-moveVec.y * speed);
-      obj.translateX(moveVec.x * speed);
+      obj.translateZ(-moveVec.y * speed * world.dt);
+      obj.translateX(moveVec.x * speed * world.dt);
     });
 
     return world;
