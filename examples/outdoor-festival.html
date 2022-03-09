@@ -62,7 +62,7 @@
       import {
         ActionType,
         createThreeWorld,
-        addObject3DEntity,
+        Object3DEntity,
         addComponent,
         BindingType,
         FirstPersonCameraSystem,
@@ -88,9 +88,9 @@
         AudioSystem,
         addAudioListenerComponent,
         addAudioSourceComponent,
-        addMeshEntity,
+        MeshEntity,
         addEntity,
-        addObject3DComponent,
+        addMapComponent,
       } from "../src/threecs";
 
       async function main() {
@@ -213,30 +213,24 @@
             ],
           });
 
-        const { sceneEid, cameraEid, renderer } = world;
-
-        const scene = Object3DComponent.store.get(sceneEid);
-        const camera = Object3DComponent.store.get(cameraEid);
+        const { scene, camera, renderer } = world;
 
         renderer.toneMapping = ACESFilmicToneMapping;
         renderer.toneMappingExposure = 1;
         renderer.outputEncoding = sRGBEncoding;
 
-        addPhysicsWorldComponent(world, sceneEid);
+        addPhysicsWorldComponent(world, scene.eid);
 
-        const playerRigEid = addPhysicsCharacterControllerEntity(
-          world,
-          sceneEid
-        );
-        const playerRig = Object3DComponent.store.get(playerRigEid);
-        addComponent(world, FirstPersonCameraYawTarget, playerRigEid);
-        addComponent(world, CrouchMeshTarget, playerRigEid);
-        addComponent(world, FirstPersonCameraPitchTarget, cameraEid);
-        addComponent(world, CrouchCameraTarget, cameraEid);
+        const playerRig = addPhysicsCharacterControllerEntity(world);
+        scene.add(playerRig);
+        addComponent(world, FirstPersonCameraYawTarget, playerRig.eid);
+        addComponent(world, CrouchMeshTarget, playerRig.eid);
+        addComponent(world, FirstPersonCameraPitchTarget, camera.eid);
+        addComponent(world, CrouchCameraTarget, camera.eid);
         playerRig.add(camera);
         playerRig.position.set(0, 0.1, 5);
         camera.position.set(0, 1.6, 0);
-        addAudioListenerComponent(world, cameraEid);
+        addAudioListenerComponent(world, camera.eid);
         const audioListener = new AudioListener();
         playerRig.add(audioListener);
 
@@ -251,14 +245,17 @@
         );
         const gltfRootPath = new URL(gltfPath, window.location).href;
         const gltfEid = addEntity(world);
-        addObject3DComponent(world, gltfEid, gltfScene, sceneEid);
+        addMapComponent(world, Object3DComponent, gltfEid, gltfScene);
+        scene.add(gltfScene);
+
+        // addObject3DComponent(world, gltfEid, gltfScene, sceneEid);
         addAnimationClipsComponent(world, gltfEid, animations);
 
         const animationMixerState = [];
 
         scene.traverse((child) => {
           const eid = addEntity(world);
-          addObject3DComponent(world, eid, child);
+          addMapComponent(world, Object3DComponent, eid, child);
 
           const components = child.userData.gltfExtensions?.MOZ_hubs_components;
 

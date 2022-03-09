@@ -43,6 +43,7 @@ export const InstancedMeshImposterSystem =
         instancedMesh.instanceMatrix.needsUpdate = true;
       }
 
+
       if (autoUpdate) {
         InstancedMeshImposterComponent.needsUpdate[eid] = 1;
       }

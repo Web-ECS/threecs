@@ -22,7 +22,9 @@ export * from 'bitecs'
 export type MapComponent<V> = IComponent & { store: Map<number, V>, disposeSystem: (world: World) => World };
 
 export function defineMapComponent<V>(schema?: ISchema, disposeCallback?: (object: V, eid: number) => void): MapComponent<V> {
-  const component = defineComponent(schema) as MapComponent<V>;
+  // TODO update bitecs type def
+  // @ts-ignore
+  const component = defineComponent(schema, maxEntities) as MapComponent<V>;
   component.store = new Map();
 
   const exit = exitQuery(defineQuery([component]))
@@ -33,6 +35,7 @@ export function defineMapComponent<V>(schema?: ISchema, disposeCallback?: (objec
       const obj = component.store.get(eid)! as any
       if (obj.dispose) obj.dispose()
       if (disposeCallback) {
+        console.log(disposeCallback)
         disposeCallback(obj, eid);
       }
       component.store.delete(eid);
@@ -64,9 +67,7 @@ export function removeMapComponent(
 }
 
 export function defineProxyComponent<SoA, Proxy>(schema: ISchema): SoA & MapComponent<Proxy> {
-  // TODO update bitecs type def
-  // @ts-ignore
-  return defineMapComponent(schema, maxEntities) as SoA & MapComponent<Proxy>;
+  return defineMapComponent(schema) as SoA & MapComponent<Proxy>;
 }
 
 export const setParentEntity = (child: number, parent: number) => {

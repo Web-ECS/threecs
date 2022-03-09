@@ -19,7 +19,6 @@
       import {
         ActionType,
         createThreeWorld,
-        addObject3DEntity,
         addComponent,
         BindingType,
         FirstPersonCameraSystem,
@@ -31,7 +30,8 @@
         DirectionalMovementComponent,
         setChildEntity,
         Object3DComponent,
-        addMeshEntity,
+        Object3DEntity,
+        MeshEntity,
       } from "../src/threecs";
       import crateTextureUrl from "./assets/crate.gif";
 
@@ -89,41 +89,41 @@
         ],
       });
 
-      const { cameraEid, sceneEid } = world;
+      const { camera, scene } = world;
 
-      const playerRigEid = addObject3DEntity(world);
-      setChildEntity(playerRigEid, cameraEid);
+      const playerRig = new Object3DEntity(world);
+      setChildEntity(playerRig.eid, camera.eid);
 
-      addComponent(world, DirectionalMovementComponent, playerRigEid);
-      addComponent(world, FirstPersonCameraYawTarget, playerRigEid);
+      addComponent(world, DirectionalMovementComponent, playerRig.eid);
+      addComponent(world, FirstPersonCameraYawTarget, playerRig.eid);
 
-      setChildEntity(sceneEid, playerRigEid);
+      setChildEntity(scene.eid, playerRig.eid);
 
-      addComponent(world, FirstPersonCameraPitchTarget, cameraEid);
+      addComponent(world, FirstPersonCameraPitchTarget, camera.eid);
 
-      const playerRigPosition = Object3DComponent.position[playerRigEid];
-      const cameraPosition = Object3DComponent.position[cameraEid];
+      const playerRigPosition = Object3DComponent.position[playerRig.eid];
+      const cameraPosition = Object3DComponent.position[camera.eid];
 
       setVec3(playerRigPosition, [0,0.5,5]);
       setVec3(cameraPosition, [0,1.6,0]);
 
       const crateTexture = new TextureLoader().load(crateTextureUrl);
-      const cubeEid = addMeshEntity(
+      const cube = new MeshEntity(
         world,
         new BoxBufferGeometry(),
         new MeshBasicMaterial({ map: crateTexture })
       );
-      const cubePosition = Object3DComponent.position[cubeEid];
+      const cubePosition = Object3DComponent.position[cube.eid];
       setVec3(cubePosition, [0,0.5,0]);
 
-      const groundEid = addMeshEntity(
+      const ground = new MeshEntity(
         world,
         new BoxBufferGeometry(10, 0.1, 10),
         new MeshBasicMaterial()
       );
 
-      setChildEntity(sceneEid, cubeEid);
-      setChildEntity(sceneEid, groundEid);
+      setChildEntity(scene.eid, cube.eid);
+      setChildEntity(scene.eid, ground.eid);
 
       start();
     </script>

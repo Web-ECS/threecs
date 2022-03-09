@@ -4,7 +4,7 @@ import {
   EulerProxyAoA, EulerProxySoA,
   QuaternionProxyAoA, QuaternionProxySoA,
 } from "@webecs/do-three";
-import { addComponent, addEntity, defineComponent, hasComponent, removeComponent, Types } from "bitecs";
+import { addComponent, addEntity, defineComponent, hasComponent, IComponent, removeComponent, Types } from "bitecs";
 import { BufferGeometry, Material, Mesh, Object3D, Scene, Vector3, Bone, PerspectiveCamera, Group, InstancedMesh, DynamicDrawUsage, Line, LineLoop, LineSegments, PointLight, Points, SkinnedMesh, SpotLight, OrthographicCamera } from "three";
 import { Object3DComponent, VisibleComponent, CameraComponent, SceneComponent } from "./components";
 import { addMapComponent } from "./ECS";
@@ -119,6 +119,14 @@ export const Object3DEntityMixin = <T extends Object3D, R extends IObject3DEntit
       addComponent(world, VisibleComponent, eid);
 
       Object3D.prototype.updateMatrix.call(this)
+    }
+
+    addComponent(Component: IComponent) {
+      addComponent(this.world, Component, this.eid, false);
+    }
+
+    removeComponent(Component: IComponent) {
+      removeComponent(this.world, Component, this.eid, true);
     }
 
     _add(object: any) {
@@ -334,11 +342,12 @@ export const InstancedMeshImposterComponent = defineComponent({
 });
 
 export class InstancedMeshImposterEntity extends Object3DEntityMixin(Mesh) {
-  constructor(world: World, geometry: BufferGeometry, material: Material | Material[], instancedMeshEid: number) {
-    super(world, geometry, material);
+  constructor(world: World, instancedMesh: InstancedMeshEntity) {
+    super(world, instancedMesh.geometry, instancedMesh.material);
     this.visible = false;
     addComponent(world, InstancedMeshImposterComponent, this.eid);
-    InstancedMeshImposterComponent.instancedMeshEid[this.eid] = instancedMeshEid;
+    InstancedMeshImposterComponent.instancedMeshEid[this.eid] = instancedMesh.eid;
+    InstancedMeshImposterComponent.instancedMeshIndex[this.eid] = instancedMesh.count++;
     InstancedMeshImposterComponent.needsUpdate[this.eid] = 1;
     InstancedMeshImposterComponent.autoUpdate[this.eid] = 0;
   }
@@ -351,10 +360,16 @@ export class InstancedMeshEntity extends Object3DEntityMixin(InstancedMesh) {
     world: World,
     geometry: BufferGeometry,
     material: Material,
-    count: number,
+    size: number,
+    count: number = 0,
   ) {
-    super(world, geometry, material, count);
+    super(world, geometry, material, size);
     addComponent(world, InstancedMeshComponent, this.eid);
+    this.instanceMatrix.setUsage(DynamicDrawUsage);
+    this.count = count;
+  }
+  addInstance() {
+
   }
 }
 

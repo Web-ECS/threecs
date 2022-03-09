@@ -18,19 +18,18 @@
       } from "three";
       import {
         createThreeWorld,
-        addObject3DEntity,
         addPhysicsWorldComponent,
         addComponent,
         loadPhysicsSystem,
         addRigidBodyComponent,
         RigidBodyType,
-        InstancedMeshRendererSystem,
-        addInstancedMeshRendererEntity,
-        addInstancedMeshImposterEntity,
+        InstancedMeshImposterSystem,
+        InstancedMeshEntity,
+        InstancedMeshImposterEntity,
         benchmark,
         Object3DComponent,
-        addMeshEntity,
         setChildEntity,
+        MeshEntity,
       } from "../src/threecs";
       import crateTextureUrl from "./assets/crate.gif";
 
@@ -40,64 +39,53 @@
         const n = 2500
 
         const { world, start } = createThreeWorld({
-          systems: [benchmark(PhysicsSystem), InstancedMeshRendererSystem],
+          systems: [benchmark(PhysicsSystem), InstancedMeshImposterSystem],
         });
 
-        const { cameraEid, sceneEid } = world;
+        const { camera, scene } = world;
 
-        addPhysicsWorldComponent(world, sceneEid);
-
-        const camera = Object3DComponent.store.get(cameraEid);
+        addPhysicsWorldComponent(world, scene.eid);
 
         camera.position.set(0, 3, 5);
         camera.lookAt(0, 0, 0);
 
         const crateTexture = new TextureLoader().load(crateTextureUrl);
-        const instancedMeshRendererEid = addInstancedMeshRendererEntity(
+        const instancedMesh = new InstancedMeshEntity(
           world,
           new BoxBufferGeometry(0.5, 0.5, 0.5),
           new MeshBasicMaterial({ map: crateTexture }),
           n,
-          sceneEid
         );
-        // setChildEntity(sceneEid, instancedMeshRendererEid);
-        const instancedMeshRenderer = Object3DComponent.store.get(instancedMeshRendererEid);
+        setChildEntity(scene.eid, instancedMesh.eid);
 
         for (let i = 0; i < n; i++) {
-          const cubeEid = addInstancedMeshImposterEntity(
-            world,
-            instancedMeshRenderer,
-          );
-          const cube = Object3DComponent.store.get(cubeEid);
+          const cube = new InstancedMeshImposterEntity(world, instancedMesh);
           cube.position.y = Math.floor(i / 10) + 2;
           cube.position.x = (i % 10) - 5;
           cube.rotation.set(0.35, 0, 0.25);
-          addRigidBodyComponent(world, cubeEid, {
+          addRigidBodyComponent(world, cube.eid, {
             bodyType: RigidBodyType.Dynamic,
           });
         }
 
-        const sphereEid = addMeshEntity(
+        const sphere = new MeshEntity(
           world,
           new SphereBufferGeometry(1, 10, 10),
           new MeshBasicMaterial({ color: 0xff0000 }),
-          sceneEid
         );
-        // setChildEntity(sceneEid, sphereEid);
-        const sphere = Object3DComponent.store.get(sphereEid);
+        setChildEntity(scene.eid, sphere.eid);
         sphere.position.set(0, 0.25, -0.5);
-        addRigidBodyComponent(world, sphereEid);
+        addRigidBodyComponent(world, sphere.eid);
 
-        const groundEid = addMeshEntity(
+        const ground = new MeshEntity(
           world,
           new BoxBufferGeometry(10, 0.1, 10),
           new MeshBasicMaterial(),
-          sceneEid
         );
-        addRigidBodyComponent(world, groundEid);
+        addRigidBodyComponent(world, ground.eid);
 
-        setChildEntity(sceneEid, sphereEid);
-        setChildEntity(sceneEid, groundEid);
+        setChildEntity(scene.eid, sphere.eid);
+        setChildEntity(scene.eid, ground.eid);
 
         start();
       }
