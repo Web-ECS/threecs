@@ -4,6 +4,14 @@ export * from "./core/proxy/Vector3"
 export * from "./core/proxy/Types"
 export * from "./core/proxy/Object3DEntityMixin"
 
+export * from "./core/util/composeMatrix"
+export * from "./core/util/multiplyMatrices"
+export * from "./core/util/setMatrixPosition"
+export * from "./core/util/setQuaternionFromEuler"
+export * from "./core/util/traverse"
+export * from "./core/util/updateMatrix"
+export * from "./core/util/updateMatrixWorld"
+
 export * from "./core/components";
 export * from "./core/entities";
 
