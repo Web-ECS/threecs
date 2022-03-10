@@ -26,23 +26,24 @@ var __objRest = (source, exclude) => {
     }
   return target;
 };
-import { l as loadPhysicsSystem, b as defineComponent, s as singletonQuery, a as defineQuery, O as Object3DComponent, c as createThreeWorld, F as FirstPersonCameraSystem, P as PhysicsCharacterControllerSystem, A as AnimationSystem, i as AudioSystem, j as FirstPersonCameraActions, k as ActionType, B as BindingType, m as PhysicsCharacterControllerActions, n as addPhysicsWorldComponent, o as addPhysicsCharacterControllerEntity, g as addComponent, p as FirstPersonCameraYawTarget, q as FirstPersonCameraPitchTarget, t as addAudioListenerComponent, e as addObject3DEntity, u as addAnimationClipsComponent, v as addAudioSourceComponent, w as addRigidBodyComponent, x as PhysicsColliderShape, y as addAnimationMixerComponent, h as defineSystem } from "../AudioSystem.d48bdf87.js";
-/* empty css                  */import { x as ACESFilmicToneMapping, y as sRGBEncoding, t as AudioListener, G as GLTFLoader } from "../vendor.b601bcc0.js";
+import { l as loadPhysicsSystem, a as singletonQuery, O as Object3DComponent, c as createThreeWorld, F as FirstPersonCameraSystem, P as PhysicsCharacterControllerSystem, A as AnimationSystem, b as AudioSystem, d as FirstPersonCameraActions, e as ActionType, B as BindingType, f as PhysicsCharacterControllerActions, g as addPhysicsWorldComponent, h as addPhysicsCharacterControllerEntity, i as FirstPersonCameraYawTarget, j as FirstPersonCameraPitchTarget, k as addAudioListenerComponent, m as addMapComponent, n as addAnimationClipsComponent, o as addAudioSourceComponent, p as addRigidBodyComponent, q as PhysicsColliderShape, t as addAnimationMixerComponent } from "../AudioSystem.7fdf1bb3.js";
+/* empty css                  */import { d as defineComponent, a as defineQuery, aG as ACESFilmicToneMapping, aH as sRGBEncoding, b as addComponent, aD as AudioListener, aI as GLTFLoader, g as addEntity } from "../vendor.52532900.js";
+var outdoorFestival_html_htmlProxy_index_0 = "";
 async function main() {
   const PhysicsSystem = await loadPhysicsSystem();
   const CrouchMeshTarget = defineComponent({});
   const CrouchCameraTarget = defineComponent({});
   const crouchMeshQuery = singletonQuery(defineQuery([CrouchMeshTarget, Object3DComponent]));
   const crouchCameraQuery = singletonQuery(defineQuery([CrouchCameraTarget, Object3DComponent]));
-  const CrouchSystem = defineSystem(function CrouchSystem2(world2) {
+  const CrouchSystem = function CrouchSystem2(world2) {
     const crouchMeshEid = crouchMeshQuery(world2);
     const crouchCameraEid = crouchCameraQuery(world2);
     if (crouchMeshEid === void 0 || crouchCameraEid === void 0) {
       return;
     }
     const crouch = world2.actions.get(PhysicsCharacterControllerActions.Crouch);
-    const mesh = Object3DComponent.storage.get(crouchMeshEid);
-    const camera2 = Object3DComponent.storage.get(crouchCameraEid);
+    const mesh = Object3DComponent.store.get(crouchMeshEid);
+    const camera2 = Object3DComponent.store.get(crouchCameraEid);
     if (crouch.pressed && crouch.held) {
       mesh.scale.set(1, 0.5, 1);
       camera2.scale.set(1, 2, 1);
@@ -52,8 +53,9 @@ async function main() {
       camera2.scale.set(1, 1, 1);
       camera2.position.y = 1.6;
     }
-  });
-  const { world, scene, sceneEid, camera, cameraEid, renderer, start } = createThreeWorld({
+    return world2;
+  };
+  const { world, start } = createThreeWorld({
     pointerLock: true,
     systems: [
       FirstPersonCameraSystem,
@@ -130,19 +132,21 @@ async function main() {
       }
     ]
   });
+  const { scene, camera, renderer } = world;
   renderer.toneMapping = ACESFilmicToneMapping;
   renderer.toneMappingExposure = 1;
   renderer.outputEncoding = sRGBEncoding;
-  addPhysicsWorldComponent(world, sceneEid);
-  const [playerRigEid, playerRig] = addPhysicsCharacterControllerEntity(world, scene);
-  addComponent(world, FirstPersonCameraYawTarget, playerRigEid);
-  addComponent(world, CrouchMeshTarget, playerRigEid);
-  addComponent(world, FirstPersonCameraPitchTarget, cameraEid);
-  addComponent(world, CrouchCameraTarget, cameraEid);
+  addPhysicsWorldComponent(world, scene.eid);
+  const playerRig = addPhysicsCharacterControllerEntity(world);
+  scene.add(playerRig);
+  addComponent(world, FirstPersonCameraYawTarget, playerRig.eid);
+  addComponent(world, CrouchMeshTarget, playerRig.eid);
+  addComponent(world, FirstPersonCameraPitchTarget, camera.eid);
+  addComponent(world, CrouchCameraTarget, camera.eid);
   playerRig.add(camera);
   playerRig.position.set(0, 0.1, 5);
   camera.position.set(0, 1.6, 0);
-  addAudioListenerComponent(world, cameraEid);
+  addAudioListenerComponent(world, camera.eid);
   const audioListener = new AudioListener();
   playerRig.add(audioListener);
   const {
@@ -153,12 +157,15 @@ async function main() {
     }
   } = await new GLTFLoader().loadAsync("../outdoor-festival/OutdoorFestival.glb");
   const gltfRootPath = new URL(gltfPath, window.location).href;
-  const gltfEid = addObject3DEntity(world, gltfScene, scene);
+  const gltfEid = addEntity(world);
+  addMapComponent(world, Object3DComponent, gltfEid, gltfScene);
+  scene.add(gltfScene);
   addAnimationClipsComponent(world, gltfEid, animations);
   const animationMixerState = [];
   scene.traverse((child) => {
     var _a;
-    const eid = addObject3DEntity(world, child);
+    const eid = addEntity(world);
+    addMapComponent(world, Object3DComponent, eid, child);
     const components = (_a = child.userData.gltfExtensions) == null ? void 0 : _a.MOZ_hubs_components;
     if (components) {
       if (components["visible"]) {
