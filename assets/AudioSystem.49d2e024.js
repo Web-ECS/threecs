@@ -18,7 +18,7 @@ var __publicField = (obj, key, value) => {
   __defNormalProp(obj, typeof key !== "symbol" ? key + "" : key, value);
   return value;
 };
-import { E as Euler, Q as Quaternion, V as Vector3, d as defineComponent, f as exitQuery, a as defineQuery, e as defineSystem, b as addComponent, r as removeEntity, c as Types, g as addEntity, O as Object3D, h as removeComponent, i as hasComponent, j as Texture, C as CanvasTexture, k as CompressedTexture, l as CubeTexture, D as DataTexture, m as DepthTexture, n as VideoTexture, B as BoxGeometry, o as CircleGeometry, p as ConeGeometry, q as CylinderGeometry, s as DodecahedronGeometry, t as EdgesGeometry, u as ExtrudeGeometry, I as IcosahedronGeometry, L as LatheGeometry, v as OctahedronGeometry, P as PlaneGeometry, w as PolyhedronGeometry, R as RingGeometry, S as ShapeGeometry, x as SphereGeometry, y as TetrahedronGeometry, z as TorusGeometry, A as TorusKnotGeometry, F as TubeGeometry, W as WireframeGeometry, G as LineBasicMaterial, H as LineDashedMaterial, M as MeshBasicMaterial, J as MeshDepthMaterial, K as MeshDistanceMaterial, N as MeshLambertMaterial, U as MeshMatcapMaterial, X as MeshNormalMaterial, Y as MeshPhongMaterial, Z as MeshPhysicalMaterial, _ as MeshStandardMaterial, $ as MeshToonMaterial, a0 as PointsMaterial, a1 as RawShaderMaterial, a2 as ShaderMaterial, a3 as ShadowMaterial, a4 as SpriteMaterial, a5 as Scene, a6 as Mesh, a7 as SkinnedMesh, a8 as InstancedMesh, a9 as DynamicDrawUsage, aa as Bone, ab as OrthographicCamera, ac as PerspectiveCamera, ad as Group, ae as Line, af as LineLoop, ag as LineSegments, ah as PointLight, ai as Points, aj as SpotLight, ak as Vector2, al as createWorld, am as WebGLRenderer, an as Clock, ao as pipe, ap as MathUtils, aq as $, ar as FI, as as BI, at as iA, au as pA, av as ZA, aw as uA, ax as zA, ay as ArrowHelper, az as enterQuery, aA as HA, aB as TA, aC as AnimationMixer, aD as AudioListener, aE as Audio, aF as PositionalAudio } from "./vendor.52532900.js";
+import { E as Euler, Q as Quaternion, V as Vector3, d as defineComponent, f as exitQuery, a as defineQuery, e as defineSystem, b as addComponent, r as removeEntity, c as Types, g as addEntity, O as Object3D, h as removeComponent, i as hasComponent, j as Texture, C as CanvasTexture, k as CompressedTexture, l as CubeTexture, D as DataTexture, m as DepthTexture, n as VideoTexture, B as BoxGeometry, o as CircleGeometry, p as ConeGeometry, q as CylinderGeometry, s as DodecahedronGeometry, t as EdgesGeometry, u as ExtrudeGeometry, I as IcosahedronGeometry, L as LatheGeometry, v as OctahedronGeometry, P as PlaneGeometry, w as PolyhedronGeometry, R as RingGeometry, S as ShapeGeometry, x as SphereGeometry, y as TetrahedronGeometry, z as TorusGeometry, A as TorusKnotGeometry, F as TubeGeometry, W as WireframeGeometry, G as LineBasicMaterial, H as LineDashedMaterial, M as MeshBasicMaterial, J as MeshDepthMaterial, K as MeshDistanceMaterial, N as MeshLambertMaterial, U as MeshMatcapMaterial, X as MeshNormalMaterial, Y as MeshPhongMaterial, Z as MeshPhysicalMaterial, _ as MeshStandardMaterial, $ as MeshToonMaterial, a0 as PointsMaterial, a1 as RawShaderMaterial, a2 as ShaderMaterial, a3 as ShadowMaterial, a4 as SpriteMaterial, a5 as Scene, a6 as Mesh, a7 as SkinnedMesh, a8 as InstancedMesh, a9 as DynamicDrawUsage, aa as Bone, ab as OrthographicCamera, ac as PerspectiveCamera, ad as Group, ae as Line, af as LineLoop, ag as LineSegments, ah as PointLight, ai as Points, aj as SpotLight, ak as Audio, al as PositionalAudio, am as AudioListener, an as Vector2, ao as createWorld, ap as WebGLRenderer, aq as Clock, ar as pipe, as as MathUtils, at as $, au as FI, av as BI, aw as iA, ax as pA, ay as ZA, az as uA, aA as zA, aB as ArrowHelper, aC as enterQuery, aD as HA, aE as TA, aF as AnimationMixer } from "./vendor.95af2766.js";
 const p = function polyfill() {
   const relList = document.createElement("link").relList;
   if (relList && relList.supports && relList.supports("modulepreload")) {
@@ -840,8 +840,10 @@ const MaterialEntityMixin = (Base) => {
       super(...args);
       __publicField(this, "eid");
       __publicField(this, "store");
+      __publicField(this, "textureStore");
       const eid = this.eid = addEntity(world);
       this.store = MaterialComponent;
+      this.textureStore = TextureComponent;
       addComponent(world, this.store, eid);
       this.store.store.set(eid, this);
     }
@@ -1116,6 +1118,27 @@ class SpotLightEntity extends Object3DEntityMixin(SpotLight) {
   constructor(world, ...args) {
     super(world, ...args);
     addComponent(world, SpotLightComponent, this.eid);
+  }
+}
+const AudioComponent = defineComponent();
+class AudioEntity extends Object3DEntityMixin(Audio) {
+  constructor(world, listener) {
+    super(world, listener);
+    addComponent(world, AudioComponent, this.eid);
+  }
+}
+const PositionalAudioComponent = defineComponent();
+class PositionalAudioEntity extends Object3DEntityMixin(PositionalAudio) {
+  constructor(world, listener) {
+    super(world, listener);
+    addComponent(world, PositionalAudioComponent, this.eid);
+  }
+}
+const AudioListenerComponent$1 = defineComponent();
+class AudioListenerEntity extends Object3DEntityMixin(AudioListener) {
+  constructor(world, ...args) {
+    super(world, ...args);
+    addComponent(world, AudioListenerComponent$1, this.eid);
   }
 }
 defineMapComponent();
@@ -1900,7 +1923,7 @@ const AudioSystem = function AudioSystem2(world) {
   const newAudioListenerEntities = newAudioListenerQuery(world);
   newAudioListenerEntities.forEach((eid) => {
     const obj = Object3DComponent.store.get(eid);
-    const audioListener2 = new AudioListener();
+    const audioListener2 = new AudioListenerEntity(world);
     obj._add(audioListener2);
     addMapComponent(world, InternalAudioListenerComponent, eid, audioListener2);
   });
@@ -1921,9 +1944,9 @@ const AudioSystem = function AudioSystem2(world) {
       el2.setAttribute("webkip-playsinline", "");
       el2.crossOrigin = "anonymous";
       if (audioSourceProps.audioType === "stereo") {
-        audioSource = new Audio(audioListener);
+        audioSource = new AudioEntity(world, audioListener);
       } else if (audioSourceProps.audioType === "pannernode") {
-        audioSource = new PositionalAudio(audioListener);
+        audioSource = new PositionalAudioEntity(world, audioListener);
       } else {
         throw new Error("Unknown audio source type");
       }

@@ -26230,8 +26230,7 @@ var queryCheckEntity = (world, q2, eid) => {
 };
 var queryAddEntity = (q2, eid) => {
   q2.toRemove.remove(eid);
-  if (!q2.has(eid))
-    q2.entered.add(eid);
+  q2.entered.add(eid);
   q2.add(eid);
 };
 var queryCommitRemovals = (q2) => {
@@ -26304,7 +26303,7 @@ var hasComponent = (world, component, eid) => {
   const mask = world[$entityMasks][generationId][eid];
   return (mask & bitflag) === bitflag;
 };
-var addComponent = (world, component, eid, reset = true) => {
+var addComponent = (world, component, eid, reset = false) => {
   if (eid === void 0)
     throw new Error("bitECS - entity is undefined.");
   if (!world[$entitySparseSet].has(eid))
@@ -26329,7 +26328,7 @@ var addComponent = (world, component, eid, reset = true) => {
   if (reset)
     resetStoreFor(component, eid);
 };
-var removeComponent = (world, component, eid, reset = false) => {
+var removeComponent = (world, component, eid, reset = true) => {
   if (eid === void 0)
     throw new Error("bitECS - entity is undefined.");
   if (!world[$entitySparseSet].has(eid))
@@ -31507,4 +31506,4 @@ function toTrianglesDrawMode(geometry, drawMode) {
   newGeometry.setIndex(newIndices);
   return newGeometry;
 }
-export { MeshToonMaterial as $, TorusKnotGeometry as A, BoxGeometry as B, CanvasTexture as C, DataTexture as D, Euler as E, TubeGeometry as F, LineBasicMaterial as G, LineDashedMaterial as H, IcosahedronGeometry as I, MeshDepthMaterial as J, MeshDistanceMaterial as K, LatheGeometry as L, MeshBasicMaterial as M, MeshLambertMaterial as N, Object3D as O, PlaneGeometry as P, Quaternion as Q, RingGeometry as R, ShapeGeometry as S, TextureLoader as T, MeshMatcapMaterial as U, Vector3 as V, WireframeGeometry as W, MeshNormalMaterial as X, MeshPhongMaterial as Y, MeshPhysicalMaterial as Z, MeshStandardMaterial as _, defineQuery as a, PointsMaterial as a0, RawShaderMaterial as a1, ShaderMaterial as a2, ShadowMaterial as a3, SpriteMaterial as a4, Scene as a5, Mesh as a6, SkinnedMesh as a7, InstancedMesh as a8, DynamicDrawUsage as a9, HA as aA, TA as aB, AnimationMixer as aC, AudioListener as aD, Audio as aE, PositionalAudio as aF, ACESFilmicToneMapping as aG, sRGBEncoding as aH, GLTFLoader as aI, RepeatWrapping as aJ, Bone as aa, OrthographicCamera as ab, PerspectiveCamera as ac, Group as ad, Line as ae, LineLoop as af, LineSegments as ag, PointLight as ah, Points as ai, SpotLight as aj, Vector2 as ak, createWorld as al, WebGLRenderer as am, Clock as an, pipe as ao, MathUtils as ap, $ as aq, FI as ar, BI as as, iA as at, pA as au, ZA as av, uA as aw, zA as ax, ArrowHelper as ay, enterQuery as az, addComponent as b, Types as c, defineComponent as d, defineSystem as e, exitQuery as f, addEntity as g, removeComponent as h, hasComponent as i, Texture as j, CompressedTexture as k, CubeTexture as l, DepthTexture as m, VideoTexture as n, CircleGeometry as o, ConeGeometry as p, CylinderGeometry as q, removeEntity as r, DodecahedronGeometry as s, EdgesGeometry as t, ExtrudeGeometry as u, OctahedronGeometry as v, PolyhedronGeometry as w, SphereGeometry as x, TetrahedronGeometry as y, TorusGeometry as z };
+export { MeshToonMaterial as $, TorusKnotGeometry as A, BoxGeometry as B, CanvasTexture as C, DataTexture as D, Euler as E, TubeGeometry as F, LineBasicMaterial as G, LineDashedMaterial as H, IcosahedronGeometry as I, MeshDepthMaterial as J, MeshDistanceMaterial as K, LatheGeometry as L, MeshBasicMaterial as M, MeshLambertMaterial as N, Object3D as O, PlaneGeometry as P, Quaternion as Q, RingGeometry as R, ShapeGeometry as S, TextureLoader as T, MeshMatcapMaterial as U, Vector3 as V, WireframeGeometry as W, MeshNormalMaterial as X, MeshPhongMaterial as Y, MeshPhysicalMaterial as Z, MeshStandardMaterial as _, defineQuery as a, PointsMaterial as a0, RawShaderMaterial as a1, ShaderMaterial as a2, ShadowMaterial as a3, SpriteMaterial as a4, Scene as a5, Mesh as a6, SkinnedMesh as a7, InstancedMesh as a8, DynamicDrawUsage as a9, zA as aA, ArrowHelper as aB, enterQuery as aC, HA as aD, TA as aE, AnimationMixer as aF, ACESFilmicToneMapping as aG, sRGBEncoding as aH, GLTFLoader as aI, RepeatWrapping as aJ, Bone as aa, OrthographicCamera as ab, PerspectiveCamera as ac, Group as ad, Line as ae, LineLoop as af, LineSegments as ag, PointLight as ah, Points as ai, SpotLight as aj, Audio as ak, PositionalAudio as al, AudioListener as am, Vector2 as an, createWorld as ao, WebGLRenderer as ap, Clock as aq, pipe as ar, MathUtils as as, $ as at, FI as au, BI as av, iA as aw, pA as ax, ZA as ay, uA as az, addComponent as b, Types as c, defineComponent as d, defineSystem as e, exitQuery as f, addEntity as g, removeComponent as h, hasComponent as i, Texture as j, CompressedTexture as k, CubeTexture as l, DepthTexture as m, VideoTexture as n, CircleGeometry as o, ConeGeometry as p, CylinderGeometry as q, removeEntity as r, DodecahedronGeometry as s, EdgesGeometry as t, ExtrudeGeometry as u, OctahedronGeometry as v, PolyhedronGeometry as w, SphereGeometry as x, TetrahedronGeometry as y, TorusGeometry as z };

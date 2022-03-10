@@ -1,5 +1,5 @@
-import { l as loadPhysicsSystem, c as createThreeWorld, F as FirstPersonCameraSystem, D as DirectionalMovementSystem, d as FirstPersonCameraActions, e as ActionType, B as BindingType, x as DirectionalMovementActions, g as addPhysicsWorldComponent, y as Object3DEntity, i as FirstPersonCameraYawTarget, v as setChildEntity, j as FirstPersonCameraPitchTarget, z as DirectionalMovementComponent, C as addPhysicsRaycasterComponent, M as MeshEntity, p as addRigidBodyComponent, R as RigidBodyType } from "../AudioSystem.7fdf1bb3.js";
-/* empty css                  */import { b as addComponent, T as TextureLoader, B as BoxGeometry, M as MeshBasicMaterial, x as SphereGeometry } from "../vendor.52532900.js";
+import { l as loadPhysicsSystem, c as createThreeWorld, F as FirstPersonCameraSystem, D as DirectionalMovementSystem, d as FirstPersonCameraActions, e as ActionType, B as BindingType, x as DirectionalMovementActions, g as addPhysicsWorldComponent, y as Object3DEntity, i as FirstPersonCameraYawTarget, v as setChildEntity, j as FirstPersonCameraPitchTarget, z as DirectionalMovementComponent, C as addPhysicsRaycasterComponent, M as MeshEntity, p as addRigidBodyComponent, R as RigidBodyType } from "../AudioSystem.49d2e024.js";
+/* empty css                  */import { b as addComponent, T as TextureLoader, B as BoxGeometry, M as MeshBasicMaterial, x as SphereGeometry } from "../vendor.95af2766.js";
 import { c as crateTextureUrl } from "../crate.9cc70004.js";
 async function main() {
   const PhysicsSystem = await loadPhysicsSystem();

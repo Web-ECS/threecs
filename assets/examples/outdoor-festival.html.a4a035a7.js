@@ -26,8 +26,8 @@ var __objRest = (source, exclude) => {
     }
   return target;
 };
-import { l as loadPhysicsSystem, a as singletonQuery, O as Object3DComponent, c as createThreeWorld, F as FirstPersonCameraSystem, P as PhysicsCharacterControllerSystem, A as AnimationSystem, b as AudioSystem, d as FirstPersonCameraActions, e as ActionType, B as BindingType, f as PhysicsCharacterControllerActions, g as addPhysicsWorldComponent, h as addPhysicsCharacterControllerEntity, i as FirstPersonCameraYawTarget, j as FirstPersonCameraPitchTarget, k as addAudioListenerComponent, m as addMapComponent, n as addAnimationClipsComponent, o as addAudioSourceComponent, p as addRigidBodyComponent, q as PhysicsColliderShape, t as addAnimationMixerComponent } from "../AudioSystem.7fdf1bb3.js";
-/* empty css                  */import { d as defineComponent, a as defineQuery, aG as ACESFilmicToneMapping, aH as sRGBEncoding, b as addComponent, aD as AudioListener, aI as GLTFLoader, g as addEntity } from "../vendor.52532900.js";
+import { l as loadPhysicsSystem, a as singletonQuery, O as Object3DComponent, c as createThreeWorld, F as FirstPersonCameraSystem, P as PhysicsCharacterControllerSystem, A as AnimationSystem, b as AudioSystem, d as FirstPersonCameraActions, e as ActionType, B as BindingType, f as PhysicsCharacterControllerActions, g as addPhysicsWorldComponent, h as addPhysicsCharacterControllerEntity, i as FirstPersonCameraYawTarget, j as FirstPersonCameraPitchTarget, k as addAudioListenerComponent, m as addMapComponent, n as addAnimationClipsComponent, o as addAudioSourceComponent, p as addRigidBodyComponent, q as PhysicsColliderShape, t as addAnimationMixerComponent } from "../AudioSystem.49d2e024.js";
+/* empty css                  */import { d as defineComponent, a as defineQuery, aG as ACESFilmicToneMapping, aH as sRGBEncoding, b as addComponent, am as AudioListener, aI as GLTFLoader, g as addEntity } from "../vendor.95af2766.js";
 var outdoorFestival_html_htmlProxy_index_0 = "";
 async function main() {
   const PhysicsSystem = await loadPhysicsSystem();
