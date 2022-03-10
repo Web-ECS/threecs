@@ -1,7 +1,7 @@
-import { Object3DSoAoA } from "@webecs/do-three";
 import { Types, defineComponent, ISchema, ListType } from "bitecs";
 import { defineProxyComponent } from "./ECS";
 import { IObject3DEntity } from "./proxy/Object3DEntityMixin";
+import { Object3DSoAoA } from "./proxy/Types";
 
 const { f32, ui32, ui8 } = Types
 
