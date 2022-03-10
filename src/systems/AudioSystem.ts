@@ -1,8 +1,6 @@
 import { Audio, AudioListener, PositionalAudio } from "three";
-import { Object3DComponent } from "../components";
+import { Object3DComponent } from "../core/components";
 import {
-  defineSystem,
-  World,
   defineMapComponent,
   defineComponent,
   defineQuery,
@@ -11,6 +9,8 @@ import {
   addComponent,
   singletonQuery,
 } from "../core/ECS";
+
+import { World } from '../core/World'
 
 export const AudioListenerComponent = defineComponent({});
 
@@ -35,15 +35,15 @@ enum AudioDistanceModel {
 type AudioSourceComponentProps = (
   | { audioType: AudioSourceType.Stereo }
   | {
-      audioType: AudioSourceType.PannerNode;
-      coneInnerAngle: number;
-      coneOuterAngle: number;
-      coneOuterGain: number;
-      distanceModel: AudioDistanceModel;
-      maxDistance: number;
-      refDistance: number;
-      rolloffFactor: number;
-    }
+    audioType: AudioSourceType.PannerNode;
+    coneInnerAngle: number;
+    coneOuterAngle: number;
+    coneOuterGain: number;
+    distanceModel: AudioDistanceModel;
+    maxDistance: number;
+    refDistance: number;
+    rolloffFactor: number;
+  }
 ) & { src: string; volume: number; loop: boolean; autoPlay: boolean };
 
 export const AudioSourceComponent =
@@ -73,13 +73,14 @@ export const audioSourceQuery = defineQuery([
   Object3DComponent,
 ]);
 
-export const AudioSystem = defineSystem(function AudioSystem(world: World) {
+export const AudioSystem = function AudioSystem(world: World) {
   const newAudioListenerEntities = newAudioListenerQuery(world);
 
   newAudioListenerEntities.forEach((eid) => {
-    const obj = Object3DComponent.storage.get(eid)!;
+    const obj = Object3DComponent.store.get(eid)!;
     const audioListener = new AudioListener();
-    obj.add(audioListener);
+    // todo: change .add to .addEntity to keep original threejs api?
+    obj._add(audioListener);
     addMapComponent(world, InternalAudioListenerComponent, eid, audioListener);
   });
 
@@ -90,14 +91,16 @@ export const AudioSystem = defineSystem(function AudioSystem(world: World) {
   }
 
   const audioListener =
-    InternalAudioListenerComponent.storage.get(mainAudioListenerEid)!;
+    InternalAudioListenerComponent.store.get(mainAudioListenerEid)!;
 
   const audioSourceEntities = audioSourceQuery(world);
 
-  audioSourceEntities.forEach((eid) => {
-    const obj = Object3DComponent.storage.get(eid)!;
-    const audioSourceProps = AudioSourceComponent.storage.get(eid)!;
-    let audioSource = InternalAudioSourceComponent.storage.get(eid);
+  for (let i = 0; i < audioSourceEntities.length; i++) {
+    const eid = audioSourceEntities[i];
+
+    const obj = Object3DComponent.store.get(eid)!;
+    const audioSourceProps = AudioSourceComponent.store.get(eid)!;
+    let audioSource = InternalAudioSourceComponent.store.get(eid);
 
     if (!audioSource) {
       const el = document.createElement("audio");
@@ -113,7 +116,7 @@ export const AudioSystem = defineSystem(function AudioSystem(world: World) {
         throw new Error("Unknown audio source type");
       }
 
-      InternalAudioSourceComponent.storage.set(eid, audioSource);
+      InternalAudioSourceComponent.store.set(eid, audioSource);
       audioSource.setMediaElementSource(el);
       obj.add(audioSource);
     }
@@ -181,5 +184,8 @@ export const AudioSystem = defineSystem(function AudioSystem(world: World) {
     if (audioSource.gain.gain.value !== volume) {
       audioSource.setVolume(volume);
     }
-  });
-});
+
+  };
+
+  return world;
+};

@@ -1,13 +1,13 @@
 import { Vector2, AnimationMixer, AnimationClip, AnimationAction } from "three";
-import { Object3DComponent } from "../components";
+import { Object3DComponent } from "../core/components";
 import {
-  defineSystem,
-  World,
   defineMapComponent,
   defineQuery,
   enterQuery,
   addMapComponent,
 } from "../core/ECS";
+import { World } from "../core/World";
+
 
 interface AnimationClipState {
   index: number; // Index
@@ -66,15 +66,15 @@ const animationMixerQuery = defineQuery([
 
 const newAnimationMixerQuery = enterQuery(animationMixerQuery);
 
-export const AnimationSystem = defineSystem(function AnimationSystem(
+export const AnimationSystem = function AnimationSystem(
   world: World
 ) {
   const animationMixerEntities = animationMixerQuery(world);
   const newAnimationMixerEntities = newAnimationMixerQuery(world);
 
   newAnimationMixerEntities.forEach((eid) => {
-    const obj = Object3DComponent.storage.get(eid)!;
-    const clips = AnimationClipsComponent.storage.get(eid);
+    const obj = Object3DComponent.store.get(eid)!;
+    const clips = AnimationClipsComponent.store.get(eid);
 
     const mixer = new AnimationMixer(obj);
 
@@ -94,10 +94,10 @@ export const AnimationSystem = defineSystem(function AnimationSystem(
   });
 
   animationMixerEntities.forEach((eid) => {
-    const { state } = AnimationMixerComponent.storage.get(eid)!;
+    const { state } = AnimationMixerComponent.store.get(eid)!;
     const { mixer, actions, playingActions } =
-      InternalAnimationMixerComponent.storage.get(eid)!;
-    const clips = AnimationClipsComponent.storage.get(eid);
+      InternalAnimationMixerComponent.store.get(eid)!;
+    const clips = AnimationClipsComponent.store.get(eid);
 
     // TODO: add/remove actions using clips/actions arrays
 
@@ -121,4 +121,6 @@ export const AnimationSystem = defineSystem(function AnimationSystem(
 
     mixer.update(world.dt);
   });
-});
+
+  return world;
+};

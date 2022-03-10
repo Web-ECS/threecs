@@ -1,14 +1,14 @@
 import { Vector2, Vector3, Quaternion, Object3D } from "three";
-import { Object3DComponent } from "../components";
+import { Object3DComponent } from "../core/components";
 import {
   defineSystem,
-  World,
   defineMapComponent,
   defineQuery,
   enterQuery,
   addMapComponent,
-  addObject3DEntity,
+  setParentEntity,
 } from "../core/ECS";
+import { World } from '../core/World';
 import { ButtonActionState } from "./ActionMappingSystem";
 import {
   addRigidBodyComponent,
@@ -21,6 +21,9 @@ import {
   RigidBodyType,
   PhysicsColliderShape,
 } from "./PhysicsSystem";
+import {
+  Object3DEntity
+} from "../core/entities";
 
 export const PhysicsCharacterControllerGroup = 0x0000_0001;
 export const CharacterPhysicsGroup = 0b1;
@@ -111,13 +114,16 @@ export const InternalPhysicsCharacterControllerComponent =
 
 export function addPhysicsCharacterControllerEntity(
   world: World,
-  scene: Object3D,
-  props?: any
+  parent?: number,
 ) {
-  const playerRig = new Object3D();
-  const playerRigEid = addObject3DEntity(world, playerRig, scene);
-  addPhysicsCharacterControllerComponent(world, playerRigEid);
-  addRigidBodyComponent(world, playerRigEid, {
+  const playerRig = new Object3DEntity(world);
+
+  if (parent !== undefined) {
+    setParentEntity(playerRig.eid, parent);
+  }
+
+  addPhysicsCharacterControllerComponent(world, playerRig.eid);
+  addRigidBodyComponent(world, playerRig.eid, {
     bodyType: RigidBodyType.Dynamic,
     shape: PhysicsColliderShape.Capsule,
     halfHeight: 0.8,
@@ -127,7 +133,7 @@ export function addPhysicsCharacterControllerEntity(
     solverGroups: CharacterInteractionGroup,
     lockRotations: true,
   });
-  return [playerRigEid, playerRig];
+  return playerRig;
 }
 
 const physicsCharacterControllerQuery = defineQuery([
@@ -140,7 +146,7 @@ const physicsCharacterControllerAddedQuery = enterQuery(
   physicsCharacterControllerQuery
 );
 
-export const PhysicsCharacterControllerSystem = defineSystem(
+export const PhysicsCharacterControllerSystem =
   function PhysicsCharacterControllerSystem(world: World) {
     const physicsWorldEid = mainPhysicsWorldQuery(world);
     const entities = physicsCharacterControllerQuery(world);
@@ -160,14 +166,14 @@ export const PhysicsCharacterControllerSystem = defineSystem(
     });
 
     if (physicsWorldEid === undefined) {
-      return;
+      return world;
     }
 
     const internalPhysicsWorldComponent =
-      InternalPhysicsWorldComponent.storage.get(physicsWorldEid);
+      InternalPhysicsWorldComponent.store.get(physicsWorldEid);
 
     if (!internalPhysicsWorldComponent) {
-      return;
+      return world;
     }
 
     const physicsWorld = internalPhysicsWorldComponent.physicsWorld;
@@ -205,9 +211,9 @@ export const PhysicsCharacterControllerSystem = defineSystem(
         minSlideSpeed,
         sprintModifier,
         maxSprintSpeed,
-      } = PhysicsCharacterControllerComponent.storage.get(eid)!;
+      } = PhysicsCharacterControllerComponent.store.get(eid)!;
       const internalPhysicsCharacterController =
-        InternalPhysicsCharacterControllerComponent.storage.get(eid)!;
+        InternalPhysicsCharacterControllerComponent.store.get(eid)!;
       const {
         moveForce,
         dragForce,
@@ -218,13 +224,13 @@ export const PhysicsCharacterControllerSystem = defineSystem(
         slideForce,
         lastSlideTime,
       } = internalPhysicsCharacterController;
-      const obj = Object3DComponent.storage.get(eid)!;
+      const obj = Object3DComponent.store.get(eid)!;
       const {
         translation: shapeTranslationOffset,
         rotation: shapeRotationOffset,
-      } = RigidBodyComponent.storage.get(eid)!;
+      } = RigidBodyComponent.store.get(eid)!;
       const { body, colliderShape } =
-        InternalRigidBodyComponent.storage.get(eid)!;
+        InternalRigidBodyComponent.store.get(eid)!;
 
       body.setRotation(obj.quaternion, true);
 
@@ -264,8 +270,6 @@ export const PhysicsCharacterControllerSystem = defineSystem(
         }
       }
 
-      moveForce.add(physicsWorld.gravity as Vector3);
-
       // TODO: Check to see if velocity matches orientation before sliding
       if (
         crouch.pressed &&
@@ -300,6 +304,7 @@ export const PhysicsCharacterControllerSystem = defineSystem(
           .copy(linearVelocity)
           .negate()
           .multiplyScalar(dragMultiplier * world.dt);
+
         moveForce.add(dragForce);
       }
 
@@ -308,7 +313,11 @@ export const PhysicsCharacterControllerSystem = defineSystem(
         moveForce.y += jumpForce * jumpModifier;
       }
 
-      body.applyForce(moveForce, true);
+      moveForce.divideScalar(100)
+
+      body.applyImpulse(moveForce, true);
+      body.applyForce(physicsWorld.gravity as Vector3, true)
     });
-  }
-);
+
+    return world;
+  };

@@ -41,11 +41,24 @@ export default ({ command, mode }) => {
         rollupOptions: {
           input: getHtmlPaths(),
         },
+        optimizeDeps: {
+          exclude: ["three"],
+        },
+      },
+      resolve: {
+        dedupe: [
+          "three",
+        ],
       },
       publicDir: path.join(__dirname, "examples", "public"),
     };
   } else {
     return {
+      resolve: {
+        dedupe: [
+          "three",
+        ],
+      },
       build: {
         lib: {
           entry: path.resolve(__dirname, "src/threecs.ts"),

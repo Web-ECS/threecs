@@ -6,123 +6,47 @@ import {
   BufferGeometry,
   DynamicDrawUsage,
 } from "three";
-import { Object3DComponent } from "../components";
+import { Object3DComponent } from "../core/components";
 import {
-  defineSystem,
-  World,
   defineComponent,
   defineQuery,
-  addObject3DEntity,
   addComponent,
+  addEntity,
+  addMapComponent,
+  setParentEntity,
 } from "../core/ECS";
+import { MeshEntity, Object3DEntity, InstancedMeshImposterEntity, InstancedMeshComponent, InstancedMeshImposterComponent, InstancedMeshEntity } from "../core/entities";
+import { World } from '../core/World'
 
-export class InstancedMeshImposter extends Mesh {
-  constructor(geometry: BufferGeometry, material: Material) {
-    super(geometry, material);
-    this.visible = false;
-  }
-}
-
-export class InstancedMeshRenderer extends InstancedMesh {
-  instances: Mesh[];
-  isInstancedMeshRenderer: boolean;
-
-  constructor(
-    geometry: BufferGeometry,
-    material: Material,
-    maxInstances: number = 100
-  ) {
-    super(geometry, material, maxInstances);
-    this.instanceMatrix.setUsage(DynamicDrawUsage);
-    this.isInstancedMeshRenderer = true;
-    this.instances = [];
-  }
-
-  createInstance() {
-    const mesh = new InstancedMeshImposter(
-      this.geometry,
-      this.material as Material
-    );
-    this.instances.push(mesh);
-    return mesh;
-  }
-
-  removeInstance(mesh: InstancedMeshImposter): boolean {
-    const idx = this.instances.indexOf(mesh);
-
-    if (idx === -1) {
-      return false;
-    }
-
-    this.instances.splice(idx, 1);
-
-    return true;
-  }
-
-  update() {
-    this.count = this.instances.length;
-
-    for (let i = 0; i < this.instances.length; i++) {
-      const instance = this.instances[i];
-      instance.updateMatrixWorld();
-      this.setMatrixAt(i, instance.matrixWorld);
-    }
-
-    this.instanceMatrix.needsUpdate = true;
-  }
-}
-
-export const InstancedMeshRendererComponent = defineComponent({});
-
-export function addInstancedMeshRendererEntity(
-  world: World,
-  geometry: BufferGeometry,
-  material: Material,
-  maxInstances: number = 100,
-  parent?: Object3D
-) {
-  const instancedMeshRenderer = new InstancedMeshRenderer(
-    geometry,
-    material,
-    maxInstances
-  );
-  const instancedMeshRendererEid = addObject3DEntity(
-    world,
-    instancedMeshRenderer,
-    parent
-  );
-  addComponent(world, InstancedMeshRendererComponent, instancedMeshRendererEid);
-
-  return [instancedMeshRendererEid, instancedMeshRenderer];
-}
-
-export function addInstancedMeshImposterEntity(
-  world: World,
-  instancedMeshRenderer: InstancedMeshRenderer,
-  parent?: Object3D
-) {
-  const obj = instancedMeshRenderer.createInstance();
-  const eid = addObject3DEntity(world, obj, parent);
-  return [eid, obj];
-}
-
-const instancedMeshRendererQuery = defineQuery([
-  InstancedMeshRendererComponent,
+const instancedMeshImposterQuery = defineQuery([
+  InstancedMeshImposterComponent,
   Object3DComponent,
 ]);
 
-export const InstancedMeshRendererSystem = defineSystem(
-  function InstancedMeshRendererSystem(world: World) {
-    const entities = instancedMeshRendererQuery(world);
+export const InstancedMeshImposterSystem =
+  function InstancedMeshImposterSystem(world: World) {
+    const entities = instancedMeshImposterQuery(world);
 
-    entities.forEach((eid) => {
-      const obj = Object3DComponent.storage.get(eid) as InstancedMeshRenderer;
+    for (let i = 0; i < entities.length; i++) {
+      const eid = entities[i];
+      const needsUpdate = InstancedMeshImposterComponent.needsUpdate[eid];
+      const autoUpdate = InstancedMeshImposterComponent.autoUpdate[eid];
 
-      if (!obj.isInstancedMeshRenderer) {
-        return;
+      if (needsUpdate) {
+        const instancedMeshEid = InstancedMeshImposterComponent.instancedMeshEid[eid];
+        const index = InstancedMeshImposterComponent.instancedMeshIndex[eid];
+        const instancedMeshImposter = Object3DComponent.store.get(eid) as InstancedMeshImposterEntity;
+        const instancedMesh = Object3DComponent.store.get(instancedMeshEid) as InstancedMeshEntity;
+        instancedMeshImposter.updateMatrixWorld();
+        instancedMesh.setMatrixAt(index, instancedMeshImposter.matrixWorld);
+        instancedMesh.instanceMatrix.needsUpdate = true;
       }
 
-      obj.update();
-    });
-  }
-);
+
+      if (autoUpdate) {
+        InstancedMeshImposterComponent.needsUpdate[eid] = 1;
+      }
+    };
+
+    return world;
+  };

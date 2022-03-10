@@ -1,122 +1,49 @@
 import {
-  IComponent as _Component,
-  IComponentProp as _ComponentProp,
-  IWorld,
-  TypedArray as _TypedArray,
-  Type as _Type,
-  Types as _Types,
-  defineComponent as _defineComponent,
-  defineQuery as _defineQuery,
-  addEntity as _addEntity,
-  removeEntity as _removeEntity,
-  addComponent as _addComponent,
-  removeComponent as _removeComponent,
-  hasComponent as _hasComponent,
-  Changed as _Changed,
-  Not as _Not,
-  enterQuery as _enterQuery,
-  exitQuery as _exitQuery,
-  commitRemovals as _commitRemovals,
-  defineSystem as _defineSystem,
+  IComponent,
+  defineComponent,
+  removeEntity,
+  addComponent,
+  removeComponent,
+  ISchema,
+  Query,
+  defineQuery,
+  exitQuery,
+  defineSystem,
 } from "bitecs";
-import { Object3D } from "three";
-import { Object3DComponent } from "../components";
-import { ActionMap, ActionState } from "../systems/ActionMappingSystem";
+import { Object3DComponent } from "./components";
+import { World } from './World'
+import { maxEntities } from "./config";
+import { traverse } from "./util/traverse";
 
-export { pipe } from "bitecs";
+export * from 'bitecs'
 
-export interface World extends IWorld {
-  dt: number;
-  time: number;
-  input: Map<string, number>;
-  actionMaps: ActionMap[];
-  actions: Map<string, ActionState>;
-  objectEntityMap: Map<Object3D, number>;
-}
+/* threecs API */
 
-export type Query = (world: World) => number[];
+export type MapComponent<V> = IComponent & { store: Map<number, V>, disposeSystem: (world: World) => World };
 
-export type System = (world: World) => void;
+export function defineMapComponent<V>(schema?: ISchema, disposeCallback?: (object: V, eid: number) => void): MapComponent<V> {
+  // TODO update bitecs type def
+  // @ts-ignore
+  const component = defineComponent(schema, maxEntities) as MapComponent<V>;
+  component.store = new Map();
 
-export type Type = _Type;
+  const exit = exitQuery(defineQuery([component]))
+  component.disposeSystem = defineSystem((world: World) => {
+    const entities = exit(world);
+    for (let i = 0; i < entities.length; i++) {
+      const eid = entities[i];
+      const obj = component.store.get(eid)! as any
+      if (obj.dispose) obj.dispose()
+      if (disposeCallback) {
+        console.log(disposeCallback)
+        disposeCallback(obj, eid);
+      }
+      component.store.delete(eid);
+    }
+    return world;
+  });
 
-export const Types = _Types;
-
-export type TypedArray = _TypedArray;
-
-export type ComponentProp = _ComponentProp;
-
-export type Schema = {
-  [key: string]: Type | Schema;
-};
-
-export interface Component {
-  [key: string]: TypedArray | ComponentProp;
-}
-
-export type QueryModifier = (
-  c: (Component | ComponentProp)[]
-) => (world: World) => Component | ComponentProp;
-
-export const defineQuery = _defineQuery as (
-  components: (Component | QueryModifier)[]
-) => Query;
-
-export const addEntity = _addEntity as unknown as (world: World) => number;
-
-export const removeEntity = _removeEntity as unknown as (
-  world: World,
-  eid: number
-) => void;
-
-export const defineComponent = _defineComponent as unknown as (
-  schema: Schema
-) => Component;
-
-export const addComponent = _addComponent as unknown as (
-  world: World,
-  component: Component,
-  eid: number
-) => void;
-
-export const removeComponent = _removeComponent as unknown as (
-  world: World,
-  component: Component,
-  eid: number
-) => void;
-
-export const hasComponent = _hasComponent as unknown as (
-  world: World,
-  component: Component,
-  eid: number
-) => boolean;
-
-export const Changed = _Changed as unknown as (
-  c: (Component | ComponentProp)[]
-) => (world: World) => Component | ComponentProp;
-
-export const Not = _Not as unknown as (
-  c: (Component | ComponentProp)[]
-) => (world: World) => Component | ComponentProp;
-
-export const enterQuery = _enterQuery as unknown as (query: Query) => Query;
-
-export const exitQuery = _exitQuery as unknown as (query: Query) => Query;
-
-export const commitRemovals = _commitRemovals as unknown as (
-  world: World
-) => void;
-
-export const defineSystem = _defineSystem as unknown as (
-  update: (world: World) => void
-) => System;
-
-export type MapComponent<V> = Component & { storage: Map<number, V> };
-
-export function defineMapComponent<V>(): MapComponent<V> {
-  const component = defineComponent({});
-  (component as any).storage = new Map();
-  return component as MapComponent<V>;
+  return component;
 }
 
 export function addMapComponent<V>(
@@ -125,8 +52,10 @@ export function addMapComponent<V>(
   eid: number,
   value: V
 ) {
-  addComponent(world, component, eid);
-  component.storage.set(eid, value);
+  addComponent(world, component, eid, false);
+  const obj = component.store.get(eid)
+  if (obj) Object.assign(obj, value);
+  else component.store.set(eid, value);
 }
 
 export function removeMapComponent(
@@ -135,35 +64,24 @@ export function removeMapComponent(
   eid: number
 ) {
   removeComponent(world, component, eid);
-  component.storage.delete(eid);
 }
 
-export function addObject3DComponent(
-  world: World,
-  eid: number,
-  obj: Object3D,
-  parent?: Object3D
-) {
-  if (parent) {
-    parent.add(obj);
-  }
-
-  addMapComponent(world, Object3DComponent, eid, obj);
-  world.objectEntityMap.set(obj, eid);
+export function defineProxyComponent<SoA, Proxy>(schema: ISchema): SoA & MapComponent<Proxy> {
+  return defineMapComponent(schema) as SoA & MapComponent<Proxy>;
 }
 
-export function addObject3DEntity(
-  world: World,
-  obj: Object3D,
-  parent?: Object3D
-) {
-  const eid = addEntity(world);
-  addObject3DComponent(world, eid, obj, parent);
-  return eid;
+export const setParentEntity = (child: number, parent: number) => {
+  const p = Object3DComponent.store.get(parent)!
+  const c = Object3DComponent.store.get(child)!
+  p.add(c)
 }
 
-export function removeObject3DComponent(world: World, eid: number) {
-  const obj = Object3DComponent.storage.get(eid);
+export const setChildEntity = (parent: number, child: number) => {
+  setParentEntity(child, parent);
+}
+
+export function removeObject3DEntity(world: World, eid: number) {
+  const obj = Object3DComponent.store.get(eid)
 
   if (!obj) {
     return;
@@ -173,39 +91,9 @@ export function removeObject3DComponent(world: World, eid: number) {
     obj.parent.remove(obj);
   }
 
-  removeMapComponent(world, Object3DComponent, eid);
-  world.objectEntityMap.delete(obj);
-
-  obj.traverse((child) => {
-    if (child === obj) {
-      return;
-    }
-
-    const childEid = getObject3DEntity(world, child);
-
-    if (childEid) {
-      removeEntity(world, childEid);
-      Object3DComponent.storage.delete(childEid);
-      world.objectEntityMap.delete(child);
-    }
+  traverse(obj.eid, (eid: number) => {
+    removeEntity(world, eid);
   });
-}
-
-export function removeObject3DEntity(world: World, eid: number) {
-  removeObject3DComponent(world, eid);
-  removeEntity(world, eid);
-}
-
-export function getObject3DEntity(
-  world: World,
-  obj: Object3D
-): number | undefined {
-  return world.objectEntityMap.get(obj);
-}
-
-export function setEntityObject3D(world: World, eid: number, obj: Object3D) {
-  addMapComponent(world, Object3DComponent, eid, obj);
-  world.objectEntityMap.set(obj, eid);
 }
 
 export function singletonQuery(

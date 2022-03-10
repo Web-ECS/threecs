@@ -1,25 +1,31 @@
-import { createWorld } from "bitecs";
+import { createWorld, IWorld } from "bitecs";
 import {
   WebGLRenderer,
-  Scene,
-  PerspectiveCamera,
   Clock,
   WebGLRendererParameters,
-  ACESFilmicToneMapping,
-  sRGBEncoding,
+  Renderer,
 } from "three";
 import { RendererSystem, RendererComponent } from "../systems/RendererSystem";
-import { CameraComponent, SceneComponent } from "../components";
-import { ActionMappingSystem, ActionMap } from "../systems/ActionMappingSystem";
+import { ActionMappingSystem, ActionMap, ActionState } from "../systems/ActionMappingSystem";
 import {
   addEntity,
   pipe,
-  addComponent,
   System,
-  World,
-  addObject3DEntity,
-  addMapComponent,
 } from "./ECS";
+import { maxEntities } from "./config";
+import { PerspectiveCameraEntity, SceneEntity, } from "./entities";
+import { Object3DComponent } from "./components";
+
+export interface World extends IWorld {
+  dt: number;
+  time: number;
+  input: Map<string, number>;
+  actionMaps: ActionMap[];
+  actions: Map<string, ActionState>;
+  sceneEid: number;
+  cameraEid: number;
+  renderer: Renderer;
+}
 
 interface GLTFWorldOptions {
   pointerLock?: boolean;
@@ -47,7 +53,9 @@ export function createThreeWorld(options: GLTFWorldOptions = {}) {
     options
   );
 
-  const world = createWorld() as World;
+  // TODO update bitecs type def
+  // @ts-ignore
+  const world = createWorld<World>(maxEntities);
   world.dt = 0;
   world.time = 0;
   world.objectEntityMap = new Map();
@@ -62,19 +70,23 @@ export function createThreeWorld(options: GLTFWorldOptions = {}) {
 
   window.addEventListener("resize", onResize);
 
-  const scene = new Scene();
-  const sceneEid = addObject3DEntity(world, scene);
-  addComponent(world, SceneComponent, sceneEid);
+  // noop entity 0
+  const noop = addEntity(world);
 
-  const camera = new PerspectiveCamera();
-  const cameraEid = addObject3DEntity(world, camera, scene);
-  addComponent(world, CameraComponent, cameraEid);
+  const scene = new SceneEntity(world);
+  world.scene = scene;
 
-  const rendererEid = addEntity(world);
+  const camera = new PerspectiveCameraEntity(world);
+  world.camera = camera;
+  scene.add(camera);
+
   const renderer = new WebGLRenderer({
     antialias: true,
     ...rendererParameters,
   });
+
+  world.renderer = renderer;
+
   renderer.setPixelRatio(window.devicePixelRatio);
 
   if (!rendererParameters.canvas) {
@@ -88,8 +100,6 @@ export function createThreeWorld(options: GLTFWorldOptions = {}) {
   canvasStyle.position = "absolute";
   canvasStyle.width = "100%";
   canvasStyle.height = "100%";
-
-  addMapComponent(world, RendererComponent, rendererEid, renderer);
 
   if (pointerLock) {
     renderer.domElement.addEventListener("mousedown", () => {
@@ -139,17 +149,12 @@ export function createThreeWorld(options: GLTFWorldOptions = {}) {
     ActionMappingSystem,
     ...systems,
     RendererSystem,
-    ...afterRenderSystems
+    ...afterRenderSystems,
+    Object3DComponent.disposeSystem,
   );
 
   return {
     world,
-    sceneEid,
-    scene,
-    cameraEid,
-    camera,
-    rendererEid,
-    renderer,
     start() {
       renderer.setAnimationLoop(() => {
         world.dt = clock.getDelta();

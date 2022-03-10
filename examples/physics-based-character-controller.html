@@ -34,7 +34,7 @@
       import {
         ActionType,
         createThreeWorld,
-        addObject3DEntity,
+        Object3DEntity,
         addComponent,
         BindingType,
         FirstPersonCameraSystem,
@@ -53,6 +53,7 @@
         singletonQuery,
         defineSystem,
         Object3DComponent,
+        MeshEntity,
       } from "../src/threecs";
       import crateTextureUrl from "./assets/crate.gif";
       import grassTextureUrl from "./assets/grass.png";
@@ -70,7 +71,7 @@
           defineQuery([CrouchCameraTarget, Object3DComponent])
         );
 
-        const CrouchSystem = defineSystem(function CrouchSystem(world) {
+        const CrouchSystem = function CrouchSystem(world) {
           const crouchMeshEid = crouchMeshQuery(world);
           const crouchCameraEid = crouchCameraQuery(world);
 
@@ -82,8 +83,8 @@
             PhysicsCharacterControllerActions.Crouch
           );
 
-          const mesh = Object3DComponent.storage.get(crouchMeshEid);
-          const camera = Object3DComponent.storage.get(crouchCameraEid);
+          const mesh = Object3DComponent.store.get(crouchMeshEid);
+          const camera = Object3DComponent.store.get(crouchCameraEid);
 
           if (crouch.pressed && crouch.held) {
             mesh.scale.set(1, 0.5, 1);
@@ -94,9 +95,11 @@
             camera.scale.set(1, 1, 1);
             camera.position.y = 1.6;
           }
-        });
 
-        const { world, scene, sceneEid, camera, cameraEid, start } =
+          return world;
+        };
+
+        const { world, start } =
           createThreeWorld({
             pointerLock: true,
             systems: [
@@ -173,57 +176,63 @@
             ],
           });
 
-        addPhysicsWorldComponent(world, sceneEid);
+        const { scene, camera } = world;
 
-        const [playerRigEid, playerRig] = addPhysicsCharacterControllerEntity(
-          world,
-          scene
-        );
-        addComponent(world, FirstPersonCameraYawTarget, playerRigEid);
-        addComponent(world, CrouchMeshTarget, playerRigEid);
-        addComponent(world, FirstPersonCameraPitchTarget, cameraEid);
-        addComponent(world, CrouchCameraTarget, cameraEid);
+        addPhysicsWorldComponent(world, scene.eid);
+
+        const playerRig = addPhysicsCharacterControllerEntity(world);
+        scene.add(playerRig);
+        addComponent(world, FirstPersonCameraYawTarget, playerRig.eid);
+        addComponent(world, CrouchMeshTarget, playerRig.eid);
+        addComponent(world, FirstPersonCameraPitchTarget, camera.eid);
+        addComponent(world, CrouchCameraTarget, camera.eid);
         playerRig.add(camera);
         playerRig.position.set(0, 0.1, 5);
         camera.position.set(0, 1.6, 0);
 
         const crateTexture = new TextureLoader().load(crateTextureUrl);
-        const cube = new Mesh(
+        const cube = new MeshEntity(
+          world,
           new BoxBufferGeometry(1, 1, 1),
-          new MeshBasicMaterial({ map: crateTexture })
+          new MeshBasicMaterial({ map: crateTexture }),
         );
-        const cubeEid = addObject3DEntity(world, cube, scene);
         cube.position.set(0.35, 2, 0.25);
-        addRigidBodyComponent(world, cubeEid, {
+        addRigidBodyComponent(world, cube.eid, {
           bodyType: RigidBodyType.Dynamic,
         });
 
-        const sphere = new Mesh(
+        const sphere = new MeshEntity(
+          world,
           new SphereBufferGeometry(1, 10, 10),
-          new MeshBasicMaterial({ color: 0xff0000 })
+          new MeshBasicMaterial({ color: 0xff0000 }),
         );
-        const sphereEid = addObject3DEntity(world, sphere, scene);
         sphere.position.set(0, 0.25, -0.5);
-        addRigidBodyComponent(world, sphereEid);
+        addRigidBodyComponent(world, sphere.eid);
 
-        const wall = new Mesh(
+        const wall = new MeshEntity(
+          world,
           new BoxBufferGeometry(2, 3, 0.5),
-          new MeshBasicMaterial({ color: 0x00ff00 })
+          new MeshBasicMaterial({ color: 0x00ff00 }),
         );
-        const wallEid = addObject3DEntity(world, wall, scene);
         wall.position.set(-3, 1.5, -1);
         wall.rotation.set(0, Math.PI / 4, 0);
-        addRigidBodyComponent(world, wallEid);
+        addRigidBodyComponent(world, wall.eid);
 
         const grassTexture = new TextureLoader().load(grassTextureUrl);
         grassTexture.wrapS = grassTexture.wrapT = RepeatWrapping;
         grassTexture.repeat.set(10, 10);
-        const ground = new Mesh(
+        const ground = new MeshEntity(
+          world,
           new BoxBufferGeometry(100, 0.1, 100),
-          new MeshBasicMaterial({ map: grassTexture })
+          new MeshBasicMaterial({ map: grassTexture }),
+          scene.eid,
         );
-        const groundEid = addObject3DEntity(world, ground, scene);
-        addRigidBodyComponent(world, groundEid);
+        addRigidBodyComponent(world, ground.eid);
+
+        scene.add(cube);
+        scene.add(sphere);
+        scene.add(wall);
+        scene.add(ground);
 
         start();
       }
