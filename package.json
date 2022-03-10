@@ -21,8 +21,6 @@
     "preview-site": "vite preview"
   },
   "dependencies": {
-    "@dimforge/rapier3d-compat": "^0.7.6",
-    "bitecs": "^0.3.36"
   },
   "devDependencies": {
     "@types/three": "^0.137.0",
@@ -31,6 +29,8 @@
     "vite": "^2.8.5"
   },
   "peerDependencies": {
+    "@dimforge/rapier3d-compat": "^0.7.6",
+    "bitecs": "^0.3.36",
     "three": "^0.138.0"
   }
 }
