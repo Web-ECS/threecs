@@ -1,4 +1,4 @@
-import { Vector2, AnimationMixer, AnimationClip, AnimationAction } from "three";
+import { AnimationMixer, AnimationClip, AnimationAction, Object3D } from "three";
 import { Object3DComponent } from "../core/components";
 import {
   defineMapComponent,
@@ -76,7 +76,7 @@ export const AnimationSystem = function AnimationSystem(
     const obj = Object3DComponent.store.get(eid)!;
     const clips = AnimationClipsComponent.store.get(eid);
 
-    const mixer = new AnimationMixer(obj);
+    const mixer = new AnimationMixer(obj as unknown as Object3D);
 
     const actions = [];
 

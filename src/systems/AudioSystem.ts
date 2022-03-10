@@ -11,6 +11,7 @@ import {
 } from "../core/ECS";
 
 import { World } from '../core/World'
+import { AudioEntity, AudioListenerEntity, PositionalAudioEntity } from "../threecs";
 
 export const AudioListenerComponent = defineComponent({});
 
@@ -19,7 +20,7 @@ export function addAudioListenerComponent(world: World, eid: number) {
 }
 
 export const InternalAudioListenerComponent =
-  defineMapComponent<AudioListener>();
+  defineMapComponent<AudioListenerEntity>();
 
 enum AudioSourceType {
   Stereo = "stereo",
@@ -50,7 +51,7 @@ export const AudioSourceComponent =
   defineMapComponent<AudioSourceComponentProps>();
 
 export const InternalAudioSourceComponent =
-  defineMapComponent<Audio<GainNode | PannerNode> | PositionalAudio>();
+  defineMapComponent<AudioEntity | PositionalAudioEntity>();
 
 export function addAudioSourceComponent(
   world: World,
@@ -78,7 +79,7 @@ export const AudioSystem = function AudioSystem(world: World) {
 
   newAudioListenerEntities.forEach((eid) => {
     const obj = Object3DComponent.store.get(eid)!;
-    const audioListener = new AudioListener();
+    const audioListener = new AudioListenerEntity(world);
     // todo: change .add to .addEntity to keep original threejs api?
     obj._add(audioListener);
     addMapComponent(world, InternalAudioListenerComponent, eid, audioListener);
@@ -109,9 +110,9 @@ export const AudioSystem = function AudioSystem(world: World) {
       el.crossOrigin = "anonymous";
 
       if (audioSourceProps.audioType === AudioSourceType.Stereo) {
-        audioSource = new Audio(audioListener);
+        audioSource = new AudioEntity(world, audioListener);
       } else if (audioSourceProps.audioType === AudioSourceType.PannerNode) {
-        audioSource = new PositionalAudio(audioListener);
+        audioSource = new PositionalAudioEntity(world, audioListener);
       } else {
         throw new Error("Unknown audio source type");
       }
@@ -134,7 +135,7 @@ export const AudioSystem = function AudioSystem(world: World) {
         rolloffFactor,
       } = audioSourceProps;
 
-      const positionalAudio = audioSource as PositionalAudio;
+      const positionalAudio = audioSource as PositionalAudioEntity;
       const pannerNode = positionalAudio.panner;
 
       if (

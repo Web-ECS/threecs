@@ -1,4 +1,4 @@
-import { Object3DSoA, Object3DSoAoA } from "..";
+import { Object3DSoA, Object3DSoAoA } from "../proxy/Types";
 import { composeMatrixAoA, composeMatrixSoA } from "./composeMatrix";
 
 export const updateMatrixSoA = (store: Object3DSoA, eid: number) => {

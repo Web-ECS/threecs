@@ -63,7 +63,10 @@ import {
   DepthTexture,
   Texture,
   VideoTexture,
-  DynamicDrawUsage 
+  DynamicDrawUsage,
+  Audio,
+  PositionalAudio,
+  AudioListener,
 } from "three";
 import { defineMapComponent } from "./ECS";
 import { Constructor, IObject3DEntity, IObject3DStaticProps, Object3DEntityMixin } from "./proxy/Object3DEntityMixin";
@@ -787,5 +790,30 @@ export class SpotLightEntity extends Object3DEntityMixin(SpotLight) {
   constructor(world: World, ...args: ConstructorParameters<typeof SpotLight>) {
     super(world, ...args);
     addComponent(world, SpotLightComponent, this.eid);
+  }
+}
+
+
+const AudioComponent = defineComponent();
+export class AudioEntity extends Object3DEntityMixin(Audio) {
+  constructor(world: World, listener: AudioListenerEntity) {
+    super(world, listener);
+    addComponent(world, AudioComponent, this.eid);
+  }
+}
+
+const PositionalAudioComponent = defineComponent();
+export class PositionalAudioEntity extends Object3DEntityMixin(PositionalAudio) {
+  constructor(world: World, listener: AudioListenerEntity) {
+    super(world, listener);
+    addComponent(world, PositionalAudioComponent, this.eid);
+  }
+}
+
+const AudioListenerComponent = defineComponent();
+export class AudioListenerEntity extends Object3DEntityMixin(AudioListener) {
+  constructor(world: World, ...args: ConstructorParameters<typeof AudioListener>) {
+    super(world, ...args);
+    addComponent(world, AudioListenerComponent, this.eid);
   }
 }
