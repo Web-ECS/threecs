@@ -10,12 +10,14 @@ import { Object3DComponent, VisibleComponent, CameraComponent, SceneComponent } 
 import { addMapComponent, defineMapComponent } from "./ECS";
 import { World } from "./World";
 
+type Override<T, O> = Omit<T, keyof O> & O;
+
 type ITextureProps = {
   eid: number
   store: typeof TextureComponent;
 }
 
-export type ITextureEntity<T extends Texture = Texture> = Omit<T, keyof ITextureProps> & ITextureProps;
+export type ITextureEntity<T extends Texture = Texture> = Override<T, ITextureProps>;
 
 export const TextureComponent = defineMapComponent<ITextureEntity>();
 
@@ -122,7 +124,7 @@ type IGeometryProps = {
   store: typeof GeometryComponent;
 }
 
-export type IGeometryEntity<T extends BufferGeometry = BufferGeometry> = Omit<T, keyof IGeometryProps> & IGeometryProps;
+export type IGeometryEntity<T extends BufferGeometry = BufferGeometry> = Override<T, IGeometryProps>;
 
 export const GeometryEntityMixin = <T extends BufferGeometry, R extends IGeometryEntity<T>>(Base: Constructor<T>): Constructor<R> => {
   const TypedBase = Base as any;
@@ -328,20 +330,23 @@ export const MaterialComponent = defineMapComponent<IMaterialEntity>();
 type IMaterialProps = {
   eid: number;
   store: typeof MaterialComponent;
+  textureStore: typeof TextureComponent;
 }
 
-export type IMaterialEntity<T extends Material = Material> = Omit<T, keyof IMaterialProps> & IMaterialProps;
+export type IMaterialEntity<T extends Material = Material, O extends object = {}> = Override<T, IMaterialProps & O>;
 
-export const MaterialEntityMixin = <T extends Material, R extends IMaterialEntity<T>>(Base: Constructor<T>): Constructor<R> => {
+export const MaterialEntityMixin = <T extends Material, O extends object = {}, R extends IMaterialEntity<T, O> = IMaterialEntity<T, O>>(Base: Constructor<T>): Constructor<R> => {
   const TypedBase = Base as any;
 
   const ReturnType = class extends TypedBase {
     eid: number;
     store: typeof MaterialComponent;
+    textureStore: typeof TextureComponent;
     constructor(world: World, ...args: any[]) {
       super(...args);
       const eid = this.eid = addEntity(world);
       this.store = MaterialComponent;
+      this.textureStore = TextureComponent;
       addComponent(world, this.store, eid);
       this.store.store.set(eid, this as unknown as IMaterialEntity);
     }
@@ -529,7 +534,7 @@ type IObject3DProps<T extends Object3D> = {
   clone(recursive?: boolean): IObject3DEntity<T>;
 }
 
-export type IObject3DEntity<T extends Object3D = Object3D, O extends object = {}> = Omit<T, keyof IObject3DProps<T> | keyof O> & IObject3DProps<T> & O;
+export type IObject3DEntity<T extends Object3D = Object3D, O extends object = {}> = Override<T, IObject3DProps<T> & O>;
 
 interface IObject3DStaticProps {
   DefaultUp: Vector3;
