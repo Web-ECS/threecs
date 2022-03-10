@@ -5,7 +5,6 @@ import {
   Mesh,
   Object3D,
   Scene,
-  Vector3,
   Bone,
   PerspectiveCamera,
   Group,
@@ -64,18 +63,23 @@ import {
   DepthTexture,
   Texture,
   VideoTexture,
-  DynamicDrawUsage 
+  DynamicDrawUsage,
+  Audio,
+  PositionalAudio,
+  AudioListener,
 } from "three";
 import { defineMapComponent } from "./ECS";
 import { Constructor, IObject3DEntity, IObject3DStaticProps, Object3DEntityMixin } from "./proxy/Object3DEntityMixin";
 import { World } from "./World";
+
+type Override<T, O> = Omit<T, keyof O> & O;
 
 type ITextureProps = {
   eid: number
   store: typeof TextureComponent;
 }
 
-export type ITextureEntity<T extends Texture = Texture> = Omit<T, keyof ITextureProps> & ITextureProps;
+export type ITextureEntity<T extends Texture = Texture> = Override<T, ITextureProps>;
 
 export const TextureComponent = defineMapComponent<ITextureEntity>();
 
@@ -182,7 +186,7 @@ type IGeometryProps = {
   store: typeof GeometryComponent;
 }
 
-export type IGeometryEntity<T extends BufferGeometry = BufferGeometry> = Omit<T, keyof IGeometryProps> & IGeometryProps;
+export type IGeometryEntity<T extends BufferGeometry = BufferGeometry> = Override<T, IGeometryProps>;
 
 export const GeometryEntityMixin = <T extends BufferGeometry, R extends IGeometryEntity<T>>(Base: Constructor<T>): Constructor<R> => {
   const TypedBase = Base as any;
@@ -388,20 +392,23 @@ export const MaterialComponent = defineMapComponent<IMaterialEntity>();
 type IMaterialProps = {
   eid: number;
   store: typeof MaterialComponent;
+  textureStore: typeof TextureComponent;
 }
 
-export type IMaterialEntity<T extends Material = Material> = Omit<T, keyof IMaterialProps> & IMaterialProps;
+export type IMaterialEntity<T extends Material = Material, O extends object = {}> = Override<T, IMaterialProps & O>;
 
-export const MaterialEntityMixin = <T extends Material, R extends IMaterialEntity<T>>(Base: Constructor<T>): Constructor<R> => {
+export const MaterialEntityMixin = <T extends Material, O extends object = {}, R extends IMaterialEntity<T, O> = IMaterialEntity<T, O>>(Base: Constructor<T>): Constructor<R> => {
   const TypedBase = Base as any;
 
   const ReturnType = class extends TypedBase {
     eid: number;
     store: typeof MaterialComponent;
+    textureStore: typeof TextureComponent;
     constructor(world: World, ...args: any[]) {
       super(...args);
       const eid = this.eid = addEntity(world);
       this.store = MaterialComponent;
+      this.textureStore = TextureComponent;
       addComponent(world, this.store, eid);
       this.store.store.set(eid, this as unknown as IMaterialEntity);
     }
@@ -783,5 +790,30 @@ export class SpotLightEntity extends Object3DEntityMixin(SpotLight) {
   constructor(world: World, ...args: ConstructorParameters<typeof SpotLight>) {
     super(world, ...args);
     addComponent(world, SpotLightComponent, this.eid);
+  }
+}
+
+
+const AudioComponent = defineComponent();
+export class AudioEntity extends Object3DEntityMixin(Audio) {
+  constructor(world: World, listener: AudioListenerEntity) {
+    super(world, listener);
+    addComponent(world, AudioComponent, this.eid);
+  }
+}
+
+const PositionalAudioComponent = defineComponent();
+export class PositionalAudioEntity extends Object3DEntityMixin(PositionalAudio) {
+  constructor(world: World, listener: AudioListenerEntity) {
+    super(world, listener);
+    addComponent(world, PositionalAudioComponent, this.eid);
+  }
+}
+
+const AudioListenerComponent = defineComponent();
+export class AudioListenerEntity extends Object3DEntityMixin(AudioListener) {
+  constructor(world: World, ...args: ConstructorParameters<typeof AudioListener>) {
+    super(world, ...args);
+    addComponent(world, AudioListenerComponent, this.eid);
   }
 }

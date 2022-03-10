@@ -1,4 +1,4 @@
-import { Vector3SoA } from ".."
+import { Vector3SoA } from "../proxy/Vector3";
 
 export const setMatrixPositionSoA = (matrix: Float32Array, position: Vector3SoA, eid: number) => {
   matrix[ 12 ] = position.x[eid]

@@ -53,8 +53,6 @@ export function createThreeWorld(options: GLTFWorldOptions = {}) {
     options
   );
 
-  // TODO update bitecs type def
-  // @ts-ignore
   const world = createWorld<World>(maxEntities);
   world.dt = 0;
   world.time = 0;

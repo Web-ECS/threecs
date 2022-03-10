@@ -17,7 +17,7 @@ import {
   singletonQuery,
 } from "../core/ECS";
 import { World } from '../core/World';
-import { IObject3DEntity } from "../threecs";
+import { IObject3DEntity, MeshEntity } from "../threecs";
 import { mainSceneQuery } from "./RendererSystem";
 
 interface PhysicsWorldProps {
@@ -308,7 +308,7 @@ export async function loadPhysicsSystem(): Promise<Function> {
         colliderShape = new Rapier.Capsule(halfHeight, radius);
       } else if (geometryType === "Mesh" || PhysicsColliderShape.Trimesh) {
         const { vertices, indices } = rigidBodyProps as TrimeshRigidBodyProps;
-        const mesh = obj as Mesh;
+        const mesh = obj as MeshEntity;
 
         let finalIndices;
 

@@ -22,8 +22,6 @@ export * from 'bitecs'
 export type MapComponent<V> = IComponent & { store: Map<number, V>, disposeSystem: (world: World) => World };
 
 export function defineMapComponent<V>(schema?: ISchema, disposeCallback?: (object: V, eid: number) => void): MapComponent<V> {
-  // TODO update bitecs type def
-  // @ts-ignore
   const component = defineComponent(schema, maxEntities) as MapComponent<V>;
   component.store = new Map();
 

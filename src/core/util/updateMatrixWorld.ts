@@ -1,4 +1,4 @@
-import { Object3DSoA, Object3DSoAoA } from "../type/Object3D";
+import { Object3DSoA, Object3DSoAoA } from "../proxy/Types";
 import { multiplyMatrices } from "./multiplyMatrices";
 import { updateMatrixAoA, updateMatrixSoA } from "./updateMatrix";
 
