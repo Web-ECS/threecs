@@ -1,5 +1,5 @@
-import { setQuaternionFromEulerAoA } from "@webecs/do-three";
 import { Object3DComponent } from "./components";
+import { setQuaternionFromEulerAoA } from "./util/setQuaternionFromEuler";
 
 export const updateQuaternion = (eid: number) =>
   setQuaternionFromEulerAoA(

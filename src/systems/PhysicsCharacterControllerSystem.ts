@@ -270,8 +270,6 @@ export const PhysicsCharacterControllerSystem =
         }
       }
 
-      moveForce.add(physicsWorld.gravity as Vector3);
-
       // TODO: Check to see if velocity matches orientation before sliding
       if (
         crouch.pressed &&
@@ -306,6 +304,7 @@ export const PhysicsCharacterControllerSystem =
           .copy(linearVelocity)
           .negate()
           .multiplyScalar(dragMultiplier * world.dt);
+
         moveForce.add(dragForce);
       }
 
@@ -314,7 +313,10 @@ export const PhysicsCharacterControllerSystem =
         moveForce.y += jumpForce * jumpModifier;
       }
 
-      body.applyForce(moveForce, true);
+      moveForce.divideScalar(100)
+
+      body.applyImpulse(moveForce, true);
+      body.applyForce(physicsWorld.gravity as Vector3, true)
     });
 
     return world;

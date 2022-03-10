@@ -1,4 +1,3 @@
-import { Object3DProxy, Object3DSoAoA } from "@webecs/do-three";
 import {
   Object3D,
   InstancedMesh,

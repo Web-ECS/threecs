@@ -1,7 +1,7 @@
 // http://www.mathworks.com/matlabcentral/fileexchange/20696-function-to-convert-between-dcm-euler-angles-quaternions-and-euler-vectors/content/SpinCalc.m
 
-import { EulerSoA } from "../proxy/math/Euler"
-import { QuaternionSoA } from "../proxy/math/Quaternion"
+import { EulerSoA } from "../proxy/Euler"
+import { QuaternionSoA } from "../proxy/Quaternion"
 
 const { sin, cos } = Math
 

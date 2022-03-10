@@ -17,6 +17,7 @@ import {
   singletonQuery,
 } from "../core/ECS";
 import { World } from '../core/World';
+import { IObject3DEntity } from "../threecs";
 import { mainSceneQuery } from "./RendererSystem";
 
 interface PhysicsWorldProps {
@@ -265,7 +266,7 @@ export async function loadPhysicsSystem(): Promise<Function> {
       const obj = Object3DComponent.store.get(rigidBodyEid)!;
       const rigidBodyProps = RigidBodyComponent.store.get(rigidBodyEid)!;
 
-      const geometry = (obj as Mesh).geometry;
+      const geometry = (obj as IObject3DEntity<Mesh>).geometry;
 
       if (!geometry && !rigidBodyProps.shape) {
         return;
@@ -448,7 +449,7 @@ export async function loadPhysicsSystem(): Promise<Function> {
             0.1
           );
           const scene = Object3DComponent.store.get(sceneEid)!;
-          scene.add(internalRaycaster.arrowHelper);
+          scene.add(internalRaycaster.arrowHelper as unknown as IObject3DEntity<any>);
         } else {
           const arrowHelper = internalRaycaster.arrowHelper;
           arrowHelper.position.copy(raycaster.origin);
@@ -457,7 +458,7 @@ export async function loadPhysicsSystem(): Promise<Function> {
         }
       } else if (!raycaster.debug && internalRaycaster.arrowHelper) {
         const scene = Object3DComponent.store.get(sceneEid)!;
-        scene.remove(internalRaycaster.arrowHelper);
+        scene.remove(internalRaycaster.arrowHelper as unknown as IObject3DEntity<any>);
         internalRaycaster.arrowHelper = undefined;
       }
     });

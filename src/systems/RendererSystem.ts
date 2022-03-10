@@ -1,5 +1,5 @@
 import { PerspectiveCamera, WebGLRenderer, Scene } from "three";
-import { CameraComponent, SceneComponent } from "../core/components";
+import { CameraComponent, SceneComponent } from "../core/entities";
 import { Object3DComponent } from "../core/components";
 import {
   defineQuery,
