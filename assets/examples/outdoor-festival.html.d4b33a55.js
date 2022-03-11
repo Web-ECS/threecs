@@ -1,19 +1,6 @@
-var __defProp = Object.defineProperty;
 var __getOwnPropSymbols = Object.getOwnPropertySymbols;
 var __hasOwnProp = Object.prototype.hasOwnProperty;
 var __propIsEnum = Object.prototype.propertyIsEnumerable;
-var __defNormalProp = (obj, key, value) => key in obj ? __defProp(obj, key, { enumerable: true, configurable: true, writable: true, value }) : obj[key] = value;
-var __spreadValues = (a, b) => {
-  for (var prop in b || (b = {}))
-    if (__hasOwnProp.call(b, prop))
-      __defNormalProp(a, prop, b[prop]);
-  if (__getOwnPropSymbols)
-    for (var prop of __getOwnPropSymbols(b)) {
-      if (__propIsEnum.call(b, prop))
-        __defNormalProp(a, prop, b[prop]);
-    }
-  return a;
-};
 var __objRest = (source, exclude) => {
   var target = {};
   for (var prop in source)
@@ -26,9 +13,18 @@ var __objRest = (source, exclude) => {
     }
   return target;
 };
-import { l as loadPhysicsSystem, a as singletonQuery, O as Object3DComponent, c as createThreeWorld, F as FirstPersonCameraSystem, P as PhysicsCharacterControllerSystem, A as AnimationSystem, b as AudioSystem, d as FirstPersonCameraActions, e as ActionType, B as BindingType, f as PhysicsCharacterControllerActions, g as addPhysicsWorldComponent, h as addPhysicsCharacterControllerEntity, i as FirstPersonCameraYawTarget, j as FirstPersonCameraPitchTarget, k as addAudioListenerComponent, m as addMapComponent, n as addAnimationClipsComponent, o as addAudioSourceComponent, p as addRigidBodyComponent, q as PhysicsColliderShape, t as addAnimationMixerComponent } from "../AudioSystem.49d2e024.js";
-/* empty css                  */import { d as defineComponent, a as defineQuery, aG as ACESFilmicToneMapping, aH as sRGBEncoding, b as addComponent, am as AudioListener, aI as GLTFLoader, g as addEntity } from "../vendor.95af2766.js";
+import { l as loadPhysicsSystem, a as singletonQuery, O as Object3DComponent, c as createThreeWorld, F as FirstPersonCameraSystem, P as PhysicsCharacterControllerSystem, A as AnimationSystem, b as FirstPersonCameraActions, d as ActionType, B as BindingType, e as PhysicsCharacterControllerActions, f as addPhysicsWorldComponent, g as addPhysicsCharacterControllerEntity, h as FirstPersonCameraYawTarget, i as FirstPersonCameraPitchTarget, j as AudioListenerEntity, k as addMapComponent, m as addAnimationClipsComponent, n as PositionalAudioEntity, o as AudioEntity, p as addRigidBodyComponent, q as PhysicsColliderShape, t as addAnimationMixerComponent } from "../AnimationSystem.1fc34b0b.js";
+/* empty css                  */import { d as defineComponent, a as defineQuery, aG as ACESFilmicToneMapping, aH as sRGBEncoding, b as addComponent, aI as GLTFLoader, g as addEntity } from "../vendor.95af2766.js";
 var outdoorFestival_html_htmlProxy_index_0 = "";
+function createAudioElement(src) {
+  const el = document.createElement("audio");
+  el.addEventListener("canplay", () => {
+    el.play();
+  });
+  el.src = src;
+  el.playsinline = true;
+  return el;
+}
 async function main() {
   const PhysicsSystem = await loadPhysicsSystem();
   const CrouchMeshTarget = defineComponent({});
@@ -61,7 +57,6 @@ async function main() {
       FirstPersonCameraSystem,
       PhysicsCharacterControllerSystem,
       AnimationSystem,
-      AudioSystem,
       CrouchSystem,
       PhysicsSystem
     ],
@@ -146,8 +141,7 @@ async function main() {
   playerRig.add(camera);
   playerRig.position.set(0, 0.1, 5);
   camera.position.set(0, 1.6, 0);
-  addAudioListenerComponent(world, camera.eid);
-  const audioListener = new AudioListener();
+  const audioListener = new AudioListenerEntity(world);
   playerRig.add(audioListener);
   const {
     scene: gltfScene,
@@ -181,10 +175,23 @@ async function main() {
         }
       }
       if (components["audio"]) {
-        const _b = components["audio"], { src } = _b, rest = __objRest(_b, ["src"]);
-        addAudioSourceComponent(world, eid, __spreadValues({
-          src: new URL(src, gltfRootPath).href
-        }, rest));
+        const _b = components["audio"], { src, audioType, loop, volume } = _b, rest = __objRest(_b, ["src", "audioType", "loop", "volume"]);
+        const absoluteUrl = new URL(src, gltfRootPath).href;
+        const el = createAudioElement(absoluteUrl);
+        el.loop = !!loop;
+        let audio;
+        if (audioType === "pannernode") {
+          audio = new PositionalAudioEntity(world, audioListener);
+          audio.setRefDistance(rest.refDistance !== void 0 ? rest.refDistance : 1);
+          audio.setRolloffFactor(rest.rolloffFactor !== void 0 ? rest.rolloffFactor : 1);
+          audio.setDistanceModel(rest.distanceModel || "inverse");
+          audio.setMaxDistance(rest.maxDistance !== void 0 ? rest.maxDistance : 1e4);
+          audio.setDirectionalCone(rest.coneInnerAngle !== void 0 ? rest.coneInnerAngle : 360, rest.coneOuterAngle !== void 0 ? rest.coneOuterAngle : 360, rest.coneOuterGain !== void 0 ? rest.coneOuterGain : 0);
+        } else {
+          audio = new AudioEntity(world, audioListener);
+        }
+        audio.setMediaElementSource(el);
+        audio.gain.gain.value = volume !== void 0 ? volume : 1;
       }
     }
     if (child.isMesh && !child.isSkinnedMesh) {
