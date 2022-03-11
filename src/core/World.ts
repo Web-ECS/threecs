@@ -5,7 +5,7 @@ import {
   WebGLRendererParameters,
   Renderer,
 } from "three";
-import { RendererSystem, RendererComponent } from "../systems/RendererSystem";
+import { RendererSystem } from "../systems/RendererSystem";
 import { ActionMappingSystem, ActionMap, ActionState } from "../systems/ActionMappingSystem";
 import {
   addEntity,

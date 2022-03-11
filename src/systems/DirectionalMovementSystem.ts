@@ -17,7 +17,7 @@ export const DirectionalMovementComponent = defineComponent({
   speed: Types.f32,
 });
 
-const directionalMovementQuery = defineQuery([
+export const directionalMovementQuery = defineQuery([
   DirectionalMovementComponent,
   Object3DComponent,
 ]);

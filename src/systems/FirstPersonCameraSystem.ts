@@ -1,6 +1,5 @@
 import { Vector2, MathUtils } from "three";
 import {
-  defineSystem,
   defineQuery,
   defineComponent,
   Types,
@@ -22,11 +21,11 @@ export const FirstPersonCameraYawTarget = defineComponent({
   sensitivity: Types.f32,
 });
 
-const cameraPitchTargetQuery = defineQuery([
+export const cameraPitchTargetQuery = defineQuery([
   FirstPersonCameraPitchTarget,
   Object3DComponent,
 ]);
-const cameraYawTargetQuery = defineQuery([
+export const cameraYawTargetQuery = defineQuery([
   FirstPersonCameraYawTarget,
   Object3DComponent,
 ]);

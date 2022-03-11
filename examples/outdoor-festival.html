@@ -54,9 +54,6 @@
         ACESFilmicToneMapping,
         sRGBEncoding,
         LoopRepeat,
-        AudioListener,
-        PositionalAudio,
-        Audio,
       } from "three";
       import { GLTFLoader } from "three/examples/jsm/loaders/GLTFLoader";
       import {
@@ -85,13 +82,23 @@
         AnimationSystem,
         addAnimationMixerComponent,
         addAnimationClipsComponent,
-        AudioSystem,
-        addAudioListenerComponent,
-        addAudioSourceComponent,
         MeshEntity,
         addEntity,
         addMapComponent,
+        AudioEntity,
+        AudioListenerEntity,
+        PositionalAudioEntity,
       } from "../src/threecs";
+
+      function createAudioElement(src) {
+        const el = document.createElement("audio");
+        el.addEventListener("canplay", () => {
+          el.play();
+        });
+        el.src = src;
+        el.playsinline = true;
+        return el;
+      }
 
       async function main() {
         const PhysicsSystem = await loadPhysicsSystem();
@@ -141,7 +148,6 @@
               FirstPersonCameraSystem,
               PhysicsCharacterControllerSystem,
               AnimationSystem,
-              AudioSystem,
               CrouchSystem,
               PhysicsSystem,
             ],
@@ -230,8 +236,7 @@
         playerRig.add(camera);
         playerRig.position.set(0, 0.1, 5);
         camera.position.set(0, 1.6, 0);
-        addAudioListenerComponent(world, camera.eid);
-        const audioListener = new AudioListener();
+        const audioListener = new AudioListenerEntity(world);
         playerRig.add(audioListener);
 
         const {
@@ -275,11 +280,49 @@
             }
 
             if (components["audio"]) {
-              const { src, ...rest } = components["audio"];
-              addAudioSourceComponent(world, eid, {
-                src: new URL(src, gltfRootPath).href,
-                ...rest,
-              });
+              const { src, audioType, loop, volume, ...rest } = components["audio"];
+              const absoluteUrl = new URL(src, gltfRootPath).href;
+              const el = createAudioElement(absoluteUrl);
+              el.loop = !!loop;
+
+              let audio;
+
+              if (audioType === "pannernode") {
+                audio = new PositionalAudioEntity(world, audioListener);
+
+                audio.setRefDistance(
+                  rest.refDistance !== undefined
+                    ? rest.refDistance
+                    : 1
+                );
+                audio.setRolloffFactor(
+                  rest.rolloffFactor !== undefined
+                    ? rest.rolloffFactor
+                    : 1
+                );
+                audio.setDistanceModel(rest.distanceModel || "inverse");
+                audio.setMaxDistance(
+                  rest.maxDistance !== undefined
+                    ? rest.maxDistance
+                    : 10000
+                );
+                audio.setDirectionalCone(
+                  rest.coneInnerAngle !== undefined
+                    ? rest.coneInnerAngle
+                    : 360,
+                  rest.coneOuterAngle !== undefined
+                    ? rest.coneOuterAngle
+                    : 360,
+                  rest.coneOuterGain !== undefined
+                    ? rest.coneOuterGain
+                    : 0
+                );
+              } else {
+                audio = new AudioEntity(world, audioListener);
+              }
+
+              audio.setMediaElementSource(el);
+              audio.gain.gain.value = volume !== undefined ? volume : 1;
             }
           }
 

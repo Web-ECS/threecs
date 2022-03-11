@@ -4,12 +4,9 @@ import {
   Mesh,
   Quaternion,
   ArrowHelper,
-  Euler,
-  BufferGeometry,
 } from "three";
 import { Object3DComponent } from "../core/components";
 import {
-  System,
   defineMapComponent,
   defineQuery,
   enterQuery,
@@ -73,7 +70,7 @@ export function createInteractionGroup(groups: number, mask: number) {
   return (groups << 16) | mask;
 }
 
-interface RigidBodyProps {
+export interface RigidBodyProps {
   translation: Vector3;
   rotation: Quaternion;
   shape?: PhysicsColliderShape;
@@ -84,13 +81,13 @@ interface RigidBodyProps {
   friction: number;
 }
 
-interface CapsuleRigidBodyProps extends RigidBodyProps {
+export interface CapsuleRigidBodyProps extends RigidBodyProps {
   shape: PhysicsColliderShape.Capsule;
   halfHeight: number;
   radius: number;
 }
 
-interface TrimeshRigidBodyProps extends RigidBodyProps {
+export interface TrimeshRigidBodyProps extends RigidBodyProps {
   indices?: Uint32Array;
   vertices?: Float32Array;
 }
@@ -148,7 +145,7 @@ export const rigidBodiesQuery = defineQuery([
 ]);
 export const newRigidBodiesQuery = enterQuery(rigidBodiesQuery);
 
-interface InternalRigidBodyProps {
+export interface InternalRigidBodyProps {
   body: Rapier.RigidBody;
   colliderShape: Rapier.Shape;
 }
@@ -156,7 +153,7 @@ interface InternalRigidBodyProps {
 export const InternalRigidBodyComponent =
   defineMapComponent<InternalRigidBodyProps>();
 
-interface PhysicsRaycasterProps {
+  export interface PhysicsRaycasterProps {
   useObject3DTransform: boolean;
   transformNeedsUpdate: boolean;
   transformAutoUpdate: boolean;
@@ -222,7 +219,7 @@ export function addPhysicsRaycasterComponent(
 export const physicsRaycasterQuery = defineQuery([PhysicsRaycasterComponent]);
 export const newPhysicsRaycastersQuery = enterQuery(physicsRaycasterQuery);
 
-interface InternalPhysicsRaycasterProps {
+export interface InternalPhysicsRaycasterProps {
   ray: Rapier.Ray;
   arrowHelper?: ArrowHelper;
 }

@@ -20,7 +20,7 @@ export interface ActionMap {
   actions: ActionDefinition[];
 }
 
-interface ActionDefinition {
+export interface ActionDefinition {
   id: string;
   path: string;
   type: ActionType;
@@ -33,22 +33,22 @@ export enum BindingType {
   DirectionalButtons = "DirectionalButtons",
 }
 
-interface ActionBinding {
+export interface ActionBinding {
   type: BindingType;
 }
 
-interface AxesBinding extends ActionBinding {
+export interface AxesBinding extends ActionBinding {
   type: BindingType.Axes;
   x: string;
   y: string;
 }
 
-interface ButtonBinding extends ActionBinding {
+export interface ButtonBinding extends ActionBinding {
   type: BindingType.Button;
   path: string;
 }
 
-interface DirectionalButtonsBinding extends ActionBinding {
+export interface DirectionalButtonsBinding extends ActionBinding {
   type: BindingType.DirectionalButtons;
   up: string;
   down: string;
@@ -56,7 +56,7 @@ interface DirectionalButtonsBinding extends ActionBinding {
   right: string;
 }
 
-type ActionBindingTypes =
+export type ActionBindingTypes =
   | AxesBinding
   | ButtonBinding
   | DirectionalButtonsBinding

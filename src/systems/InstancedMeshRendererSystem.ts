@@ -1,24 +1,11 @@
-import {
-  Object3D,
-  InstancedMesh,
-  Material,
-  Mesh,
-  BufferGeometry,
-  DynamicDrawUsage,
-} from "three";
 import { Object3DComponent } from "../core/components";
 import {
-  defineComponent,
   defineQuery,
-  addComponent,
-  addEntity,
-  addMapComponent,
-  setParentEntity,
 } from "../core/ECS";
-import { MeshEntity, Object3DEntity, InstancedMeshImposterEntity, InstancedMeshComponent, InstancedMeshImposterComponent, InstancedMeshEntity } from "../core/entities";
+import { InstancedMeshImposterEntity, InstancedMeshImposterComponent, InstancedMeshEntity } from "../core/entities";
 import { World } from '../core/World'
 
-const instancedMeshImposterQuery = defineQuery([
+export const instancedMeshImposterQuery = defineQuery([
   InstancedMeshImposterComponent,
   Object3DComponent,
 ]);

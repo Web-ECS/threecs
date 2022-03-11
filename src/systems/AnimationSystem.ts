@@ -9,13 +9,13 @@ import {
 import { World } from "../core/World";
 
 
-interface AnimationClipState {
+export interface AnimationClipState {
   index: number; // Index
   playing: boolean;
   loop?: number; // Three.js loop enum
 }
 
-interface AnimationMixerComponentProps {
+export  interface AnimationMixerComponentProps {
   state: AnimationClipState[];
 }
 
@@ -40,7 +40,7 @@ export function addAnimationMixerComponent(
   );
 }
 
-interface InternalAnimationMixerComponentProps {
+export interface InternalAnimationMixerComponentProps {
   actions: AnimationAction[];
   playingActions: boolean[];
   mixer: AnimationMixer;

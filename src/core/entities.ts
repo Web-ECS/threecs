@@ -612,7 +612,7 @@ export class Object3DEntity extends Object3DEntityMixin(Object3D) {
   }
 }
 
-const MeshBaseComponent = defineComponent({
+export const MeshBaseComponent = defineComponent({
   geometryEid: Types.eid,
   materialEid: Types.eid,
 });
@@ -654,7 +654,7 @@ export const MeshBaseEntityMixin = <T extends Object3D, O extends object = {}, R
   return ReturnType as unknown as Constructor<R, S>;
 }
 
-const MeshComponent = defineComponent()
+export const MeshComponent = defineComponent()
 export class MeshEntity extends MeshBaseEntityMixin<Mesh, IMeshBaseEntityProps>(Mesh) {
   constructor(world: World, geometry: IGeometryEntity, material: IMaterialEntity) {
     super(world, geometry, material);
@@ -662,7 +662,7 @@ export class MeshEntity extends MeshBaseEntityMixin<Mesh, IMeshBaseEntityProps>(
   }
 }
 
-const SkinnedMeshComponent = defineComponent();
+export const SkinnedMeshComponent = defineComponent();
 export class SkinnedMeshEntity extends MeshBaseEntityMixin(SkinnedMesh) {
   constructor(world: World, geometry: IGeometryEntity, material: IMaterialEntity) {
     super(world, geometry, material);
@@ -709,7 +709,7 @@ export class InstancedMeshEntity extends MeshBaseEntityMixin(InstancedMesh) {
   }
 }
 
-const BoneComponent = defineComponent();
+export const BoneComponent = defineComponent();
 export class BoneEntity extends Object3DEntityMixin(Bone) {
   constructor(world: World) {
     super(world);
@@ -719,7 +719,7 @@ export class BoneEntity extends Object3DEntityMixin(Bone) {
 
 export const CameraComponent = defineComponent();
 
-const OrthographicCameraComponent = defineComponent();
+export const OrthographicCameraComponent = defineComponent();
 export class OrthographicCameraEntity extends Object3DEntityMixin(OrthographicCamera) {
   constructor(world: World, ...args: ConstructorParameters<typeof OrthographicCamera>) {
     super(world, ...args);
@@ -728,7 +728,7 @@ export class OrthographicCameraEntity extends Object3DEntityMixin(OrthographicCa
   }
 }
 
-const PerspectiveCameraComponent = defineComponent();
+export const PerspectiveCameraComponent = defineComponent();
 export class PerspectiveCameraEntity extends Object3DEntityMixin(PerspectiveCamera) {
   constructor(world: World, ...args: ConstructorParameters<typeof OrthographicCamera>) {
     super(world, ...args);
@@ -737,7 +737,7 @@ export class PerspectiveCameraEntity extends Object3DEntityMixin(PerspectiveCame
   }
 }
 
-const GroupComponent = defineComponent();
+export const GroupComponent = defineComponent();
 export class GroupEntity extends Object3DEntityMixin(Group) {
   constructor(world: World) {
     super(world);
@@ -745,7 +745,7 @@ export class GroupEntity extends Object3DEntityMixin(Group) {
   }
 }
 
-const LineComponent = defineComponent();
+export const LineComponent = defineComponent();
 export class LineEntity extends MeshBaseEntityMixin(Line) {
   constructor(world: World, geometry: IGeometryEntity, material: IMaterialEntity) {
     super(world, geometry, material);
@@ -753,7 +753,7 @@ export class LineEntity extends MeshBaseEntityMixin(Line) {
   }
 }
 
-const LineLoopComponent = defineComponent();
+export const LineLoopComponent = defineComponent();
 export class LineLoopEntity extends MeshBaseEntityMixin(LineLoop) {
   constructor(world: World, geometry: IGeometryEntity, material: IMaterialEntity) {
     super(world, geometry, material);
@@ -761,7 +761,7 @@ export class LineLoopEntity extends MeshBaseEntityMixin(LineLoop) {
   }
 }
 
-const LineSegmentsComponent = defineComponent();
+export const LineSegmentsComponent = defineComponent();
 export class LineSegmentsEntity extends MeshBaseEntityMixin(LineSegments) {
   constructor(world: World, geometry: IGeometryEntity, material: IMaterialEntity) {
     super(world, geometry, material);
@@ -769,7 +769,7 @@ export class LineSegmentsEntity extends MeshBaseEntityMixin(LineSegments) {
   }
 }
 
-const PointLightComponent = defineComponent();
+export const PointLightComponent = defineComponent();
 export class PointLightEntity extends Object3DEntityMixin(PointLight) {
   constructor(world: World, ...args: ConstructorParameters<typeof PointLight>) {
     super(world, ...args);
@@ -777,7 +777,7 @@ export class PointLightEntity extends Object3DEntityMixin(PointLight) {
   }
 }
 
-const PointsComponent = defineComponent();
+export const PointsComponent = defineComponent();
 export class PointsEntity extends MeshBaseEntityMixin(Points) {
   constructor(world: World, geometry: IGeometryEntity, material: IMaterialEntity) {
     super(world, geometry, material);
@@ -785,7 +785,7 @@ export class PointsEntity extends MeshBaseEntityMixin(Points) {
   }
 }
 
-const SpotLightComponent = defineComponent();
+export const SpotLightComponent = defineComponent();
 export class SpotLightEntity extends Object3DEntityMixin(SpotLight) {
   constructor(world: World, ...args: ConstructorParameters<typeof SpotLight>) {
     super(world, ...args);
@@ -794,7 +794,7 @@ export class SpotLightEntity extends Object3DEntityMixin(SpotLight) {
 }
 
 
-const AudioComponent = defineComponent();
+export const AudioComponent = defineComponent();
 export class AudioEntity extends Object3DEntityMixin(Audio) {
   constructor(world: World, listener: AudioListenerEntity) {
     super(world, listener);
@@ -802,7 +802,7 @@ export class AudioEntity extends Object3DEntityMixin(Audio) {
   }
 }
 
-const PositionalAudioComponent = defineComponent();
+export const PositionalAudioComponent = defineComponent();
 export class PositionalAudioEntity extends Object3DEntityMixin(PositionalAudio) {
   constructor(world: World, listener: AudioListenerEntity) {
     super(world, listener);
@@ -810,7 +810,7 @@ export class PositionalAudioEntity extends Object3DEntityMixin(PositionalAudio) 
   }
 }
 
-const AudioListenerComponent = defineComponent();
+export const AudioListenerComponent = defineComponent();
 export class AudioListenerEntity extends Object3DEntityMixin(AudioListener) {
   constructor(world: World, ...args: ConstructorParameters<typeof AudioListener>) {
     super(world, ...args);

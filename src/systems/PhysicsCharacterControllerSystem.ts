@@ -1,7 +1,6 @@
-import { Vector2, Vector3, Quaternion, Object3D } from "three";
+import { Vector2, Vector3, Quaternion } from "three";
 import { Object3DComponent } from "../core/components";
 import {
-  defineSystem,
   defineMapComponent,
   defineQuery,
   enterQuery,

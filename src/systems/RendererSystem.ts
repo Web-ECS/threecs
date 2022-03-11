@@ -4,7 +4,6 @@ import { Object3DComponent } from "../core/components";
 import {
   defineQuery,
   singletonQuery,
-  defineSystem,
   defineMapComponent,
 } from "../core/ECS";
 import { World } from '../core/World'
