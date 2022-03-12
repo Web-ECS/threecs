@@ -3,7 +3,6 @@ import {
   WebGLRenderer,
   Clock,
   WebGLRendererParameters,
-  Renderer,
 } from "three";
 import { RendererSystem } from "../systems/RendererSystem";
 import { ActionMappingSystem, ActionMap, ActionState } from "../systems/ActionMappingSystem";
@@ -13,18 +12,19 @@ import {
   System,
 } from "./ECS";
 import { maxEntities } from "./config";
-import { PerspectiveCameraEntity, SceneEntity, } from "./entities";
+import { OrthographicCameraEntity, PerspectiveCameraEntity, SceneEntity, } from "./entities";
 import { Object3DComponent } from "./components";
 
 export interface World extends IWorld {
   dt: number;
   time: number;
+  elapsed: number;
   input: Map<string, number>;
   actionMaps: ActionMap[];
   actions: Map<string, ActionState>;
-  sceneEid: number;
-  cameraEid: number;
-  renderer: Renderer;
+  scene: SceneEntity;
+  camera: PerspectiveCameraEntity | OrthographicCameraEntity;
+  renderer: WebGLRenderer;
 }
 
 interface GLTFWorldOptions {
