@@ -14,6 +14,8 @@ import {
 import { maxEntities } from "./config";
 import { OrthographicCameraEntity, PerspectiveCameraEntity, SceneEntity, } from "./entities";
 import { Object3DComponent } from "./components";
+import { initInput } from "./input";
+import { InputResetSystem } from "../systems/InputResetSystem";
 
 export interface World extends IWorld {
   dt: number;
@@ -25,6 +27,7 @@ export interface World extends IWorld {
   scene: SceneEntity;
   camera: PerspectiveCameraEntity | OrthographicCameraEntity;
   renderer: WebGLRenderer;
+  resizeViewport: boolean;
 }
 
 interface GLTFWorldOptions {
@@ -56,7 +59,6 @@ export function createThreeWorld(options: GLTFWorldOptions = {}) {
   const world = createWorld<World>(maxEntities);
   world.dt = 0;
   world.time = 0;
-  world.objectEntityMap = new Map();
   world.input = new Map();
   world.actionMaps = actionMaps || [];
   world.actions = new Map();
@@ -99,38 +101,7 @@ export function createThreeWorld(options: GLTFWorldOptions = {}) {
   canvasStyle.width = "100%";
   canvasStyle.height = "100%";
 
-  if (pointerLock) {
-    renderer.domElement.addEventListener("mousedown", () => {
-      renderer.domElement.requestPointerLock();
-    });
-  }
-
-  window.addEventListener("keydown", (e) => {
-    world.input.set(`Keyboard/${e.code}`, 1);
-  });
-
-  window.addEventListener("keyup", (e) => {
-    world.input.set(`Keyboard/${e.code}`, 0);
-  });
-
-  window.addEventListener("mousemove", (e) => {
-    if (pointerLock && document.pointerLockElement === renderer.domElement) {
-      world.input.set(
-        "Mouse/movementX",
-        world.input.get("Mouse/movementX")! + e.movementX
-      );
-      world.input.set(
-        "Mouse/movementY",
-        world.input.get("Mouse/movementY")! + e.movementY
-      );
-    }
-  });
-
-  window.addEventListener("blur", () => {
-    for (const key of world.input.keys()) {
-      world.input.set(key, 0);
-    }
-  });
+  const disposeInput = initInput(world, { pointerLock });
 
   if (typeof (window as any).__THREE_DEVTOOLS__ !== "undefined") {
     (window as any).__THREE_DEVTOOLS__.dispatchEvent(
@@ -149,6 +120,7 @@ export function createThreeWorld(options: GLTFWorldOptions = {}) {
     RendererSystem,
     ...afterRenderSystems,
     Object3DComponent.disposeSystem,
+    InputResetSystem,
   );
 
   return {
@@ -158,9 +130,10 @@ export function createThreeWorld(options: GLTFWorldOptions = {}) {
         world.dt = clock.getDelta();
         world.time = clock.getElapsedTime();
         pipeline(world);
-        world.input.set("Mouse/movementX", 0);
-        world.input.set("Mouse/movementY", 0);
       });
     },
+    dispose() {
+      disposeInput();
+    }
   };
 }

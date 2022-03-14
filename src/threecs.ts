@@ -19,9 +19,11 @@ export * from "./core/ECS";
 export * from "./core/World";
 export * from "./core/benchmark";
 export * from "./core/utils";
+export * from "./core/input";
 
 export * from "./systems/RendererSystem";
 export * from "./systems/ActionMappingSystem";
+export * from "./systems/InputResetSystem";
 export * from "./systems/DirectionalMovementSystem";
 export * from "./systems/FirstPersonCameraSystem";
 export * from "./systems/PhysicsSystem";

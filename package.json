@@ -24,14 +24,14 @@
   "devDependencies": {
     "@dimforge/rapier3d-compat": "^0.7.6",
     "@types/three": "^0.138.0",
-    "bitecs": "^0.3.36",
+    "bitecs": "^0.3.37",
     "three": "^0.138.0",
     "typescript": "^4.4.4",
     "vite": "^2.8.5"
   },
   "peerDependencies": {
     "@dimforge/rapier3d-compat": "^0.7.6",
-    "bitecs": "^0.3.36",
+    "bitecs": "^0.3.37",
     "three": "^0.138.0"
   }
 }
