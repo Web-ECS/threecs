@@ -18,7 +18,7 @@ var __publicField = (obj, key, value) => {
   __defNormalProp(obj, typeof key !== "symbol" ? key + "" : key, value);
   return value;
 };
-import { E as Euler, Q as Quaternion, V as Vector3, d as defineComponent, f as exitQuery, a as defineQuery, e as defineSystem, b as addComponent, r as removeEntity, c as Types, g as addEntity, O as Object3D, h as removeComponent, i as hasComponent, j as Texture, C as CanvasTexture, k as CompressedTexture, l as CubeTexture, D as DataTexture, m as DepthTexture, n as VideoTexture, B as BoxGeometry, o as CircleGeometry, p as ConeGeometry, q as CylinderGeometry, s as DodecahedronGeometry, t as EdgesGeometry, u as ExtrudeGeometry, I as IcosahedronGeometry, L as LatheGeometry, v as OctahedronGeometry, P as PlaneGeometry, w as PolyhedronGeometry, R as RingGeometry, S as ShapeGeometry, x as SphereGeometry, y as TetrahedronGeometry, z as TorusGeometry, A as TorusKnotGeometry, F as TubeGeometry, W as WireframeGeometry, G as LineBasicMaterial, H as LineDashedMaterial, M as MeshBasicMaterial, J as MeshDepthMaterial, K as MeshDistanceMaterial, N as MeshLambertMaterial, U as MeshMatcapMaterial, X as MeshNormalMaterial, Y as MeshPhongMaterial, Z as MeshPhysicalMaterial, _ as MeshStandardMaterial, $ as MeshToonMaterial, a0 as PointsMaterial, a1 as RawShaderMaterial, a2 as ShaderMaterial, a3 as ShadowMaterial, a4 as SpriteMaterial, a5 as Scene, a6 as Mesh, a7 as SkinnedMesh, a8 as InstancedMesh, a9 as DynamicDrawUsage, aa as Bone, ab as OrthographicCamera, ac as PerspectiveCamera, ad as Group, ae as Line, af as LineLoop, ag as LineSegments, ah as PointLight, ai as Points, aj as SpotLight, ak as Audio, al as PositionalAudio, am as AudioListener, an as Vector2, ao as createWorld, ap as WebGLRenderer, aq as Clock, ar as pipe, as as MathUtils, at as $, au as FI, av as BI, aw as iA, ax as pA, ay as ZA, az as uA, aA as zA, aB as ArrowHelper, aC as enterQuery, aD as HA, aE as TA, aF as AnimationMixer } from "./vendor.95af2766.js";
+import { E as Euler, Q as Quaternion, V as Vector3, d as defineComponent, f as exitQuery, a as defineQuery, e as defineSystem, b as addComponent, r as removeEntity, c as Types, g as addEntity, O as Object3D, h as removeComponent, i as hasComponent, j as Texture, C as CanvasTexture, k as CompressedTexture, l as CubeTexture, D as DataTexture, m as DepthTexture, n as VideoTexture, B as BoxGeometry, o as CircleGeometry, p as ConeGeometry, q as CylinderGeometry, s as DodecahedronGeometry, t as EdgesGeometry, u as ExtrudeGeometry, I as IcosahedronGeometry, L as LatheGeometry, v as OctahedronGeometry, P as PlaneGeometry, w as PolyhedronGeometry, R as RingGeometry, S as ShapeGeometry, x as SphereGeometry, y as TetrahedronGeometry, z as TorusGeometry, A as TorusKnotGeometry, F as TubeGeometry, W as WireframeGeometry, G as LineBasicMaterial, H as LineDashedMaterial, M as MeshBasicMaterial, J as MeshDepthMaterial, K as MeshDistanceMaterial, N as MeshLambertMaterial, U as MeshMatcapMaterial, X as MeshNormalMaterial, Y as MeshPhongMaterial, Z as MeshPhysicalMaterial, _ as MeshStandardMaterial, $ as MeshToonMaterial, a0 as PointsMaterial, a1 as RawShaderMaterial, a2 as ShaderMaterial, a3 as ShadowMaterial, a4 as SpriteMaterial, a5 as Scene, a6 as Mesh, a7 as SkinnedMesh, a8 as InstancedMesh, a9 as DynamicDrawUsage, aa as Bone, ab as OrthographicCamera, ac as PerspectiveCamera, ad as Group, ae as Line, af as LineLoop, ag as LineSegments, ah as PointLight, ai as Points, aj as SpotLight, ak as Audio, al as PositionalAudio, am as AudioListener, an as Vector2, ao as createWorld, ap as WebGLRenderer, aq as Clock, ar as pipe, as as MathUtils, at as $, au as FI, av as BI, aw as iA, ax as pA, ay as ZA, az as uA, aA as zA, aB as ArrowHelper, aC as enterQuery, aD as HA, aE as TA, aF as AnimationMixer } from "./vendor.c084ab64.js";
 const p = function polyfill() {
   const relList = document.createElement("link").relList;
   if (relList && relList.supports && relList.supports("modulepreload")) {
@@ -1236,6 +1236,48 @@ const ActionMappingSystem = defineSystem(function ActionMappingSystem2(world) {
   }
   return world;
 });
+function initInput(world, options = {}) {
+  function onMouseDown() {
+    world.renderer.domElement.requestPointerLock();
+  }
+  if (options.pointerLock) {
+    console.log("request pointer lock");
+    world.renderer.domElement.addEventListener("mousedown", onMouseDown);
+  }
+  function onKeyDown(e) {
+    world.input.set(`Keyboard/${e.code}`, 1);
+  }
+  function onKeyUp(e) {
+    world.input.set(`Keyboard/${e.code}`, 0);
+  }
+  function onMouseMove(e) {
+    if (options.pointerLock && document.pointerLockElement === world.renderer.domElement) {
+      world.input.set("Mouse/movementX", world.input.get("Mouse/movementX") + e.movementX);
+      world.input.set("Mouse/movementY", world.input.get("Mouse/movementY") + e.movementY);
+    }
+  }
+  function onBlur() {
+    for (const key of world.input.keys()) {
+      world.input.set(key, 0);
+    }
+  }
+  window.addEventListener("keydown", onKeyDown);
+  window.addEventListener("keyup", onKeyUp);
+  window.addEventListener("mousemove", onMouseMove);
+  window.addEventListener("blur", onBlur);
+  return function dispose() {
+    window.removeEventListener("keydown", onKeyDown);
+    window.removeEventListener("keyup", onKeyUp);
+    window.removeEventListener("mousemove", onMouseMove);
+    window.removeEventListener("blur", onBlur);
+    world.renderer.domElement.removeEventListener("mousedown", onMouseDown);
+  };
+}
+function InputResetSystem(world) {
+  world.input.set("Mouse/movementX", 0);
+  world.input.set("Mouse/movementY", 0);
+  return world;
+}
 function createThreeWorld(options = {}) {
   const {
     pointerLock,
@@ -1253,7 +1295,6 @@ function createThreeWorld(options = {}) {
   const world = createWorld(maxEntities);
   world.dt = 0;
   world.time = 0;
-  world.objectEntityMap = /* @__PURE__ */ new Map();
   world.input = /* @__PURE__ */ new Map();
   world.actionMaps = actionMaps || [];
   world.actions = /* @__PURE__ */ new Map();
@@ -1282,34 +1323,13 @@ function createThreeWorld(options = {}) {
   canvasStyle.position = "absolute";
   canvasStyle.width = "100%";
   canvasStyle.height = "100%";
-  if (pointerLock) {
-    renderer.domElement.addEventListener("mousedown", () => {
-      renderer.domElement.requestPointerLock();
-    });
-  }
-  window.addEventListener("keydown", (e) => {
-    world.input.set(`Keyboard/${e.code}`, 1);
-  });
-  window.addEventListener("keyup", (e) => {
-    world.input.set(`Keyboard/${e.code}`, 0);
-  });
-  window.addEventListener("mousemove", (e) => {
-    if (pointerLock && document.pointerLockElement === renderer.domElement) {
-      world.input.set("Mouse/movementX", world.input.get("Mouse/movementX") + e.movementX);
-      world.input.set("Mouse/movementY", world.input.get("Mouse/movementY") + e.movementY);
-    }
-  });
-  window.addEventListener("blur", () => {
-    for (const key of world.input.keys()) {
-      world.input.set(key, 0);
-    }
-  });
+  const disposeInput = initInput(world, { pointerLock });
   if (typeof window.__THREE_DEVTOOLS__ !== "undefined") {
     window.__THREE_DEVTOOLS__.dispatchEvent(new CustomEvent("observe", { detail: scene }));
     window.__THREE_DEVTOOLS__.dispatchEvent(new CustomEvent("observe", { detail: renderer }));
   }
   const clock = new Clock();
-  const pipeline = pipe(ActionMappingSystem, ...systems, RendererSystem, ...afterRenderSystems, Object3DComponent.disposeSystem);
+  const pipeline = pipe(ActionMappingSystem, ...systems, RendererSystem, ...afterRenderSystems, Object3DComponent.disposeSystem, InputResetSystem);
   return {
     world,
     start() {
@@ -1317,9 +1337,10 @@ function createThreeWorld(options = {}) {
         world.dt = clock.getDelta();
         world.time = clock.getElapsedTime();
         pipeline(world);
-        world.input.set("Mouse/movementX", 0);
-        world.input.set("Mouse/movementY", 0);
       });
+    },
+    dispose() {
+      disposeInput();
     }
   };
 }

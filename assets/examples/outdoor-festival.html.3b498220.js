@@ -13,8 +13,8 @@ var __objRest = (source, exclude) => {
     }
   return target;
 };
-import { l as loadPhysicsSystem, a as singletonQuery, O as Object3DComponent, c as createThreeWorld, F as FirstPersonCameraSystem, P as PhysicsCharacterControllerSystem, A as AnimationSystem, b as FirstPersonCameraActions, d as ActionType, B as BindingType, e as PhysicsCharacterControllerActions, f as addPhysicsWorldComponent, g as addPhysicsCharacterControllerEntity, h as FirstPersonCameraYawTarget, i as FirstPersonCameraPitchTarget, j as AudioListenerEntity, k as addMapComponent, m as addAnimationClipsComponent, n as PositionalAudioEntity, o as AudioEntity, p as addRigidBodyComponent, q as PhysicsColliderShape, t as addAnimationMixerComponent } from "../AnimationSystem.1fc34b0b.js";
-/* empty css                  */import { d as defineComponent, a as defineQuery, aG as ACESFilmicToneMapping, aH as sRGBEncoding, b as addComponent, aI as GLTFLoader, g as addEntity } from "../vendor.95af2766.js";
+import { l as loadPhysicsSystem, a as singletonQuery, O as Object3DComponent, c as createThreeWorld, F as FirstPersonCameraSystem, P as PhysicsCharacterControllerSystem, A as AnimationSystem, b as FirstPersonCameraActions, d as ActionType, B as BindingType, e as PhysicsCharacterControllerActions, f as addPhysicsWorldComponent, g as addPhysicsCharacterControllerEntity, h as FirstPersonCameraYawTarget, i as FirstPersonCameraPitchTarget, j as AudioListenerEntity, k as addMapComponent, m as addAnimationClipsComponent, n as PositionalAudioEntity, o as AudioEntity, p as addRigidBodyComponent, q as PhysicsColliderShape, t as addAnimationMixerComponent } from "../AnimationSystem.00f7d807.js";
+/* empty css                  */import { d as defineComponent, a as defineQuery, aG as ACESFilmicToneMapping, aH as sRGBEncoding, b as addComponent, aI as GLTFLoader, g as addEntity } from "../vendor.c084ab64.js";
 var outdoorFestival_html_htmlProxy_index_0 = "";
 function createAudioElement(src) {
   const el = document.createElement("audio");

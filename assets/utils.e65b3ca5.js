@@ -1,4 +1,4 @@
-import { O as Object3DComponent } from "./AnimationSystem.1fc34b0b.js";
+import { O as Object3DComponent } from "./AnimationSystem.00f7d807.js";
 const { sin, cos } = Math;
 const EulerOrder = ["XYZ", "YZX", "ZXY", "XZY", "YXZ", "ZYX"];
 const setQuaternionFromEulerAoA = (quaternion, rotation) => {

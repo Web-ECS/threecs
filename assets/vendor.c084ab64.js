@@ -26121,11 +26121,7 @@ var registerQuery = (world, query) => {
   const notMasks = notComponents.map(mapComponents).reduce(reduceBitflags, {});
   const hasMasks = allComponents.reduce(reduceBitflags, {});
   const flatProps = components2.filter((c2) => !c2[$tagStore]).map((c2) => Object.getOwnPropertySymbols(c2).includes($storeFlattened) ? c2[$storeFlattened] : [c2]).reduce((a2, v2) => a2.concat(v2), []);
-  const shadows = flatProps.map((prop) => {
-    const $2 = Symbol();
-    createShadow(prop, $2);
-    return prop[$2];
-  });
+  const shadows = [];
   const q2 = Object.assign(sparseSet, {
     archetypes,
     changed,
@@ -26158,6 +26154,13 @@ var registerQuery = (world, query) => {
       queryAddEntity(q2, eid);
   }
 };
+var generateShadow = (q2, pid) => {
+  const $2 = Symbol();
+  const prop = q2.flatProps[pid];
+  createShadow(prop, $2);
+  q2.shadows[pid] = prop[$2];
+  return prop[$2];
+};
 var diff = (q2, clearDiff) => {
   if (clearDiff)
     q2.changed = [];
@@ -26167,7 +26170,7 @@ var diff = (q2, clearDiff) => {
     let dirty = false;
     for (let pid = 0; pid < flatProps.length; pid++) {
       const prop = flatProps[pid];
-      const shadow = shadows[pid];
+      const shadow = shadows[pid] || generateShadow(q2, pid);
       if (ArrayBuffer.isView(prop[eid])) {
         for (let i22 = 0; i22 < prop[eid].length; i22++) {
           if (prop[eid][i22] !== shadow[eid][i22]) {

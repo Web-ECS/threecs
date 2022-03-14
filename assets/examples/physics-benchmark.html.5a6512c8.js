@@ -1,5 +1,5 @@
-import { l as loadPhysicsSystem, c as createThreeWorld, I as InstancedMeshImposterSystem, f as addPhysicsWorldComponent, u as InstancedMeshEntity, v as setChildEntity, w as InstancedMeshImposterEntity, p as addRigidBodyComponent, R as RigidBodyType, M as MeshEntity } from "../AnimationSystem.1fc34b0b.js";
-/* empty css                  */import { T as TextureLoader, B as BoxGeometry, M as MeshBasicMaterial, x as SphereGeometry } from "../vendor.95af2766.js";
+import { l as loadPhysicsSystem, c as createThreeWorld, I as InstancedMeshImposterSystem, f as addPhysicsWorldComponent, u as InstancedMeshEntity, v as setChildEntity, w as InstancedMeshImposterEntity, p as addRigidBodyComponent, R as RigidBodyType, M as MeshEntity } from "../AnimationSystem.00f7d807.js";
+/* empty css                  */import { T as TextureLoader, B as BoxGeometry, M as MeshBasicMaterial, x as SphereGeometry } from "../vendor.c084ab64.js";
 import { c as crateTextureUrl } from "../crate.9cc70004.js";
 function benchmark(system, count = 500) {
   const times = [];
