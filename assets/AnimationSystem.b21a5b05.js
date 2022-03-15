@@ -1142,9 +1142,10 @@ class AudioListenerEntity extends Object3DEntityMixin(AudioListener) {
   }
 }
 defineMapComponent();
+const ActiveCamera = defineComponent();
 const sceneQuery = defineQuery([Object3DComponent, SceneComponent]);
 const mainSceneQuery = singletonQuery(sceneQuery);
-const cameraQuery = defineQuery([Object3DComponent, CameraComponent]);
+const cameraQuery = defineQuery([Object3DComponent, ActiveCamera]);
 const RendererSystem = function RendererSystem2(world) {
   const { renderer } = world;
   const scenes = sceneQuery(world);
@@ -1307,6 +1308,7 @@ function createThreeWorld(options = {}) {
   const scene = new SceneEntity(world);
   world.scene = scene;
   const camera = new PerspectiveCameraEntity(world);
+  addComponent(world, ActiveCamera, camera.eid);
   world.camera = camera;
   scene.add(camera);
   const renderer = new WebGLRenderer(__spreadValues({
@@ -1523,7 +1525,7 @@ async function loadPhysicsSystem() {
       });
     });
     if (physicsWorldEid === void 0) {
-      return;
+      return world;
     }
     const internalPhysicsWorldComponent = InternalPhysicsWorldComponent.store.get(physicsWorldEid);
     const { physicsWorld, colliderHandleToEntityMap } = internalPhysicsWorldComponent;
@@ -1532,7 +1534,7 @@ async function loadPhysicsSystem() {
       const rigidBodyProps = RigidBodyComponent.store.get(rigidBodyEid);
       const geometry = obj.geometry;
       if (!geometry && !rigidBodyProps.shape) {
-        return;
+        return world;
       }
       obj.getWorldPosition(tempVec3);
       obj.getWorldQuaternion(tempQuat);

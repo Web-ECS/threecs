@@ -1,6 +1,6 @@
-import { c as createThreeWorld, O as Object3DComponent, M as MeshEntity, E as BoxGeometryEntity, G as MeshBasicMaterialEntity } from "../AnimationSystem.00f7d807.js";
+import { c as createThreeWorld, O as Object3DComponent, M as MeshEntity, E as BoxGeometryEntity, G as MeshBasicMaterialEntity } from "../AnimationSystem.b21a5b05.js";
 /* empty css                  */import { d as defineComponent, a as defineQuery, T as TextureLoader, b as addComponent, c as Types } from "../vendor.c084ab64.js";
-import { u as updateQuaternion } from "../utils.e65b3ca5.js";
+import { u as updateQuaternion } from "../utils.1beddbf6.js";
 import { c as crateTextureUrl } from "../crate.9cc70004.js";
 const RotateComponent = defineComponent({
   axis: [Types.f32, 3],

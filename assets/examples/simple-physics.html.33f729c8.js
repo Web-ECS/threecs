@@ -1,4 +1,4 @@
-import { l as loadPhysicsSystem, c as createThreeWorld, f as addPhysicsWorldComponent, M as MeshEntity, O as Object3DComponent, p as addRigidBodyComponent, R as RigidBodyType, v as setChildEntity } from "../AnimationSystem.00f7d807.js";
+import { l as loadPhysicsSystem, c as createThreeWorld, f as addPhysicsWorldComponent, M as MeshEntity, O as Object3DComponent, p as addRigidBodyComponent, R as RigidBodyType, v as setChildEntity } from "../AnimationSystem.b21a5b05.js";
 /* empty css                  */import { T as TextureLoader, B as BoxGeometry, M as MeshBasicMaterial, x as SphereGeometry } from "../vendor.c084ab64.js";
 import { c as crateTextureUrl } from "../crate.9cc70004.js";
 const setVec3 = (v1, v2) => {

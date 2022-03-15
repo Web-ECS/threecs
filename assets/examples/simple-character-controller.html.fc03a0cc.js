@@ -1,4 +1,4 @@
-import { c as createThreeWorld, F as FirstPersonCameraSystem, D as DirectionalMovementSystem, b as FirstPersonCameraActions, d as ActionType, B as BindingType, x as DirectionalMovementActions, y as Object3DEntity, v as setChildEntity, z as DirectionalMovementComponent, h as FirstPersonCameraYawTarget, i as FirstPersonCameraPitchTarget, O as Object3DComponent, M as MeshEntity } from "../AnimationSystem.00f7d807.js";
+import { c as createThreeWorld, F as FirstPersonCameraSystem, D as DirectionalMovementSystem, b as FirstPersonCameraActions, d as ActionType, B as BindingType, x as DirectionalMovementActions, y as Object3DEntity, v as setChildEntity, z as DirectionalMovementComponent, h as FirstPersonCameraYawTarget, i as FirstPersonCameraPitchTarget, O as Object3DComponent, M as MeshEntity } from "../AnimationSystem.b21a5b05.js";
 /* empty css                  */import { b as addComponent, T as TextureLoader, B as BoxGeometry, M as MeshBasicMaterial } from "../vendor.c084ab64.js";
 import { c as crateTextureUrl } from "../crate.9cc70004.js";
 const setVec3 = (v1, v2) => {
