@@ -1,18 +1,20 @@
 import { PerspectiveCamera, WebGLRenderer, Scene } from "three";
-import { CameraComponent, SceneComponent } from "../core/entities";
+import { SceneComponent } from "../core/entities";
 import { Object3DComponent } from "../core/components";
 import {
   defineQuery,
   singletonQuery,
   defineMapComponent,
+  defineComponent
 } from "../core/ECS";
 import { World } from '../core/World'
 
 export const RendererComponent = defineMapComponent<WebGLRenderer>();
+export const ActiveCamera = defineComponent();
 
 export const sceneQuery = defineQuery([Object3DComponent, SceneComponent]);
 export const mainSceneQuery = singletonQuery(sceneQuery);
-export const cameraQuery = defineQuery([Object3DComponent, CameraComponent]);
+export const cameraQuery = defineQuery([Object3DComponent, ActiveCamera]);
 
 export const RendererSystem = function RendererSystem(
   world: World

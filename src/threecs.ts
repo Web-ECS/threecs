@@ -24,6 +24,7 @@ export * from "./core/input";
 export * from "./systems/RendererSystem";
 export * from "./systems/ActionMappingSystem";
 export * from "./systems/InputResetSystem";
+export * from "./systems/InputDebugSystem";
 export * from "./systems/DirectionalMovementSystem";
 export * from "./systems/FirstPersonCameraSystem";
 export * from "./systems/PhysicsSystem";

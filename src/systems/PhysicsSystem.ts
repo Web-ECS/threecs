@@ -227,7 +227,7 @@ export interface InternalPhysicsRaycasterProps {
 export const InternalPhysicsRaycasterComponent =
   defineMapComponent<InternalPhysicsRaycasterProps>();
 
-export async function loadPhysicsSystem(): Promise<Function> {
+export async function loadPhysicsSystem(): Promise<(world: World) => World> {
   await Rapier.init();
 
   const tempVec3 = new Vector3();
@@ -251,7 +251,7 @@ export async function loadPhysicsSystem(): Promise<Function> {
     });
 
     if (physicsWorldEid === undefined) {
-      return;
+      return world;
     }
 
     const internalPhysicsWorldComponent =
@@ -266,7 +266,7 @@ export async function loadPhysicsSystem(): Promise<Function> {
       const geometry = (obj as IObject3DEntity<Mesh>).geometry;
 
       if (!geometry && !rigidBodyProps.shape) {
-        return;
+        return world;
       }
 
       obj.getWorldPosition(tempVec3);

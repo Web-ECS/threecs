@@ -1,10 +1,10 @@
-import { createWorld, IWorld } from "bitecs";
+import { addComponent, createWorld, IWorld } from "bitecs";
 import {
   WebGLRenderer,
   Clock,
   WebGLRendererParameters,
 } from "three";
-import { RendererSystem } from "../systems/RendererSystem";
+import { RendererSystem, ActiveCamera } from "../systems/RendererSystem";
 import { ActionMappingSystem, ActionMap, ActionState } from "../systems/ActionMappingSystem";
 import {
   addEntity,
@@ -77,6 +77,7 @@ export function createThreeWorld(options: GLTFWorldOptions = {}) {
   world.scene = scene;
 
   const camera = new PerspectiveCameraEntity(world);
+  addComponent(world, ActiveCamera, camera.eid);
   world.camera = camera;
   scene.add(camera);
 
